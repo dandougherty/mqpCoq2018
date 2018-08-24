@@ -1,4 +1,93 @@
-.*.aux
+# Time-stamp: <Fri 8/24/18 14:30 Dan Dougherty .gitignore_global>
+# This serves as a global gitignore by virtue of the fact that it is
+# named in ~/.gitconfig in the line core.excludesFile.
+# See https://git-scm.com/docs/gitignore
+
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+
+# Emacs backup files and file locks
+*~
+.#*
+
+
+# directories to put stuff not to be managed by git
+private
+PRIVATE
+private
+.private
+LOCAL
+local 
+.local
+ATTIC
+
+# General
+*.local
+*.local.*
+TAGS
+tags
+
+# Latex junk
+auto
+*.aux
+*.bbl
+*.blg
+*.dvi
+*.fls
+*.glg
+*.glo
+*.gls
+*.idx
+*.ilg
+*.ind
+*.ist
+*.lof
+*.log
+*.lot
+*.nlo
+*.out
+*.toc
+*.fdb_latexmk
+*.pdfsync
+*.synctex.gz
+*.nav
+*.snm
+*.vrb
+*.logmake
+*.rel
+*.cb
+*.cb2
+
+# Coq junk
+
+\#*#
+*~
+*.glob
 *.a
 *.cma
 *.cmi
@@ -28,3 +117,41 @@ lia.cache
 nia.cache
 nlia.cache
 nra.cache
+
+
+# Python junk
+*.pyc
+
+# Haskell (eg)
+dist
+dist-*
+cabal-dev
+*.o
+*.hi
+*.chi
+*.chs.h
+*.dyn_o
+*.dyn_hi
+.hpc
+.hsenv
+.cabal-sandbox/
+cabal.sandbox.config
+*.prof
+*.aux
+*.hp
+*.eventlog
+.stack-work/
+cabal.project.local
+.HTF/
+# iHaskell/Jupyter stuff
+.ipynb_checkpoints
+
+
+# OS generated files #
+######################
+.DS_Store
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
