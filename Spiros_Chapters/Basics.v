@@ -1288,14 +1288,6 @@ Proof.
   destruct b.
     - simpl. intros H1. rewrite H1. reflexivity.
     - simpl. intros H2. rewrite H2. reflexivity.
-
-
-    
-(*
-intros b c. destruct b.
-  - simpl. intros H. rewrite H. reflexivity.
-  - simpl. intros H. rewrite H. reflexivity.
-*)
 Qed.
 
 (** [] *)
@@ -1366,9 +1358,9 @@ Fixpoint bin_to_nat (bit_field:bin) : nat :=
   | Dp1 b' => (plus 1 (mult 2 (bin_to_nat b')))
   end.
 
-Example test_bin_to_nat2: (bin_to_nat (Dp1 Z)) = 1.
+Example test_bin_to_nat1: (bin_to_nat (Dp1 Z)) = 1.
 Proof. simpl. reflexivity. Qed.
-Example test_bin_to_nat1: (bin_to_nat Z) = 0.
+Example test_bin_to_nat2: (bin_to_nat Z) = 0.
 Proof. simpl. reflexivity. Qed.
 
 Example test_bin_incr1: (incr (Dp1 Z)) = (D (Dp1 Z)).
