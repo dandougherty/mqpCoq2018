@@ -415,12 +415,14 @@ Theorem plus_n_n_injective : forall n m,
      n + n = m + m ->
      n = m.
 Proof.
-  (* intros n m H. induction n as [| n'].
-    - destruct m.
-      + reflexivity.
-      + simpl in H. rewrite H. inversion H. 
-    - destruct m.
-      + simpl in H. rewrite H. inversion H. *)
+  intros n. induction n as [|n'].
+  - simpl. intros m H. destruct m as [|m'].
+    + reflexivity.
+    + inversion H.
+  - simpl. intros m H. destruct m as [|m'].
+    + inversion H.
+    + apply f_equal. apply IHn'. simpl in H. apply S_injective in H. (* LAST STEP DOES NOT WORK.
+TRYING TO APPLY plus_n_Sm in H, then S_injective in H and then rewrite H. Then Done. But cannot use plus_n_Sm*)
   (* FILL IN HERE *)
  Admitted.
 (** [] *)
@@ -588,7 +590,7 @@ Proof.
     + simpl.
       inversion eq.
     + apply f_equal.
-      apply IHn'. inversion eq. reflexivity. 
+      apply IHn'. apply eq. 
 Qed.
 
 (** [] *)
@@ -905,7 +907,8 @@ Theorem combine_split : forall X Y (l : list (X * Y)) l1 l2,
 Proof.
 intros X Y l l1 l2. unfold split. 
   destruct l.
-  - unfold combine. simpl .
+  - intros H. inversion H. simpl. reflexivity.
+  - intros H. 
 Abort.
 
 (** [] *)
@@ -1067,12 +1070,12 @@ Theorem beq_nat_sym : forall (n m : nat),
   beq_nat n m = beq_nat m n.
 Proof.
 intros n m. generalize dependent m. induction n as [| n' IHn'].
-  - simpl. induction m.
-    + reflexivity.
-    + reflexivity.
-  - simpl. induction m.
-    + reflexivity.
-    + apply IHn'.
+  - simpl. destruct m.
+    + simpl. reflexivity.
+    + simpl. reflexivity.
+  - simpl. destruct m.
+    + simpl. reflexivity.
+    + simpl. apply IHn'.
 Qed.
 (** [] *)
 
@@ -1093,7 +1096,14 @@ Theorem beq_nat_trans : forall n m p,
   beq_nat m p = true ->
   beq_nat n p = true.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n m p H1 H2.
+  apply beq_nat_true in H1.
+  apply beq_nat_true in H2. 
+  rewrite H1. rewrite H2.
+  rewrite <- beq_nat_refl.
+  reflexivity.
+Qed.
+
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (split_combine)  *)
@@ -1109,15 +1119,23 @@ Proof.
     things than necessary.  Hint: what property do you need of [l1]
     and [l2] for [split] [combine l1 l2 = (l1,l2)] to be true?) *)
 
-Definition split_combine_statement : Prop
-  (* ("[: Prop]" means that we are giving a name to a
-     logical proposition here.) *)
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition split_combine_statement : Prop := 
+  forall (X Y : Type) (l1 : list X) (l2 : list Y),
+  (length l1) = (length l2) -> split (combine l1 l2) = (l1, l2).
 
 Theorem split_combine : split_combine_statement.
 Proof.
-(* FILL IN HERE *) Admitted.
-
+intros X Y l1 l2 H. generalize dependent H. generalize dependent l1. generalize dependent l2. 
+  intros l1. induction l1.
+  - intros l2. destruct l2.
+    + simpl. reflexivity.
+    + simpl. intros H. inversion H.
+  - intros l2. destruct l2.
+    + simpl. intros. inversion H.
+    + intros H. simpl. rewrite IHl1.
+      * reflexivity.
+      * inversion H. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (filter_exercise)  *)
