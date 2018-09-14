@@ -278,7 +278,11 @@ Proof.
 Theorem SSSSev__even : forall n,
   ev (S (S (S (S n)))) -> ev n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  inversion H.
+  inversion H1.
+  apply H3.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star (even5_nonsense)  *)
@@ -287,7 +291,11 @@ Proof.
 Theorem even5_nonsense :
   ev 5 -> 2 + 2 = 9.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  inversion H.
+  inversion H1.
+  inversion H3.
+Qed.
 (** [] *)
 
 (** The way we've used [inversion] here may seem a bit
@@ -355,7 +363,7 @@ Proof.
     { intros [k' Hk']. rewrite Hk'. exists (S k'). reflexivity. }
     apply I. (* reduce the original goal to the new one *)
 
-Admitted.
+Abort.
 
 (* ================================================================= *)
 (** ** Induction on Evidence *)
@@ -413,7 +421,11 @@ Qed.
 (** **** Exercise: 2 stars (ev_sum)  *)
 Theorem ev_sum : forall n m, ev n -> ev m -> ev (n + m).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction H.
+  - simpl. apply H0.
+  - simpl. apply ev_SS. apply IHev.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, advanced, optional (ev'_ev)  *)
@@ -432,7 +444,24 @@ Inductive ev' : nat -> Prop :=
 
 Theorem ev'_ev : forall n, ev' n <-> ev n.
 Proof.
- (* FILL IN HERE *) Admitted.
+  intros.
+  split.
+  - intros. induction H.
+    + apply ev_0.
+    + apply ev_SS. apply ev_0.
+    + apply ev_sum.
+      * apply IHev'1.
+      * apply IHev'2.
+  - intros. induction H.
+    + apply ev'_0.
+    + rewrite <- plus_1_l.
+      rewrite <- (plus_1_l n).
+      rewrite plus_assoc.
+      simpl (1 + 1).
+      apply ev'_sum.
+      * apply ev'_2.
+      * apply IHev.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced, recommended (ev_ev__ev)  *)
@@ -442,7 +471,11 @@ Proof.
 Theorem ev_ev__ev : forall n m,
   ev (n+m) -> ev n -> ev m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction H0.
+  - simpl in H. apply H.
+  - simpl in H. inversion H. apply IHev in H2. apply H2.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, optional (ev_plus_plus)  *)
@@ -453,7 +486,16 @@ Proof.
 Theorem ev_plus_plus : forall n m p,
   ev (n+m) -> ev (n+p) -> ev (m+p).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  apply (ev_sum (n + m) (n + p)) in H as H1.
+  - rewrite plus_swap in H1.
+    rewrite <- plus_assoc in H1.
+    rewrite plus_assoc in H1.
+    apply (ev_ev__ev (n + n) (m + p)) in H1.
+    + apply H1.
+    + rewrite <- (double_plus n). apply ev_double.
+  - apply H0.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -541,14 +583,15 @@ Inductive next_even : nat -> nat -> Prop :=
 (** Define an inductive binary relation [total_relation] that holds
     between every pair of natural numbers. *)
 
-(* FILL IN HERE *)
+Inductive total_relation : nat -> nat -> Prop :=
+  | tr : forall (n m: nat), total_relation n m.
 (** [] *)
 
 (** **** Exercise: 2 stars, optional (empty_relation)  *)
 (** Define an inductive binary relation [empty_relation] (on numbers)
     that never holds. *)
 
-(* FILL IN HERE *)
+Inductive empty_relation : nat -> nat -> Prop := .
 (** [] *)
 
 (** **** Exercise: 3 stars, optional (le_exercises)  *)
@@ -558,45 +601,97 @@ Inductive next_even : nat -> nat -> Prop :=
 
 Lemma le_trans : forall m n o, m <= n -> n <= o -> m <= o.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction H0 as [|o].
+  - apply H.
+  - apply le_S. apply IHle.
+Qed.
 
 Theorem O_le_n : forall n,
   0 <= n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction n.
+  - apply le_n.
+  - apply le_S. apply IHn.
+Qed.
 
 Theorem n_le_m__Sn_le_Sm : forall n m,
   n <= m -> S n <= S m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction H.
+  - apply le_n.
+  - apply le_S. apply IHle.
+Qed.
+
+Theorem Sn_le_m__n_le_m : forall n m,
+  S n <= m -> n <= m.
+Proof.
+  intros n m H.
+  induction H.
+  - apply le_S. apply le_n.
+  - apply le_S. apply IHle.
+Qed.
 
 Theorem Sn_le_Sm__n_le_m : forall n m,
   S n <= S m -> n <= m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  inversion H.
+  - apply le_n.
+  - apply Sn_le_m__n_le_m. apply H1.
+Qed.
 
 Theorem le_plus_l : forall a b,
   a <= a + b.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction a.
+  - apply O_le_n.
+  - simpl. apply n_le_m__Sn_le_Sm. apply IHa.
+Qed.
 
 Theorem plus_lt : forall n1 n2 m,
   n1 + n2 < m ->
   n1 < m /\ n2 < m.
 Proof.
- unfold lt.
- (* FILL IN HERE *) Admitted.
+  unfold lt.
+  intros.
+  split.
+  - induction n2.
+    + rewrite <- plus_n_O in H. apply H.
+    + apply IHn2.
+      rewrite <- plus_n_Sm in H.
+      apply Sn_le_m__n_le_m.
+      apply H.
+  - induction n1.
+    + simpl in H. apply H.
+    + apply IHn1.
+      apply Sn_le_m__n_le_m.
+      apply H.
+Qed.
 
 Theorem lt_S : forall n m,
   n < m ->
   n < S m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold lt.
+  intros.
+  apply le_S.
+  apply H.
+Qed.
 
 Theorem leb_complete : forall n m,
   leb n m = true -> n <= m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n.
+  induction n.
+  - intros. apply O_le_n.
+  - intros. destruct m.
+    + inversion H.
+    + apply n_le_m__Sn_le_Sm. apply IHn. apply H.
+Qed.
 
 (** Hint: The next one may be easiest to prove by induction on [m]. *)
 
@@ -604,21 +699,39 @@ Theorem leb_correct : forall n m,
   n <= m ->
   leb n m = true.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  generalize dependent n.
+  induction m.
+  - intros. inversion H. reflexivity.
+  - intros. destruct n.
+    + simpl. reflexivity.
+    + simpl. apply IHm. apply Sn_le_Sm__n_le_m. apply H.
+Qed.
 
 (** Hint: This theorem can easily be proved without using [induction]. *)
 
 Theorem leb_true_trans : forall n m o,
   leb n m = true -> leb m o = true -> leb n o = true.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  apply leb_correct.
+  apply leb_complete in H.
+  apply leb_complete in H0.
+  apply (le_trans n m o).
+  apply H.
+  apply H0.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, optional (leb_iff)  *)
 Theorem leb_iff : forall n m,
   leb n m = true <-> n <= m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  split.
+  - apply leb_complete.
+  - apply leb_correct.
+Qed.
 (** [] *)
 
 Module R.
