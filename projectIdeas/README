@@ -1,0 +1,14 @@
+CFG-formalizations and verifiedMessagingSystem are each papers that
+describe (large) Coq projects.
+
+The first is in the "formalize some math" category, the second is in
+the "formalize an application" category.
+
+The smolka_brown file is course notes for a Coq course.    See Chapter 9;
+if we work on E-unification we would take off from that chapter.
+
+The Wikipedia page on unifcation is good.
+https://en.wikipedia.org/wiki/Unification_(computer_science)
+It has a section on E-unification.
+
+-dd
