@@ -1598,7 +1598,12 @@ Qed.
 Theorem reflect_iff : forall P b, reflect P b -> (P <-> b = true).
 Proof.
   intros.
-  Abort.
+  split.
+  - intros. destruct b.
+    + reflexivity.
+    + inversion H. unfold not in H1. apply H1 in H0. inversion H0.
+  - intros. rewrite H0 in H. inversion H. apply H1.
+Qed.
 (** [] *)
 
 (** The advantage of [reflect] over the normal "if and only if"
@@ -1649,7 +1654,15 @@ Fixpoint count n l :=
 Theorem beq_natP_practice : forall n l,
   count n l = 0 -> ~(In n l).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction l.
+  - intros [].
+  - simpl in H. destruct (beq_natP n x).
+    + inversion H.
+    + simpl in H. apply IHl in H. intros H1. inversion H1.
+      * apply H0. rewrite H2. reflexivity.
+      * apply H. apply H2.
+Qed.
 (** [] *)
 
 (** In this small example, this technique gives us only a rather small
@@ -1682,8 +1695,10 @@ Proof.
     [nostutter]. *)
 
 Inductive nostutter {X:Type} : list X -> Prop :=
- (* FILL IN HERE *)
-.
+| ns_nil : nostutter []
+| ns_1 : forall x, nostutter [x]
+| ns_2 : forall l x y, nostutter (x :: l) /\ x <> y -> nostutter (y :: x :: l).
+
 (** Make sure each of these tests succeeds, but feel free to change
     the suggested proof (in comments) if the given one doesn't work
     for you.  Your definition might be different from ours and still
@@ -1694,35 +1709,28 @@ Inductive nostutter {X:Type} : list X -> Prop :=
     just uncomment and use them as-is, but you can also prove each
     example with more basic tactics.)  *)
 
-Example test_nostutter_1: nostutter [3;1;4;1;5;6].
-(* FILL IN HERE *) Admitted.
-(* 
-  Proof. repeat constructor; apply beq_nat_false_iff; auto.
-  Qed.
-*)
+Example test_nostutter_1: nostutter [3;1;4;1;5;6]. 
+Proof. repeat constructor; apply beq_nat_false_iff; auto.
+Qed.
 
 Example test_nostutter_2:  nostutter (@nil nat).
-(* FILL IN HERE *) Admitted.
-(* 
-  Proof. repeat constructor; apply beq_nat_false_iff; auto.
-  Qed.
-*)
+Proof. repeat constructor; apply beq_nat_false_iff; auto.
+Qed.
 
 Example test_nostutter_3:  nostutter [5].
-(* FILL IN HERE *) Admitted.
-(* 
-  Proof. repeat constructor; apply beq_nat_false; auto. Qed.
-*)
+Proof. repeat constructor; apply beq_nat_false_iff; auto.
+Qed.
 
 Example test_nostutter_4:      not (nostutter [3;1;1;4]).
-(* FILL IN HERE *) Admitted.
-(* 
-  Proof. intro.
-  repeat match goal with
-    h: nostutter _ |- _ => inversion h; clear h; subst
-  end.
-  contradiction H1; auto. Qed.
-*)
+Proof.
+  intro.
+  inversion H.
+  inversion H1.
+  inversion H4.
+  inversion H7.
+  apply H11.
+  reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, advanced (filter_challenge)  *)
@@ -1755,7 +1763,27 @@ Example test_nostutter_4:      not (nostutter [3;1;1;4]).
     to be a merge of two others.  Do this with an inductive relation,
     not a [Fixpoint].)  *)
 
-(* FILL IN HERE *)
+Inductive merge {X} : list X -> list X -> list X -> Prop :=
+| m_nil : merge [] [] []
+| m_l1 : forall l l1 l2 x, merge l l1 l2 -> merge (x :: l) (x :: l1) l2
+| m_l2 : forall l l1 l2 x, merge l l1 l2 -> merge (x :: l) l1 (x :: l2).
+
+Theorem filter_merge : forall X l l1 l2 (test : X -> bool),
+  merge l l1 l2 ->
+  filter test l1 = l1 ->
+  filter test l2 = [] ->
+  filter test l = l1.
+Proof.
+  intros.
+  induction H.
+  - simpl. reflexivity.
+  - inversion H0. destruct (test x) eqn:H2.
+    + simpl. rewrite H2. inversion H3. apply f_equal.
+      rewrite H5. rewrite H5. apply IHmerge.
+      * apply H5.
+      * apply H1.
+    + simpl. rewrite H2. Abort.
+
 (** [] *)
 
 (** **** Exercise: 5 stars, advanced, optional (filter_challenge_2)  *)
@@ -1764,7 +1792,21 @@ Example test_nostutter_4:      not (nostutter [3;1;1;4]).
     evaluates to [true] on all their members, [filter test l] is the
     longest.  Formalize this claim and prove it. *)
 
-(* FILL IN HERE *)
+Theorem filter_challenge_2 : forall l sub test,
+  subseq sub l ->
+  filter test sub = sub ->
+  length sub <= length (filter test l).
+Proof.
+  intros l sub test HS HF.
+  induction HS.
+  - simpl. apply O_le_n.
+  - apply IHHS in HF. destruct (test x) eqn:HT.
+    + simpl. rewrite HT. simpl. apply le_S. apply HF.
+    + simpl. rewrite HT. apply HF.
+  - simpl in *. destruct (test x) eqn:HT.
+    + simpl. inversion HF. apply n_le_m__Sn_le_Sm.
+      rewrite H0. apply IHHS. apply H0.
+    + Abort.
 (** [] *)
 
 (** **** Exercise: 4 stars, optional (palindromes)  *)
@@ -1849,7 +1891,10 @@ Lemma in_split : forall (X:Type) (x:X) (l:list X),
   In x l ->
   exists l1 l2, l = l1 ++ x :: l2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction l.
+  - inversion H.
+  - Abort.
 
 (** Now define a property [repeats] such that [repeats X l] asserts
     that [l] contains at least one repeated element (of type [X]).  *)
@@ -2024,7 +2069,9 @@ Lemma app_ne : forall (a : ascii) s re0 re1,
     ([ ] =~ re0 /\ a :: s =~ re1) \/
     exists s0 s1, s = s0 ++ s1 /\ a :: s0 =~ re0 /\ s1 =~ re1.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  split.
+  - intros. Abort.
 (** [] *)
 
 (** [s] matches [Union re0 re1] iff [s] matches [re0] or [s] matches [re1]. *)
