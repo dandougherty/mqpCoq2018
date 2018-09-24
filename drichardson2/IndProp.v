@@ -1894,14 +1894,18 @@ Proof.
   intros.
   induction l.
   - inversion H.
-  - Abort.
+  - simpl in H. destruct H.
+    + exists []. exists l. rewrite H. simpl. reflexivity.
+    + apply IHl in H. destruct H as [l1 [l2 H]].
+      exists (x0 :: l1). exists l2. rewrite H. simpl. reflexivity.
+Qed.
 
 (** Now define a property [repeats] such that [repeats X l] asserts
     that [l] contains at least one repeated element (of type [X]).  *)
 
 Inductive repeats {X:Type} : list X -> Prop :=
-  (* FILL IN HERE *)
-.
+| rep_in_cons : forall x l, In x l -> repeats (x :: l).
+(*| rep_in_app : forall x l1 l2, (In x l1 /\ In x l2) -> repeats (l1 ++ l2).*)
 
 (** Now, here's a way to formalize the pigeonhole principle.  Suppose
     list [l2] represents a list of pigeonhole labels, and list [l1]
@@ -1922,8 +1926,9 @@ Theorem pigeonhole_principle: forall (X:Type) (l1  l2:list X),
    length l2 < length l1 ->
    repeats l1.
 Proof.
-   intros X l1. induction l1 as [|x l1' IHl1'].
-  (* FILL IN HERE *) Admitted.
+  intros X l1. induction l1 as [|x l1' IHl1'].
+  - intros. inversion H1.
+  - intros. apply rep_in_cons. Abort.
 (** [] *)
 
 
