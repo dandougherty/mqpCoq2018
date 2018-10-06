@@ -806,6 +806,13 @@ Inductive subseq : list nat -> list nat -> Prop :=
   | subseq_fail  : forall x l1 l2, subseq l1 l2 -> subseq l1 (x::l2).
 
 
+Example subseq_test : subseq [1;3;5] [0;1;2;3;4;5;6].
+Proof.
+  apply subseq_fail. apply subseq_match. apply subseq_fail. apply subseq_match.
+  apply subseq_fail. apply subseq_match. apply subseq_nil.
+Qed.
+
+
 Theorem subseq_refl : forall l, subseq l l.
 Proof.
   intros l. induction l.
