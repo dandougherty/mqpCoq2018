@@ -101,23 +101,16 @@ Proof.
       * apply H2. apply H3.
 Qed.
 
+Lemma unif_nil:
+  forall sigma, subst sigma -> unif sigma [].
+Proof.
+  intros sigma. unfold unif. split.
+  - apply H.
+  - intros. inversion H0.
+Qed.
 
 (* Exercise 9.1.4 Prove that an equation list is 
    non-unifiable if some sublist is nonunifiable. *)
-
-Theorem non_unif_element:
-  forall sigma A e,
-  In e A ->
-  ~ unif sigma [e] -> 
-  ~ unif sigma A.
-Proof.
-  unfold unif, not. intros. apply H0. split.
-  - apply H1.
-  - intros. apply H1. simpl in H2. destruct H2.
-    + rewrite <- H2. apply H.
-    + inversion H2.
-Qed.
-
 Theorem non_unif_sublist:
   forall A B,
   incl A B ->
@@ -139,7 +132,7 @@ Proof.
   - contradiction.
 Qed.
 
-Theorem non_unif_element2:
+Theorem non_unif_element:
   forall A e,
   In e A ->
   ~ unifiable [e] ->
@@ -330,13 +323,50 @@ Qed.
 
 
 (* 9.2.4c) If A is solved, then ϕA is a unifier of A. *)
-Fact solved_phi:
+Fact solved_phi_unif:
   forall A,
   solved A -> unif (phi A) A.
 Proof.
   intros A H. unfold unif. split.
   - apply phi_subst.
   - intros s t H0. induction A.
+    + contradiction.
+    + destruct a as [s0 t0]. destruct s0.
+      * Search phi. simpl. 
+Admitted.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ (* induction A.
     + contradiction.
     + destruct a as [s0 t0], s0 eqn:Hs0.
       * simpl. rewrite vars_term_no_replace. rewrite vars_term_no_replace.
@@ -356,7 +386,7 @@ Proof.
         -- intro. inversion H. simpl in H0. destruct H0.
            ++ apply H5. inversion H0. replace (phi A s) with t in H1.
               ** apply H1.
-              ** symmetry. Admitted.
+              ** symmetry. Admitted. *)
 (* 
  
 
@@ -495,18 +525,34 @@ Qed.
 
 
 (* 9.2.6d) A ⊆ B → VA ⊆ VB *)
+Lemma incl_cons_iff:
+  forall (A : Type) (a : A) (l m : list A), 
+  (In a m /\ incl l m) <-> incl (a :: l) m.
+Proof.
+  intros A a l m. split.
+  - intros []. apply incl_cons.
+    + apply H.
+    + apply H0.
+  - intros H. split.
+    + unfold incl in H. apply H. simpl. left. reflexivity.
+    + unfold incl in *. intros a0 H0. apply H. simpl. right. apply H0.
+Qed.
+
+Lemma in_nil_try2:
+  forall {X} (x : X),
+  In x [] -> False.
+Proof.
+  intros. inversion H.
+Qed.
+
 Fact subset_vars:
   forall A B,
   incl A B -> 
   incl (vars_list A) (vars_list B).
 Proof.
-  unfold incl. intros A B H a H0. induction A.
-  - contradiction.
-  - apply IHA.
-    + intros a1 H1. apply H. simpl. right. apply H1.
-    + simpl in H0. apply in_app_or in H0. destruct H0.
-      * Admitted.
-
+  intros A B H a H0. generalize dependent a. induction B.
+  - admit. 
+  - intros a0 H0. simpl. apply in_app_iff. right. apply in_app_iff. right. apply IHB. Admitted.
 
 (* Exercise 9.2.7 Write a function gen : N → ter for which you can prove that genm
    and gen n are non-unifiable if m and n are different. *)
@@ -720,23 +766,17 @@ Fact swap_unif_rule:
   refinement [(s,t)] [(t,s)].
 Proof.
   intros s t. unfold refinement. split.
-  - simpl. unfold incl. intros a H. apply in_app_or in H. destruct H.
-    + apply in_or_app. right. apply in_or_app. left. apply H.
-    + apply in_app_or in H. destruct H.
-      * apply in_or_app. left. apply H.
-      * inversion H.
-  - unfold unif_equiv, unif. intros sigma. split.
-    + intros []. split.
-      * apply H.
-      * intros s0 t0 H1. apply H0. destruct H1.
-        { rewrite <- H1. admit. }
-        { inversion H1. }
-    + intros []. split.
-      * apply H.
-      * intros s0 t0 H1. apply H0. destruct H1.
-        { rewrite <- H1. admit. }
-        { inversion H1. }
-Admitted.
+  - simpl. rewrite app_nil_r. rewrite app_nil_r. apply incl_app.
+    + apply incl_appr. apply incl_refl.
+    + apply incl_appl. apply incl_refl.
+  - unfold unif_equiv. intros sigma. split.
+    + intros H. apply unif_cons. apply unif_cons in H as []. split.
+      * symmetry. apply H.
+      * apply H0.
+    + intros H. apply unif_cons. apply unif_cons in H as []. split.
+      * symmetry. apply H.
+      * apply H0.
+Qed.
 
 
 (* 9.3.4c. Decomposition [s1 · s2 ≐ t1 · t2] ⊲ [s1 ≐ t1; s2 ≐ t2]. *)
@@ -745,26 +785,23 @@ Fact decomposition_unif_rule:
   refinement [(T s1 s2, T t1 t2)] [(s1, t1);(s2, t2)].
 Proof.
   intros s1 s2 t1 t2. unfold refinement. split.
-  - simpl. apply incl_app.
+  - simpl. repeat rewrite app_nil_r. repeat apply incl_app.
     + apply incl_appl. apply incl_appl. apply incl_refl.
-    + apply incl_app.
-      * apply incl_appr. apply incl_appl. apply incl_appl. apply incl_refl.
-      * apply incl_app.
-        { apply incl_appl. apply incl_appr. apply incl_refl. }
-        { apply incl_appr. rewrite <- app_assoc. apply incl_appr. apply incl_refl. }
-  - unfold unif_equiv, unif. intros sigma. split.
-    + intros []. split.
-      * apply H.
-      * intros s t H1. apply H0. simpl in *. destruct H1.
-        { rewrite <- H1. left. admit. }
-        { admit. }
-    + intros []. split.
-      * apply H.
-      * intros s t H1. apply H0. simpl in *. destruct H1.
-        { admit. }
-        { admit. }
-Admitted.
-
+    + apply incl_appr. apply incl_appl. apply incl_refl.
+    + apply incl_appl. apply incl_appr. apply incl_refl.
+    + apply incl_appr. apply incl_appr. apply incl_refl. 
+  - unfold unif_equiv. intros sigma. split.
+    + intros H. apply unif_cons in H as H0. destruct H0. inversion H1. unfold subst in H2.
+      repeat rewrite H2 in H0. repeat (apply unif_cons; split).
+      * inversion H0. reflexivity.
+      * inversion H0. reflexivity.
+      * apply H1.
+    + intros H. apply unif_cons. inversion H. unfold subst in H0. split.
+      * repeat rewrite H0. f_equal.
+        { apply H1. simpl. left. reflexivity. }
+        { apply H1. simpl. right. left. reflexivity. }
+      * apply unif_nil. unfold subst. apply H0.
+Qed.
 
 (* 9.3.5. Replacement x ≐ t :: A ⊲ x ≐ t :: Axt 
    Proceed by proving the following facts in the order stated. *)
@@ -845,7 +882,7 @@ Proof. Admitted.
 
 Inductive presolved : list eqn -> Prop :=
   | presolved_nil   : presolved []
-  | presolved_cons  : forall s t A, (exists x, s = (V x)) -> presolved A -> presolved ((s,t)::A).
+  | presolved_cons  : forall x t A, presolved A -> presolved (((V x),t)::A).
 
 Fixpoint presolve_term s t : list eqn :=
   match (s,t) with
@@ -860,6 +897,17 @@ Fixpoint presolve A : list eqn :=
   | (s,t)::A' => (presolve_term s t)++(presolve A')
   end.
 
+Lemma presolved_app:
+  forall A B,
+  presolved A -> presolved B -> presolved (A++B).
+Proof.
+  intros A B H H0. induction A.
+  - simpl. apply H0.
+  - simpl. destruct a as [s t]. destruct s.
+    + apply presolved_cons. apply IHA. inversion H. apply H2.
+    + inversion H.
+Qed.
+
 
 (* Exercise 9.4.2 Prove Lemma 9.4.1. *)
 (* 9.4.2a. [s ≐ t] ⊲ pre′ s t and pre′ s t is presolved. *)
@@ -867,35 +915,74 @@ Lemma presolve_term_refinement:
   forall s t,
   refinement [(s,t)] (presolve_term s t).
 Proof.
-  intros s t. unfold refinement. split.
-  - destruct s.
-    + simpl. apply incl_refl.
-    + induction t.
-      * simpl. unfold incl. intros a H. 
-        replace (v :: (vars_term s1 ++ vars_term s2) ++ []) with ([v] ++ (vars_term s1 ++ vars_term s2) ++ []) in H.
-        { apply in_app_or in H. destruct H.
-          { apply in_or_app. right. apply H. }
-          { apply in_app_or in H. destruct H.
-            { apply in_or_app. left. apply H. }
-            { contradiction. } } }
-        { simpl. reflexivity. }
-      * Admitted.
-(*  apply incl_appl. simpl. rewrite vars_app. apply incl_app.
-        -- apply IHt1. simpl presolve_term in IHt1. *)
+  induction s; induction t.
+  - simpl. apply refinement_refl.
+  - simpl. apply refinement_refl.
+  - simpl. apply swap_unif_rule.
+  - simpl. apply (refinement_trans [(T s1 s2, T t1 t2)] [(s1,t1);(s2,t2)] (presolve_term s1 t1 ++ presolve_term s2 t2)).
+    + apply decomposition_unif_rule.
+    + apply (refinement_app [(s1,t1)] (presolve_term s1 t1) [(s2,t2)] (presolve_term s2 t2)).
+      * apply IHs1.
+      * apply IHs2.
+Qed.
 
 Lemma presolve_term_presolved:
   forall s t,
   presolved (presolve_term s t).
-Proof. Admitted.
+Proof.
+  intros s. induction s.
+  - intros. simpl. apply presolved_cons. apply presolved_nil.
+  - induction t.
+    + simpl. apply presolved_cons. apply presolved_nil.
+    + simpl. apply presolved_app.
+      * apply IHs1.
+      * apply IHs2.
+Qed.
 
 
 (* 9.4.2b. A ⊲ pre A and pre A is presolved. *)
 Lemma presolve_list_refinement:
   forall A,
   refinement A (presolve A).
-Proof. Admitted.
+Proof.
+  intros A. induction A.
+  - simpl. apply refinement_refl.
+  - destruct a. simpl. apply (refinement_app [(t, t0)] (presolve_term t t0) A (presolve A)).
+    + apply presolve_term_refinement.
+    + apply IHA.
+Qed.
 
 Lemma presolve_list_presolve:
   forall A,
   presolved (presolve A).
-Proof. Admitted.
+Proof. 
+  intros A. induction A.
+  - simpl. apply presolved_nil.
+  - destruct a. simpl. apply presolved_app.
+    + apply presolve_term_presolved.
+    + apply IHA.
+Qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
