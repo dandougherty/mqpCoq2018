@@ -4,6 +4,11 @@ Require Import Logic.
 Require Import Nat.
 Import ListNotations.
 
+Lemma cons_app:
+  forall {X} (x : X) (A : list X),
+  x :: A = [x] ++ A.
+Proof. reflexivity. Qed.
+
 
 (* ====================================== *)
 (* 9.1 Terms, Substitutions, and Unifiers *)
@@ -591,21 +596,17 @@ Lemma app_solved:
   disjoint (vars_list A) (vars_list B) ->
   solved (A ++ B).
 Proof.
-  intros A B H H0 H1. induction H; induction H0.
-  - simpl. apply solved_nil.
-  - simpl. apply solved_cons.
-    + apply H.
-    + apply H0.
-    + apply H2.
-    + apply H3.
-  - simpl. apply solved_cons.
-    + apply H.
-    + rewrite app_nil_r. apply H2.
-    + rewrite app_nil_r. apply H3.
-    + rewrite app_nil_r. apply H4.
-  - simpl. apply solved_cons.
-    + apply H.
-    + Admitted.
+  intros A B H H0 H1. induction H.
+  - simpl. apply H0.
+  - simpl. induction H0.
+    + apply solved_cons.
+      * apply H.
+      * rewrite app_nil_r. apply H2.
+      * rewrite app_nil_r. apply H3.
+      * rewrite app_nil_r. apply H4. 
+    + apply solved_cons.
+      * apply H.
+      * Admitted.
 
 
 (* ===================== *)
@@ -803,14 +804,18 @@ Proof.
       * apply unif_nil. unfold subst. apply H0.
 Qed.
 
+
 (* 9.3.5. Replacement x ≐ t :: A ⊲ x ≐ t :: Axt 
    Proceed by proving the following facts in the order stated. *)
 (* 9.3.5a. If σ is a substitution such that σx = σt, then σ(sxt) = σs. *)
 Lemma replace_term_eq:
   forall sigma s x t,
+  subst sigma ->
   sigma (V x) = sigma t ->
   sigma (replace_term s x t) = sigma s.
-Proof. Admitted.
+Proof. 
+  apply subst_replace.
+Qed.
 
 
 (* 9.3.5b. If σx = σt, then unif σ A ↔ unif σ (Axt). *)
@@ -818,35 +823,113 @@ Lemma replace_list_eq:
   forall sigma x t A,
   sigma (V x) = sigma t ->
   unif sigma A <-> unif sigma (replace_list A x t).
-Proof. Admitted.
+Proof.
+  intros sigma x t A H. split.
+  - intros H0. induction A.
+    + simpl. apply H0.
+    + simpl. destruct a. apply unif_cons in H0 as []. apply unif_cons. split.
+      * simpl in *. repeat rewrite replace_term_eq.
+        { apply H0. }
+        { destruct H1. apply H1. }
+        { apply H. }
+        { destruct H1. apply H1. }
+        { apply H. }
+      * apply IHA. apply H1.
+  - intros H0. induction A.
+    + simpl in H0. apply H0.
+    + simpl in H0. destruct a. apply unif_cons. apply unif_cons in H0 as []. split.
+      * simpl in H0. rewrite replace_term_eq in H0. rewrite replace_term_eq in H0.
+        { apply H0. }
+        { destruct H1. apply H1. }
+        { apply H. }
+        { destruct H1. apply H1. }
+        { apply H. }
+      * apply IHA. apply H1.
+Qed.
 
 
 (* 9.3.5c. x ≐ t :: A ≈ x ≐ t :: Axt *)
 Lemma unif_equiv_replace:
   forall x t A,
   unif_equiv ((V x,t)::A) ((V x,t)::(replace_list A x t)).
-Proof. Admitted.
+Proof.
+  intros x t a. unfold unif_equiv. intros sigma. split.
+  - intros H. apply unif_cons in H as []. apply unif_cons. split.
+    + apply H.
+    + apply replace_list_eq.
+      * apply H.
+      * apply H0.
+  - intros H. apply unif_cons. apply unif_cons in H as []. split.
+    + apply H.
+    + apply replace_list_eq in H0.
+      * apply H0.
+      * apply H.
+Qed.
 
 
 (* 9.3.5d. V(s xt ) ⊆ Vs ++Vt *)
-Lemma replace_vars_subset:
+Lemma incl_app_comm:
+  forall {X} (A B C : list X),
+  incl A (B ++ C) <-> incl A (C ++ B).
+Proof.
+  intros X A B C. split.
+  - intros H. unfold incl in *. intros a H0. apply (in_app_or B C a) in H.
+    + destruct H.
+      * apply in_app_iff. right. apply H.
+      * apply in_app_iff. left. apply H.
+    + apply H0.
+  - intros H. unfold incl in *. intros a H0. apply (in_app_or C B a) in H.
+    + destruct H.
+      * apply in_app_iff. right. apply H.
+      * apply in_app_iff. left. apply H.
+    + apply H0.
+Qed.
+
+
+Lemma incl_replace_vars:
   forall s x t,
   incl (vars_term (replace_term s x t)) ((vars_term s)++(vars_term t)).
-Proof. Admitted.
+Proof.
+  intros s x t. induction s.
+  - simpl. rewrite cons_app. destruct (beq_nat x v) eqn:H.
+    + apply incl_appr. apply incl_refl.
+    + apply incl_appl. apply incl_refl.
+  - simpl. apply incl_app.
+    + rewrite (incl_app_comm (vars_term (replace_term s1 x t)) (vars_term s1 ++ vars_term s2) (vars_term t)).
+      rewrite incl_app_comm in IHs1. rewrite app_assoc. apply incl_appl. apply IHs1.
+    + rewrite <- app_assoc. apply incl_appr. apply IHs2.
+Qed.
 
 
 (* 9.3.5e. V(Axt) ⊆ VA++Vt *)
-Lemma replace_list_subset:
+Lemma incl_replace_list:
   forall A x t,
   incl (vars_list (replace_list A x t)) ((vars_list A)++(vars_term t)).
-Proof. Admitted.
+Proof.
+  intros A x t. induction A.
+  - simpl. unfold incl. contradiction.
+  - destruct a as [s0 t0]. simpl. repeat rewrite <- app_assoc. repeat apply incl_app.
+    + apply incl_app_comm. repeat rewrite <- app_assoc.
+      apply incl_appr. apply incl_appr. apply incl_app_comm. apply incl_replace_vars.
+    + apply incl_appr. apply incl_app_comm. rewrite <- app_assoc.
+      apply incl_appr. apply incl_app_comm. apply (incl_replace_vars t0 x t).
+    + apply incl_appr. apply incl_appr. apply IHA.
+Qed.
 
 
 (* 9.3.5f. x ≐ t :: A ⊲ x ≐ t :: Axt *)
 Fact replacement_unif_rule:
   forall x t A,
   refinement ((V x,t)::A) ((V x,t)::(replace_list A x t)). 
-Proof. Admitted.
+Proof.
+  intros x t A. unfold refinement. split.
+  - simpl. apply incl_cons.
+    + simpl. left. reflexivity.
+    + rewrite cons_app. apply incl_appr. apply incl_app_comm. apply incl_app.
+      * apply incl_appr. apply incl_refl.
+      * apply incl_replace_list.
+  - apply unif_equiv_replace.
+Qed.
 
 
 (* Exercise 9.3.6 Prove the following fact about principal unifiers: If A ≈ B and σ
@@ -856,7 +939,11 @@ Fact principal_unif_equiv:
   unif_equiv A B ->
   principal_unifier sigma A ->
   principal_unifier sigma B.
-Proof. Admitted.
+Proof. 
+  unfold principal_unifier. intros A B sigma H []. split.
+  - unfold unif_equiv in H. apply H. apply H0.
+  - intros tau H2 s. apply H1. unfold unif_equiv in H. apply H. apply H2.
+Qed.
 
 
 (* Exercise 9.3.7 Give a solved equation list that has more than one principal unifier. *)
@@ -873,7 +960,29 @@ Proof. Admitted.
 Fact confrontation_unif_rule:
   forall x s1 s2 t1 t2,
   refinement [(V x,T s1 s2);(V x,T t1 t2)] [(V x,T s1 s2);(s1,t1);(s2,t2)].
-Proof. Admitted.
+Proof.
+  intros x s1 s2 t1 t2. unfold refinement. split.
+  - simpl. apply incl_cons.
+    + simpl. left. reflexivity.
+    + repeat rewrite app_nil_r. rewrite cons_app. apply incl_appr. 
+      repeat apply incl_app; intuition. (* trivial, don't feel like writing apply incl_appr 15 times *)
+  - unfold unif_equiv. intros sigma. split.
+    + intros H. apply unif_cons in H as H1. destruct H1. unfold unif in H. destruct H. 
+      unfold subst in H. repeat (apply unif_cons; split).
+      * apply H0.
+      * rewrite H in H0. apply unif_cons in H1 as []. rewrite H in H1. rewrite H1 in H0.
+        inversion H0. reflexivity.
+      * rewrite H in H0. apply unif_cons in H1 as []. rewrite H in H1. rewrite H1 in H0.
+        inversion H0. reflexivity.
+      * apply unif_nil. apply H1.
+    + intros H. apply unif_cons in H as H1. destruct H1. unfold unif in H. destruct H.
+      unfold subst in H. repeat (apply unif_cons; split).
+      * apply H0.
+      * rewrite H0. repeat rewrite H. f_equal.
+        { apply H2. simpl. right. left. reflexivity. }
+        { apply H2. simpl. right. right. left. reflexivity. }
+      * apply unif_nil. apply H1.
+Qed.
 
 
 (* ============================ *)
@@ -964,11 +1073,82 @@ Proof.
 Qed.
 
 
+(* ===================== *)
+(* Unification Algorithm *)
+(* ===================== *)
 
 
+Fixpoint solveN n A B : option (list eqn) :=
+  match n, presolve B with
+  | O, _ => None
+  | S n', (V x,t) :: C => if [In x (vars_term t)] then None else solveN n' ((V x,t) :: A) (replace_list C x t)
+  | S n', _ => Some A
+end. 
 
 
+Definition solveE A B := solveN (1 + length(vars_list B)) A B.
 
+
+Definition solve C := solveE nil C.
+
+
+(* The proof of solveN_correct is pleasant and leads to subgoals expressing
+   proof obligations one would expect from an informal correctness argument for
+   solve. One first reverts A and B and then continues by induction on n. The base
+   case is trivial. For the inductive case one simulates the case analysis of the function
+   solveN. For the recursion step one applies the inductive hypothesis, which
+   produces subgoals for the preconditions. *)
+Lemma solveN_correct A B C n :
+  refinement C (A ++ B) ->
+  solved A ->
+  disjoint (domain A) (vars_list B) ->
+  length (vars_list B) < n ->
+  match solveN n A B with
+  | Some D => refinement C D /\ solved D
+  | None => ~ unifiable C
+  end.
+Proof.
+  revert A B.
+  induction n.
+  - intros A B H H0 H1 H2. simpl. intro. admit.
+  - intros A B H H0 H1 H2. induction B.
+    + simpl. split.
+      * rewrite app_nil_r in H. apply H.
+      * apply H0.
+    + destruct a as [s t]. destruct s.
+      * simpl. apply IHn.
+        { simpl. Search refinement.
+Admitted.
+
+Lemma solveE_correct A B C :
+  refinement C (A ++ B) ->
+  solved A ->
+  disjoint (domain A) (vars_list B) ->
+  match solveE A B with
+  | Some D => refinement C D /\ solved D
+  | None => ~ unifiable C
+  end.
+Proof.
+  intros H H0 H1.
+  apply solveN_correct.
+  - apply H.
+  - apply H0.
+  - apply H1.
+  - unfold lt. simpl. apply le_n.
+Qed.
+
+
+Theorem solve_correct C :
+  match solve C with
+  | Some A => refinement C A /\ solved A
+  | None => ~ unifiable C
+  end.
+Proof.
+  apply solveE_correct.
+  - simpl. apply refinement_refl.
+  - apply solved_nil.
+  - unfold disjoint. intros [x []]. inversion H.
+Qed.
 
 
 
