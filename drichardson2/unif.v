@@ -210,7 +210,7 @@ Proof.
 Qed.
 
 (* Exercise 9.1.3a *)
-Theorem unif_fact1 : forall σ s t A,
+Theorem unif_cons : forall σ s t A,
   unif σ ((t, s) :: A) <-> σ s = σ t /\ unif σ A.
 Proof.
   intros.
@@ -227,7 +227,7 @@ Qed.
 
 
 (* Exercise 9.1.3b *)
-Theorem unif_fact2 : forall σ A B,
+Theorem unif_app : forall σ A B,
   unif σ (A ++ B) <-> unif σ A /\ unif σ B.
 Proof.
   intros.
@@ -348,14 +348,14 @@ Fixpoint sys_replace' A x t : system :=
 
 
 (* Return a principal unifier for the given system *)
-Fixpoint sys_pu A s : term :=
+Fixpoint φ A s : term :=
   match A with
-  | (Var x, t) :: rest => replace (sys_pu rest s) x t
+  | (Var x, t) :: rest => replace (φ rest s) x t
   | _ => s
   end.
 
 (* Exercise 9.2.3a *)
-Lemma replace_fact1 : forall x s t,
+Lemma no_vars_replace : forall x s t,
   ~ (In x (vars s)) ->
   replace s x t = s.
 Proof.
@@ -373,7 +373,7 @@ Proof.
 Qed.
 
 (* Exercise 9.2.3b *)
-Lemma replace_fact2 : forall x t A,
+Lemma no_sys_vars_replace : forall x t A,
   ~ (In x (sys_vars' A)) ->
   sys_replace' A x t = A.
 Proof.
@@ -383,7 +383,7 @@ Proof.
   - simpl. reflexivity.
   - simpl. simpl in H. destruct a. apply f_equal2.
     + apply f_equal2;
-      apply replace_fact1;
+      apply no_vars_replace;
       intro;
       apply H;
       apply in_or_app.
@@ -396,7 +396,7 @@ Proof.
 Qed.
 
 (* Exercise 9.2.3c *)
-Lemma replace_fact3 : forall x t A,
+Lemma no_dom_replace : forall x t A,
   ~ (In x (dom A)) ->
   dom (sys_replace' A x t) = dom A.
 Proof.
@@ -414,7 +414,7 @@ Proof.
 Qed.
 
 (* Exercise 9.2.3d *)
-Lemma replace_fact4 : forall σ x s t,
+Lemma subst_replace : forall σ x s t,
   subst σ ->
     σ (Var x) = σ t ->
     σ (replace s x t) = σ s.
@@ -431,7 +431,7 @@ Proof.
 Qed.
 
 (* Exercise 9.2.3e *)
-Lemma replace_fact5 : forall x t,
+Lemma replace_is_subst : forall x t,
   subst (fun s => replace s x t).
 Proof.
   unfold subst.
@@ -441,8 +441,8 @@ Proof.
 Qed.
 
 (* Exercise 9.2.4a *)
-Lemma sys_pu_fact1 : forall A,
-  subst (sys_pu A).
+Lemma φ_is_subst : forall A,
+  subst (φ A).
 Proof.
   unfold subst.
   intros.
@@ -454,9 +454,9 @@ Proof.
 Qed.
 
 (* Exercise 9.2.4b *)
-Lemma sys_pu_fact2 : forall A s,
+Lemma φ_disjoint : forall A s,
   disjoint (dom A) (vars s) ->
-  sys_pu A s = s.
+    φ A s = s.
 Proof.
   unfold disjoint, not.
   intros.
@@ -464,7 +464,7 @@ Proof.
   - simpl. reflexivity.
   - simpl. destruct a. destruct t.
     + rewrite IHA.
-      * apply replace_fact1. intro. apply H.
+      * apply no_vars_replace. intro. apply H.
         exists v. split.
         ** simpl. left. reflexivity.
         ** apply H0.
@@ -475,34 +475,36 @@ Proof.
 Qed.
 
 (* Exercise 9.2.4c *)
-Lemma sys_pu_fact3 : forall A,
+Lemma solved_unif_by_φ : forall A,
   solved A ->
-  unif (sys_pu A) A.
+  unif (φ A) A.
 Proof.
   intros.
   unfold unif. split.
-  - apply sys_pu_fact1.
+  - apply φ_is_subst.
   - intros. induction A.
     + inversion H0.
     + destruct a. simpl in H0. destruct H0.
       * rewrite H0. simpl. destruct s.
         ** f_equal. apply IHA.
-          ++ 
-      * 
-Admitted.
+          ++ Admitted.
 
 (* Exercise 9.2.4d *)
-Lemma sys_pu_fact4 : forall A s σ,
+Lemma φ_no_side_effect : forall A s σ,
   unif σ A ->
-    σ (sys_pu A s) = σ s.
+    σ (φ A s) = σ s.
 Proof.
+  intros.
+  induction A.
+  - simpl. reflexivity.
+  -
 Admitted.
 
 (* Exercise 9.2.4e - If a system A is solved, then it has a
-   principal unifier supplied by sys_pu. *)
-Lemma solved_has_pu : forall A,
+   principal unifier supplied by φ. *)
+Lemma solved_pu_by_φ : forall A,
   solved A ->
-  principal_unifier (sys_pu A) A.
+  principal_unifier (φ A) A.
 Proof.
 Admitted.
 
@@ -517,8 +519,8 @@ Definition bad_eq e : Prop :=
 Definition size t : nat := length (vars t).
 
 (* Exercise 9.2.5a *)
-Lemma size_fact : forall x s σ,
-  In x (vars s) /\ subst σ->
+Lemma subst_size : forall x s σ,
+  In x (vars s) /\ subst σ ->
   size (σ (Var x)) <= size (σ s).
 Proof.
 Admitted.
@@ -537,13 +539,13 @@ Proof.
 Admitted. *)
 
 (* Exercise 9.2.6b *)
-Lemma var_fact2 : forall A B,
+Lemma sys_vars_app : forall A B,
   sys_vars (A ++ B) = sys_vars A ++ sys_vars B.
 Proof.
 Admitted.
 
 (* Exercise 9.2.6c *)
-Lemma var_fact3 : forall A s t,
+Lemma vars_subset : forall A s t,
   In (s, t) A ->
   incl (vars s) (sys_vars A) /\
   incl (vars t) (sys_vars A).
@@ -551,7 +553,7 @@ Proof.
 Admitted.
 
 (* Exercise 9.2.6d *)
-Lemma var_fact4 : forall A B,
+Lemma sys_vars_subset : forall A B,
   incl A B ->
   incl (sys_vars A) (sys_vars B).
 Proof.
@@ -560,7 +562,7 @@ Admitted.
 (* Exercise 9.2.7 *)
 Definition gen n : term := Var n.
 
-Lemma gen_fact : forall m n,
+Lemma gen_no_unif : forall m n,
   ~ (m = n) ->
   ~ (unifiable [(gen m, gen n)]).
 Proof.
