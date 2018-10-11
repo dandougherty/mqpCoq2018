@@ -8,7 +8,7 @@ Require Import List.
 Require Import Basics.
 Require Import Logic.
 Require Import Arith.EqNat.
-Require Import Nat.
+
 Import ListNotations.
 
 (* Begin 9.1 Definitions *)
