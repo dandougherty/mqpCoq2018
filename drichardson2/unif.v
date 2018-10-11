@@ -295,23 +295,17 @@ Fixpoint vars t : list var :=
   end.
 
 (* Returns all variables in the system *)
-Definition sys_vars A : list var :=
-  fold_left (fun vs => fun e =>
-        (vars (fst e)) ++ (vars (snd e)) ++ vs)
-  A [].
-
-Fixpoint sys_vars' A : list var :=
+Fixpoint sys_vars A : list var :=
   match A with
   | [] => []
-  | (s, t) :: rest => vars s ++ vars t ++ sys_vars' rest
+  | (s, t) :: rest => vars s ++ vars t ++ sys_vars rest
   end.
 
 (* Returns the domain of the given system *)
 Fixpoint dom A : list var :=
   match A with
-  | [] => []
   | (Var x, _) :: rest => x :: dom rest
-  | _ :: rest => dom rest
+  | _ => []
   end.
 
 Definition disjoint {T:Type} (l1 l2 : list T) : Prop :=
@@ -334,20 +328,14 @@ Fixpoint replace s x t : term :=
   end.
 
 (* Replace every x with t in the system A *)
-Definition sys_replace A x t : system := 
-  map (fun e => 
-        (replace (fst e) x t,
-         replace (snd e) x t))
-  A.
-
-Fixpoint sys_replace' A x t : system :=
+Fixpoint sys_replace A x t : system :=
   match A with
   | [] => []
-  | (u, v) :: rest => (replace u x t, replace v x t) :: sys_replace' rest x t
+  | (u, v) :: rest => (replace u x t, replace v x t) :: sys_replace rest x t
   end.
 
 
-(* Return a principal unifier for the given system *)
+(* Return a principal unifier for the given solved system *)
 Fixpoint φ A s : term :=
   match A with
   | (Var x, t) :: rest => replace (φ rest s) x t
@@ -374,8 +362,8 @@ Qed.
 
 (* Exercise 9.2.3b *)
 Lemma no_sys_vars_replace : forall x t A,
-  ~ (In x (sys_vars' A)) ->
-  sys_replace' A x t = A.
+  ~ (In x (sys_vars A)) ->
+  sys_replace A x t = A.
 Proof.
   unfold not.
   intros.
@@ -398,7 +386,7 @@ Qed.
 (* Exercise 9.2.3c *)
 Lemma no_dom_replace : forall x t A,
   ~ (In x (dom A)) ->
-  dom (sys_replace' A x t) = dom A.
+  dom (sys_replace A x t) = dom A.
 Proof.
   unfold not.
   intros.
@@ -410,7 +398,7 @@ Proof.
         apply beq_nat_true in H1. apply H1.
       * simpl. rewrite H1. apply f_equal2. reflexivity.
         apply IHA. intros. apply H. simpl. right. apply H0.
-    + simpl. apply IHA. intros. apply H. simpl. apply H0.
+    + simpl. reflexivity.
 Qed.
 
 (* Exercise 9.2.3d *)
@@ -497,7 +485,22 @@ Proof.
   intros.
   induction A.
   - simpl. reflexivity.
-  -
+  - destruct a. apply unif_cons in H. destruct H.
+    assert (H1 := H0). apply IHA in H0.
+    simpl. destruct t as [x|s1 s2].
+    + induction (φ A s).
+      * simpl. destruct (v =? x) eqn:H2.
+        ** apply beq_nat_true in H2.
+           rewrite H. rewrite <- H2.
+           apply H0.
+        ** apply H0.
+      * admit. (*simpl.
+        unfold unif in H1. destruct H1. unfold subst in H1.
+        rewrite H1.
+        rewrite <- H0.
+        rewrite H1.
+        f_equal.*)
+    + reflexivity.
 Admitted.
 
 (* Exercise 9.2.4e - If a system A is solved, then it has a
@@ -533,16 +536,35 @@ Proof.
 Admitted.
 
 (* Exercise 9.2.6a *)
-(* Lemma var_fact1 : forall A,
-  incl (dom A) A.
+Lemma dom_subset : forall A,
+  incl (dom A) (sys_vars A).
 Proof.
-Admitted. *)
+  unfold incl.
+  intros.
+  induction A.
+  - inversion H.
+  - simpl. destruct a0 as [[x|s1 s2] t].
+    + simpl in H. destruct H.
+      * simpl. left. apply H.
+      * apply in_or_app. right.
+        apply in_or_app. right.
+        apply IHA.
+        apply H.
+    + inversion H.
+Qed.
 
 (* Exercise 9.2.6b *)
 Lemma sys_vars_app : forall A B,
   sys_vars (A ++ B) = sys_vars A ++ sys_vars B.
 Proof.
-Admitted.
+  intros.
+  induction A.
+  - simpl. reflexivity.
+  - simpl. destruct a. rewrite IHA.
+    rewrite <- app_assoc.
+    rewrite <- app_assoc.
+    reflexivity.
+Qed.
 
 (* Exercise 9.2.6c *)
 Lemma vars_subset : forall A s t,
@@ -550,13 +572,30 @@ Lemma vars_subset : forall A s t,
   incl (vars s) (sys_vars A) /\
   incl (vars t) (sys_vars A).
 Proof.
-Admitted.
+  intros.
+  split.
+  - induction A.
+    + inversion H.
+    + simpl. destruct a. simpl in H. destruct H.
+      * inversion H. apply incl_appl, incl_refl.
+      * apply incl_appr, incl_appr, IHA, H.
+  - induction A.
+    + inversion H.
+    + simpl. destruct a. simpl in H. destruct H.
+      * inversion H. apply incl_appr, incl_appl, incl_refl.
+      * apply incl_appr, incl_appr, IHA, H.
+Qed.
 
 (* Exercise 9.2.6d *)
 Lemma sys_vars_subset : forall A B,
   incl A B ->
   incl (sys_vars A) (sys_vars B).
 Proof.
+  intros.
+  induction B.
+  - simpl. admit.
+  - simpl. destruct a. unfold incl in H. simpl in H.
+    
 Admitted.
 
 (* Exercise 9.2.7 *)
@@ -590,87 +629,170 @@ Definition refinement A B : Prop :=
 
 (* Exercise 9.3.3 - refinement lemmas *)
 
+(* Exercise 9.3.3.1 *)
 Lemma refinement_refl : forall A,
   refinement A A.
 Proof.
-Admitted.
+  unfold refinement. intros. split.
+  - apply incl_refl.
+  - unfold unif_eq. intros. reflexivity.
+Qed.
 
-
+(* Exercise 9.3.3.2 *)
 Lemma refinement_trans : forall A B C,
   refinement A B /\ refinement B C ->
   refinement A C.
 Proof.
-Admitted.
+  unfold refinement. intros. destruct H as [[] []]. split.
+  - apply incl_tran with (sys_vars B).
+    + apply H1.
+    + apply H.
+  - unfold unif_eq in *.
+    intros.
+    split.
+    + intros. apply H2, H0, H3.
+    + intros. apply H0, H2, H3.
+Qed.
 
-
+(* Exercise 9.3.3.3 *)
 Lemma refinement_cons : forall A B e,
  refinement A B ->
  refinement (e :: A) (e :: B).
 Proof.
-Admitted.
+  unfold refinement, incl, unif_eq.
+  intros. destruct H. split.
+  - simpl. destruct e. intros.
+    apply in_app_or in H1. apply in_or_app.
+    destruct H1.
+    + left. apply H1.
+    + right. apply in_app_or in H1. apply in_or_app.
+      destruct H1.
+      * left. apply H1.
+      * right. apply H, H1.
+  - intros. destruct e. rewrite unif_cons. rewrite unif_cons.
+    split; intros []; split.
+    + apply H1.
+    + apply H0, H2.
+    + apply H1.
+    + apply H0, H2.
+Qed.
 
-
+(* Exercise 9.3.3.4 *)
 Lemma refinement_app : forall A A' B B',
   refinement A A' /\ refinement B B' ->
   refinement (A ++ B) (A' ++ B').
 Proof.
-Admitted.
+  unfold refinement, unif_eq.
+  intros. destruct H as [[] []].
+  split.
+  - rewrite sys_vars_app, sys_vars_app. apply incl_app.
+    + apply incl_appl, H.
+    + apply incl_appr, H1.
+  - intros. split; rewrite unif_app, unif_app; intros []; split.
+    + apply H0, H3.
+    + apply H2, H4.
+    + apply H0, H3.
+    + apply H2, H4.
+Qed.
 
-
+(* Exercise 9.3.3.5 *)
 Lemma refinement_unif : forall A B,
   refinement A B ->
   forall σ, unif σ A <-> unif σ B.
 Proof.
-Admitted.
+  unfold refinement, unif_eq.
+  intros.
+  destruct H.
+  split; intros; apply H0, H1.
+Qed.
 
 
-(* Exercise 9.3.4 *)
-
+(* Exercise 9.3.4.1 *)
 Lemma deletion : forall s,
   refinement [(s, s)] [].
 Proof.
-Admitted.
+  unfold refinement, unif_eq, unif.
+  intros.
+  split.
+  - simpl. unfold incl. intros. inversion H.
+  - intros. split; intros []; split; intros.
+    + apply H.
+    + inversion H1.
+    + apply H.
+    + simpl in H1. destruct H1; inversion H1. reflexivity.
+Qed.
 
-
+(* Exercise 9.3.4.2 *)
 Lemma swap : forall s t,
   refinement [(s, t)] [(t, s)].
 Proof.
-Admitted.
+  unfold refinement.
+  intros.
+  split.
+  - simpl. rewrite app_nil_r, app_nil_r. apply incl_app.
+    + apply incl_appr, incl_refl.
+    + apply incl_appl, incl_refl.
+  - unfold unif_eq. intros.
+    rewrite unif_cons, unif_cons.
+    split; intros []; rewrite H; split.
+    + reflexivity.
+    + apply H0.
+    + reflexivity.
+    + apply H0.
+Qed.
 
-
+(* Exercise 9.3.4.3 *)
 Lemma decomposition : forall s1 s2 t1 t2,
   refinement [(Func s1 s2, Func t1 t2)] [(s1, t1); (s2, t2)].
 Proof.
-Admitted.
+  unfold refinement.
+  intros.
+  split.
+  - simpl. repeat rewrite app_nil_r. repeat apply incl_app.
+    + apply incl_appl. apply incl_appl. apply incl_refl.
+    + apply incl_appr. apply incl_appl. apply incl_refl.
+    + apply incl_appl. apply incl_appr. apply incl_refl.
+    + apply incl_appr. apply incl_appr. apply incl_refl.
+  - unfold unif_eq. intros.
+    repeat rewrite unif_cons.
+    split; intros [].
+    + assert (H1 := H0). destruct H0. unfold subst in H0.
+      repeat rewrite H0 in H. inversion H. auto.
+    + destruct H0. firstorder.
+      unfold subst in H1. repeat rewrite H1.
+      f_equal; auto.
+Qed.
 
 
-(* Exercise 9.3.5 *)
+(* Exercise 9.3.5a - see exercise 9.2.3d *)
 
+(* Exercise 9.3.5b *)
 Lemma unif_no_affect : forall σ x t A,
     σ (Var x) = σ t ->
   (unif σ A <-> unif σ (sys_replace A x t)).
 Proof.
+  intros.
 Admitted.
 
-
+(* Exercise 9.3.5c *)
 Lemma replace_unif_eq : forall x t A,
   unif_eq ((Var x, t) :: A) ((Var x, t) :: sys_replace A x t).
 Proof.
 Admitted.
 
-
+(* Exercise 9.3.5d *)
 Lemma vars_incl : forall x s t,
   incl (vars (replace s x t)) (vars s ++ vars t).
 Proof.
 Admitted.
 
-
+(* Exercise 9.3.5e *)
 Lemma sys_vars_incl : forall x t A,
   incl (sys_vars (sys_replace A x t)) (sys_vars A ++ vars t).
 Proof.
 Admitted.
 
-
+(* Exercise 9.3.5f *)
 Lemma replacement : forall x t A,
   refinement ((Var x, t) :: A) ((Var x, t) :: sys_replace A x t).
 Proof.
