@@ -576,7 +576,14 @@ Proof.
 Theorem beq_nat_true : forall n m,
     beq_nat n m = true -> n = m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. induction n.
+  - destruct m.
+    + reflexivity.
+    + inversion H.
+  - destruct m.
+    + inversion H.
+    + apply f_equal. simpl in H. 
+Admitted.
 (** [] *)
 
 (** **** Exercise: 2 stars, advanced (beq_nat_true_informal)  *)
@@ -704,7 +711,12 @@ Theorem nth_error_after_last: forall (n : nat) (X : Type) (l : list X),
      length l = n ->
      nth_error l n = None.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. generalize dependent n. induction l.
+  - simpl. reflexivity.
+  - intros. induction n.
+    + inversion H.
+    + apply S_injective in H. apply IHl. apply H.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -887,7 +899,10 @@ Theorem combine_split : forall X Y (l : list (X * Y)) l1 l2,
   split l = (l1, l2) ->
   combine l1 l2 = l.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. unfold split. destruct l.
+  - inversion H. reflexivity.
+  -
+Abort.
 (** [] *)
 
 (** However, [destruct]ing compound expressions requires a bit of
@@ -958,7 +973,18 @@ Theorem bool_fn_applied_thrice :
   forall (f : bool -> bool) (b : bool),
   f (f (f b)) = f b.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. destruct (f b) eqn:H.
+  - destruct b.
+    + rewrite H. apply H.
+    + destruct (f true) eqn:H2.
+      * apply H2.
+      * apply H.
+  - destruct b.
+    + destruct (f false) eqn:H2.
+      * apply H.
+      * apply H2.
+    + rewrite H. apply H.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -1031,7 +1057,14 @@ Proof.
 Theorem beq_nat_sym : forall (n m : nat),
   beq_nat n m = beq_nat m n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. induction n.
+  - induction m.
+    + reflexivity.
+    + reflexivity.
+  - induction m.
+    + reflexivity.
+    + simpl.
+Admitted.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced, optional (beq_nat_sym_informal)  *)
@@ -1050,7 +1083,8 @@ Theorem beq_nat_trans : forall n m p,
   beq_nat m p = true ->
   beq_nat n p = true.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. apply beq_nat_true in H. apply beq_nat_true in H0. rewrite H. rewrite H0. rewrite <- beq_nat_refl. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (split_combine)  *)
@@ -1066,14 +1100,22 @@ Proof.
     things than necessary.  Hint: what property do you need of [l1]
     and [l2] for [split (combine l1 l2) = (l1,l2)] to be true?) *)
 
-Definition split_combine_statement : Prop
-  (* ("[: Prop]" means that we are giving a name to a
-     logical proposition here.) *)
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition split_combine_statement : Prop :=
+  forall (X Y: Type) (l1: list X) (l2: list Y), (length l1) = (length l2) ->
+    (split (combine l1 l2)) = (l1, l2).
 
 Theorem split_combine : split_combine_statement.
 Proof.
-(* FILL IN HERE *) Admitted.
+  unfold split_combine_statement. intros a b. induction l1.
+  - destruct l2.
+    + reflexivity.
+    + intros. inversion H.
+  - destruct l2.
+    + intros. inversion H.
+    + simpl. rewrite IHl1.
+      * reflexivity.
+      * 
+Admitted.
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_split_combine : option (prod nat string) := None.

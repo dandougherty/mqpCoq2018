@@ -11,7 +11,7 @@ Require Import Arith.EqNat.
 
 Import ListNotations.
 
-(* Begin 9.1 Definitions *)
+(* BEGIN 9.1 DEFINITIONS *)
 
 Definition var := nat.
 
@@ -42,6 +42,10 @@ Definition unifiable A : Prop :=
 
 Definition principal_unifier sigma A : Prop :=
   unif sigma A /\ forall tau, unif tau A -> forall s, tau (sigma s) = tau s.
+
+(* END 9.1 DEFINITIONS *)
+
+(* BEGIN 9.1 EXERCISES *)
 
 (* Exercise 9.1.1 *)
 Lemma subst_term_var_agreement :
@@ -98,7 +102,9 @@ Proof.
   intros. unfold unifiable in *. firstorder.
 Qed.
 
-(* Begin 9.2 Definitions *)
+(* END 9.1 EXERCISES *)
+
+(* BEGIN 9.2 DEFINITIONS *)
 
 Fixpoint v_term t :=
 match t with 
@@ -148,13 +154,20 @@ match A with
   | (u, v) :: A' => s
 end.
 
+Definition bad_equation e : Prop :=
+  exists x s, (e = (V x, s)) /\ ((V x) <> s) /\ (In x (v_term s)).
+
+(* END 9.2 DEFINITIONS *)
+
+(* BEGIN 9.2 EXERCISES *)
+
 Lemma solved_principle_unifier :
   forall A, (solved A) -> (principal_unifier (phi A) A).
 Proof.
   intros.
 Admitted.
 
-(* 9.2.3 Part A *)
+(* Exercise 9.2.3 Part A *)
 Fact var_term_no_replacement :
   forall x s t,
     ~ (In x (v_term s)) -> (var_term_replace s x t) = s.
@@ -168,7 +181,7 @@ Proof.
       + firstorder.
 Qed.
 
-(* 9.2.3 Part B *)
+(* Exercise 9.2.3 Part B *)
 Fact var_list_no_replacement :
   forall x A t,
     ~ (In x (v_list A)) -> (var_list_replace A x t) = A.
@@ -182,7 +195,7 @@ Proof.
       + apply IHA. firstorder. apply H. apply in_or_app. right. apply in_or_app. right. apply H0.
 Qed.
 
-(* 9.2.3 Part C *)
+(* Exercise 9.2.3 Part C *)
 Fact term_list_domain_agreement : 
   forall x A t,
     ~ (In x (domain A)) -> (domain (var_list_replace A x t)) = (domain A).
@@ -198,9 +211,162 @@ Proof.
       + firstorder.
 Qed.
 
-(* 9.2.3 Part D *)
+(* Exercise 9.2.3 Part D *)
 Fact subst_replacement :
   forall sigma s x t,
     (subst sigma) -> (sigma (V x)) = (sigma t) -> (sigma (var_term_replace s x t)) = (sigma s).
 Proof.
   intros. induction s.
+  - destruct (beq_nat x v) eqn:H1.
+    + apply beq_nat_true in H1. symmetry in H1. rewrite H1. rewrite H0. simpl. destruct beq_nat.
+      * reflexivity.
+      * apply H0.
+    + simpl. rewrite H1. reflexivity.
+  - simpl. unfold subst in *. rewrite H. rewrite IHs1. rewrite IHs2. firstorder.
+Qed.
+
+(* Exercise 9.2.3 Part E *)
+Fact lambda_subst :
+  forall x t, (subst (fun s => var_term_replace s x t)).
+Proof.
+  intros. unfold subst. intros. reflexivity.
+Qed.
+
+(* Exercise 9.2.4 Part A *)
+Fact phi_A_subst :
+  forall A, (subst (phi A)).
+Proof.
+  intros. unfold subst. intros. induction A.
+  - reflexivity.
+  - destruct a. destruct t0.
+    + simpl. rewrite IHA. reflexivity.
+    + reflexivity.
+Qed.
+
+(* Exercise 9.2.4 Part B *)
+Fact phi_domain_vars_disjoint :
+  forall A s, (disjoint (domain A) (v_term s)) -> (phi A s) = s.
+Proof.
+  intros. unfold disjoint in H. unfold not in H. induction A.
+  - simpl. reflexivity.
+  - destruct a. destruct t.
+    + simpl. rewrite IHA.
+      * apply var_term_no_replacement. unfold not. intros. apply H. exists v. split.
+        { left. reflexivity. }
+        { apply H0. }
+      * intros [x]. apply H. exists x. split.
+        { right. apply H0. }
+        { apply H0. }
+    + simpl. reflexivity.
+Qed.
+
+(* Exercise 9.2.4 Part C *)
+Fact solved_A_phi_A_unifier :
+  forall A, (solved A) -> (unif (phi A) A).
+Proof.
+  intros. split.
+  - apply phi_A_subst.
+  - intros. destruct A.
+    + simpl. inversion H0.
+    + destruct e. destruct H0.
+      * inversion H0.
+Admitted.
+
+(* Exercise 9.2.4 Part D *)
+Fact sigma_A_unifier :
+  forall sigma A, (unif sigma A) -> (forall s, (sigma (phi A s)) = (sigma s)).
+Proof.
+  intros.
+Admitted.
+
+(* Exercise 9.2.4 Part E *)
+Fact solved_A_phi_A_principal_unifier :
+  forall A, (solved A) -> (principal_unifier (phi A) A).
+Proof.
+  intros. 
+Admitted.
+
+(* Exercise 9.2.5 *)
+(* Helper function *)
+Fixpoint size s : nat :=
+match s with
+  | (V _) => 1
+  | (T s u) => (size s) + (size u)
+end.
+
+(* Part A *)
+Lemma sigma_x_vs_s_size :
+  forall x s sigma, (In x (v_term s)) -> (subst sigma) -> ((size (sigma (V x))) <= (size (sigma s))).
+Proof.
+  intros. destruct s.
+    - firstorder. symmetry in H. rewrite H. reflexivity.
+    - unfold size. 
+Admitted.
+
+(* Part B *)
+Lemma no_bad_equations_unifiable :
+  forall e, (bad_equation e) -> ~(unifiable [e]).
+Proof.
+  intros. unfold bad_equation in H. unfold unifiable. unfold not. firstorder. apply H2.
+Admitted.
+
+(* Exercise 9.2.6 Part A *)
+Fact domain_A_sublist_A :
+  forall A, (incl (domain A) (v_list A)).
+Proof.
+  intros. unfold incl. intros. destruct A.
+    - simpl. contradiction.
+    - destruct e. simpl. 
+Admitted.
+
+(* Exercise 9.2.6 Part B *)
+Fact appending_variable_lists :
+  forall A B, (v_list (A ++ B)) = (v_list A) ++ (v_list B).
+Proof.
+  intros. induction A, B.
+    - simpl. reflexivity.
+    - simpl. reflexivity.
+    - simpl. rewrite app_nil_r. rewrite app_nil_r. reflexivity.
+    - simpl. rewrite <- app_assoc. rewrite <- app_assoc.  rewrite IHA. simpl. reflexivity.
+Qed.
+
+(* Exercise 9.2.6 Part C *)
+Fact variable_subsets :
+  forall s t A, (In (s,t) A) -> ((incl (v_term s) (v_list A)) /\ (incl (v_term t) (v_list A))).
+Proof.
+  intros. unfold incl in *. split.
+  - intros. induction A.
+    + simpl. contradiction.
+    + firstorder. destruct H. apply in_or_app. left.
+Admitted.
+
+(* Exercise 9.2.6 Part D *)
+Fact sublist_implies_variable_sublist :
+  forall A B, (incl A B) -> (incl (v_list A) (v_list B)).
+Proof.
+  intros. unfold incl in *. intros. induction A, B.
+  - apply H0.
+  - simpl. firstorder.
+  - simpl in *. apply IHA.
+    + intros. 
+Admitted.
+
+(* Exercise 9.2.7 *)
+Definition gen x : ter := (V x).
+
+Lemma non_unifiable_gen_different :
+  forall m n, m <> n -> ~ (unifiable [(gen m, gen n)]).
+Proof.
+  intros. unfold not. unfold unifiable. intros.
+Admitted.
+
+(* Exercise 9.2.8 *)
+Lemma disjoint_solved_lists :
+  forall A B, (disjoint (v_list A) (domain B)) -> (solved A) -> (solved B) -> (solved (A ++ B)).
+Proof.
+  intros. 
+Admitted.
+
+(* END 9.2 EXERCISES *)
+
+(* BEGIN 9.3 DEFINITIONS *)
