@@ -311,6 +311,18 @@ Fixpoint dom A : list var :=
 Definition disjoint {T:Type} (l1 l2 : list T) : Prop :=
   ~ (exists i, In i l1 /\ In i l2).
 
+Lemma disjoint_comm: forall T (l1 l2 : list T),
+  disjoint l1 l2 -> disjoint l2 l1.
+Proof.
+  unfold disjoint.
+  intros.
+  intros [i H1].
+  rewrite and_comm in H1.
+  apply H.
+  exists i.
+  apply H1.
+Qed.
+
 Inductive solved : system -> Prop :=
   | solved_nil : solved []
   | solved_cons : forall x s A,
@@ -468,14 +480,30 @@ Lemma solved_unif_by_φ : forall A,
   unif (φ A) A.
 Proof.
   intros.
-  unfold unif. split.
-  - apply φ_is_subst.
-  - intros. induction A.
-    + inversion H0.
-    + destruct a. simpl in H0. destruct H0.
-      * rewrite H0. simpl. destruct s.
-        ** f_equal. apply IHA.
-          ++ Admitted.
+  induction H.
+  - firstorder.
+  - apply unif_cons. split.
+    + simpl.
+      assert (φ A (Var x) = Var x). {
+        (* this should be simplified *)
+        apply φ_disjoint. simpl. unfold disjoint.
+        intros [v [H3 H4]]. simpl in H4. destruct H4.
+        - rewrite <- H4 in H3. auto.
+        - auto.
+      }
+      rewrite H3. simpl.
+      rewrite <- beq_nat_refl. 
+      assert (φ A s = s). {
+        (* this should be simplified *)
+        apply φ_disjoint, disjoint_comm, H1.
+      }
+      rewrite H4. simpl.
+      apply no_vars_replace.
+      apply H.
+    + unfold unif in *. destruct IHsolved. split.
+      * apply φ_is_subst.
+      * intros. simpl. f_equal. apply H4. apply H5.
+Qed.
 
 (* Exercise 9.2.4d *)
 Lemma φ_no_side_effect : forall A s σ,
