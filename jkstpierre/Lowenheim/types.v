@@ -6,6 +6,7 @@
 *)
 
 (* Required Libraries *)
+Require Import Bool.
 
 (* Definitions *)
 
@@ -16,15 +17,15 @@ Definition var := nat.
 Inductive term: Type :=
   | O  : term
   | S  : term
-  | V  : var -> term
-  | pr : term -> term -> term
-  | sm : term -> term -> term.
+  | VAR  : var -> term
+  | PRODUCT : term -> term -> term
+  | SUM : term -> term -> term.
 
 Implicit Types x y z : term.
 Implicit Types n m : var.
 
-Notation "x + y" := (pr x y).
-Notation "x * y" := (sm x y).
+Notation "x + y" := (PRODUCT x y).
+Notation "x * y" := (SUM x y).
 
 (* Axiom definitions *)
 
@@ -58,6 +59,17 @@ Axiom O_times_x :
 Axiom identity :
   forall x, S * x = x.
 
+Hint Resolve sum_commutativity.
+Hint Resolve sum_associativity.
+Hint Resolve x_plus_x.
+Hint Resolve O_plus_x.
+Hint Resolve distribution.
+Hint Resolve mul_commutativity.
+Hint Resolve mul_associativity.
+Hint Resolve x_times_x.
+Hint Resolve O_times_x.
+Hint Resolve identity.
+
 (* Useful Lemmas*)
 
 Lemma x_times_x_plus_S :
@@ -75,12 +87,16 @@ intros. split.
 - intros. inversion H.
 Qed.
 
+Hint Resolve x_times_x_plus_S.
+Hint Resolve x_equal_y_x_plus_y.
+
 (* Unification definition and declarations *)
 
-
-Definition subst := (prod  term term).
+Definition subst := (prod var term).
 
 Definition unifier := list subst.
+
+
 
 Fixpoint term_eq (t1 t2 : term) : bool :=
   match t1, t2 with
