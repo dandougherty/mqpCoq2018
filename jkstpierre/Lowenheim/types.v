@@ -7,6 +7,7 @@
 
 (* Required Libraries *)
 Require Import Bool.
+Require Import EqNat.
 
 (* Definitions *)
 
@@ -90,81 +91,39 @@ Qed.
 Hint Resolve x_times_x_plus_S.
 Hint Resolve x_equal_y_x_plus_y.
 
-(* Unification definition and declarations *)
+(* Unification definitions and declarations *)
 
 Definition subst := (prod var term).
 
 Definition unifier := list subst.
 
-
-
-Fixpoint term_eq (t1 t2 : term) : bool :=
-  match t1, t2 with
-  | O, O => true
-  | O, S =>false
-  | S, O => false
-  | S, S => true
-
-  | O, pr _ _ => false
-  | O, sm _ _ => false
-  | S, pr _ _ => false
-  | S, sm _ _ => false
-
-
-  | pr _ _ , O  => false
-  | sm _ _ , O  => false
-  | pr _ _ , S  => false
-  | sm _ _ , S  => false
-
-
-  | pr p1 p2, pr p3 p4 =>
-   if and (term_eq p1 p3) (term_eq p2 p4) then true else false 
-  | sm p1 p2, sm p3 p4 =>
-   if and (term_eq p1 p3) (term_eq p2 p4) then true else false
-  | pr _ _, sm _ _ => false
-  | sm _ _, pr _ _ => false
-
-
-
-end. 
-
 Fixpoint apply_subst (t : term) (s : subst) : term :=
   match t with
-  | O => t
-  | S => t
-  | pr p1 p2 =>
-    if p1 =? (fst s) then pr (snd s ) p2
-    else if p2 = (fst s) then pr p1 (snd s)
-    else pr (apply_subst p1 s) (apply_subst p2 s)
-  | sm p1 p2 =>
-    if p1 = (fst s) then sm (snd s ) p2
-    else if p2 = (fst s) then sm p1 (snd s)
-    else sm (apply_subst p1 s) (apply_subst p2 s)
-end.
-  
+    | O => t
+    | S => t
+    | VAR x => if (beq_nat x (fst s)) then (snd s) else t
+    | SUM x y => SUM (apply_subst x s) (apply_subst y s)
+    | PRODUCT x y => PRODUCT (apply_subst x s) (apply_subst y s)
+  end.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-(*
+Example ex_subst1 : 
+  (apply_subst (VAR 0 + VAR 1) ((0, VAR 2 * VAR 3))) = (VAR 2 * VAR 3) + VAR 1.
 Proof.
-intros. induction x.
-  - rewrite distribution. rewrite O_times_x. rewrite O_times_x. rewrite O_plus_x. reflexivity.
-  - rewrite x_plus_x. rewrite mul_commutativity. rewrite O_times_x. reflexivity.
-  - repeat rewrite distribution. rewrite mul_commutativity. 
-  rewrite mul_commutativity with (y := x2). 
-  rewrite mul_commutativity with (y := S). repeat rewrite distribution. repeat rewrite x_times_x. 
-  rewrite mul_commutativity with (x := S). rewrite distribution with (x:=x1).  
+simpl. reflexivity.
+Qed.
 
-*)
+Example ex_subst2 : 
+  (apply_subst ((VAR 0 * VAR 1 * VAR 3) + (VAR 3 * VAR 2) * VAR 2) ((2, O))) = VAR 0 * VAR 1 * VAR 3.
+Proof.
+simpl. rewrite mul_commutativity with (x := VAR 3). rewrite O_times_x. rewrite O_times_x. 
+rewrite sum_commutativity with (x := VAR 0 * VAR 1 * VAR 3). rewrite O_plus_x. reflexivity.
+Qed.
+
+Example ex_subst3 :
+  (apply_subst ((VAR 0 + VAR 1) * (VAR 1 + VAR 2)) ((1, VAR 0 + VAR 2))) = VAR 2 * VAR 0.
+Proof.
+simpl. rewrite sum_associativity. rewrite x_plus_x. rewrite sum_commutativity. 
+rewrite sum_commutativity with (x := VAR 0). rewrite sum_associativity. 
+rewrite x_plus_x. rewrite sum_commutativity. rewrite O_plus_x. rewrite sum_commutativity.
+rewrite O_plus_x. reflexivity.
+Qed.
