@@ -212,6 +212,40 @@ Definition is_polynomial (p : polynomial) : Prop :=
   Sorted (fun m n => lex compare m n = Lt) p.
 
 
+Lemma bunifyN_correct1 : forall (p : polynomial) (n : nat),
+  is_polynomial p ->
+  length (vars p) < n ->
+  forall s, bunifyN n p = Some s ->
+            mgu s p.
+Proof.
+Admitted.
+
+
+Lemma bunifyN_correct2 : forall (p : polynomial) (n : nat),
+  is_polynomial p ->
+  length (vars p) < n ->
+  bunifyN n p = None ->
+  ~ unifiable p.
+Proof.
+Admitted.
+
+
+Lemma bunifyN_correct : forall (p : polynomial) (n : nat),
+  is_polynomial p ->
+  length (vars p) < n ->
+  match bunifyN n p with
+  | Some s => mgu s p
+  | None => ~ unifiable p
+  end.
+Proof.
+  intros.
+  remember (bunifyN n p).
+  destruct o.
+  - apply (bunifyN_correct1 p n H H0 s). auto.
+  - apply (bunifyN_correct2 p n H H0). auto.
+Qed.
+
+
 Theorem bunify_correct : forall (p : polynomial),
   is_polynomial p ->
   match bunify p with
@@ -219,6 +253,10 @@ Theorem bunify_correct : forall (p : polynomial),
   | None => ~ unifiable p
   end.
 Proof.
-Admitted.
+  intros.
+  apply bunifyN_correct.
+  - apply H.
+  - auto.
+Qed.
 
 
