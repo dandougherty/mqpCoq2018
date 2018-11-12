@@ -1,8 +1,9 @@
 
 Require Import List.
 Import ListNotations.
-Require Import Nat.
-
+Require Import PeanoNat.
+Import Nat.
+Require Import Sorting.
 
 
 
@@ -29,22 +30,36 @@ Fixpoint lex {T : Type} (cmp : T -> T -> comparison) (l1 l2 : list T)
       end
   end.
 
-
-Example lex1 : lex compare [] [1] = Lt.
+Theorem lex_nat_refl : forall (l : list nat), lex compare l l = Eq.
 Proof.
-reflexivity.
+  intros.
+  induction l.
+  - simpl. reflexivity.
+  - simpl. rewrite compare_refl. apply IHl.
 Qed.
 
-Example lex2 : lex compare [1] [2] = Lt.
+Theorem lex_nat_antisym : forall (l1 l2 : list nat),
+  lex compare l1 l2 = CompOpp (lex compare l2 l1).
 Proof.
-reflexivity.
+  intros l1.
+  induction l1.
+  - intros. simpl. destruct l2; reflexivity.
+  - intros. simpl. destruct l2.
+    + simpl. reflexivity.
+    + simpl. destruct (a ?= n) eqn:H;
+      rewrite compare_antisym in H;
+      rewrite CompOpp_iff in H; simpl in H;
+      rewrite H; simpl.
+      * apply IHl1.
+      * reflexivity.
+      * reflexivity.
 Qed.
 
-Example lex3 : lex compare [1;2] [2] = Lt.
+Theorem lex_nat_cons : forall (l1 l2 : list nat) n,
+  lex compare l1 l2 = lex compare (n::l1) (n::l2).
 Proof.
-reflexivity.
+  intros. simpl. rewrite compare_refl. reflexivity.
 Qed.
-
 
 (* Polynomial Arithmetic *)
 
@@ -91,16 +106,6 @@ Fixpoint mulPP (p : polynomial) (q : polynomial) : polynomial :=
 
 
 
-Example arith1 : mulPP [[1];[2]] [[1]] = [[1];[1;2]].
-Proof.
-reflexivity.
-Qed.
-
-Example arith2 : mulPP [[1];[]] [[1]] = [].
-Proof.
-reflexivity.
-Qed.
-
 
 (* Unification helpers *)
 
@@ -110,7 +115,7 @@ Definition indom (x : var) (s : subst) : bool :=
 
 Fixpoint app (s : subst) (x : var) : polynomial :=
   match s with
-  | [] => [] (* Shouldn't get here *)
+  | [] => [[x]]
   | (y, p) :: s' => if x =? y then p else app s' x
   end.
 
@@ -136,7 +141,7 @@ Fixpoint decomp2 (x : var) (p r s : polynomial)
                  : prod polynomial polynomial :=
   match p with
   | [] => (r, s)
-  | [] :: p' => (r, s ++ p) (* Shouldn't get here *)
+  | [] :: p' => (r, s ++ p)
   | (y :: m) :: p' => if x =? y then decomp2 x p' (r ++ [m]) s
                       else (r, s ++ (y :: m) :: p')
   end.
@@ -145,29 +150,13 @@ Fixpoint decomp2 (x : var) (p r s : polynomial)
 Definition decomp (p : polynomial)
                   : option (prod var (prod polynomial polynomial)) :=
   match p with
-  | [] => None (* Shouldn't get here *)
-  | [[]] => None (* Shouldn't get here *)
-  | [] :: [] :: p' => None (* Shouldn't get here *)
+  | [] => None
+  | [[]] => None
+  | [] :: [] :: p' => None
   | [] :: (x :: m) :: p' => Some (x, decomp2 x p' [m] [[]])
   | (x :: m) :: p' => Some (x, decomp2 x p' [m] [])
   end.
 
-
-(*Fixpoint bunify (p : polynomial) : option subst :=
-  match p, decomp p  with
-  | [], _ => Some []
-  | [[]], _ => None
-  | _, None => None (* Shouldn't get here *)
-  | _, Some (x, (r, s)) =>
-      let r1 := addPP [[]] r in
-      match bunify (mulPP r1 s) with
-      | None => None
-      | Some u =>
-          let r1u := substP u r1 in
-          let su  := substP u s in
-          Some ((x, addPP (mulMP [x] r1u) su) :: u)
-      end
-  end.*)
 
 Fixpoint bunifyN (n : nat) : polynomial -> option subst := fun p =>
   match p, n  with
@@ -176,7 +165,7 @@ Fixpoint bunifyN (n : nat) : polynomial -> option subst := fun p =>
   | _, 0 => None
   | _, S n' => 
       match decomp p with
-      | None => None (* Shouldn't get here *)
+      | None => None
       | Some (x, (r, s)) =>
           let r1 := addPP [[]] r in
           match bunifyN n' (mulPP r1 s) with
@@ -190,10 +179,84 @@ Fixpoint bunifyN (n : nat) : polynomial -> option subst := fun p =>
   end.
 
 
-Definition bunify (p : polynomial) := bunifyN (length p) p.
+Definition var_dec := eq_dec.
 
 
+Definition vars (p : polynomial) : list var :=
+  nodup var_dec (concat p).
 
 
+Definition bunify (p : polynomial) : option subst :=
+  bunifyN (1 + length (vars p)) p.
+
+
+Definition unifier (s : subst) (p : polynomial) : Prop :=
+  substP s p = [].
+
+
+Definition more_general (s t : subst) : Prop :=
+  forall p, substP t (substP s p) = substP t p.
+
+
+Definition mgu (s : subst) (p : polynomial) : Prop :=
+  unifier s p ->
+  forall t,
+  unifier t p -> more_general s t.
+
+
+Definition unifiable (p : polynomial) : Prop :=
+  exists s, unifier s p.
+
+
+Definition is_polynomial (p : polynomial) : Prop :=
+  Sorted (fun m n => lex compare m n = Lt) p.
+
+
+Lemma bunifyN_correct1 : forall (p : polynomial) (n : nat),
+  is_polynomial p ->
+  length (vars p) < n ->
+  forall s, bunifyN n p = Some s ->
+            mgu s p.
+Proof.
+Admitted.
+
+
+Lemma bunifyN_correct2 : forall (p : polynomial) (n : nat),
+  is_polynomial p ->
+  length (vars p) < n ->
+  bunifyN n p = None ->
+  ~ unifiable p.
+Proof.
+Admitted.
+
+
+Lemma bunifyN_correct : forall (p : polynomial) (n : nat),
+  is_polynomial p ->
+  length (vars p) < n ->
+  match bunifyN n p with
+  | Some s => mgu s p
+  | None => ~ unifiable p
+  end.
+Proof.
+  intros.
+  remember (bunifyN n p).
+  destruct o.
+  - apply (bunifyN_correct1 p n H H0 s). auto.
+  - apply (bunifyN_correct2 p n H H0). auto.
+Qed.
+
+
+Theorem bunify_correct : forall (p : polynomial),
+  is_polynomial p ->
+  match bunify p with
+  | Some s => mgu s p
+  | None => ~ unifiable p
+  end.
+Proof.
+  intros.
+  apply bunifyN_correct.
+  - apply H.
+  - auto.
+Qed.
 
 
