@@ -8,6 +8,7 @@
 (* Required Libraries *)
 Require Import Bool.
 Require Import EqNat.
+Require Import List.
 
 (* Definitions *)
 
@@ -91,11 +92,9 @@ Qed.
 Hint Resolve x_times_x_plus_S.
 Hint Resolve x_equal_y_x_plus_y.
 
-(* Unification definitions and declarations *)
+(* Substitution Definitions and Examples *)
 
 Definition subst := (prod var term).
-
-Definition unifier := list subst.
 
 Fixpoint apply_subst (t : term) (s : subst) : term :=
   match t with
@@ -127,3 +126,59 @@ rewrite sum_commutativity with (x := VAR 0). rewrite sum_associativity.
 rewrite x_plus_x. rewrite sum_commutativity. rewrite O_plus_x. rewrite sum_commutativity.
 rewrite O_plus_x. reflexivity.
 Qed.
+
+(* Ground Term Definition *)
+
+(* Check if a given term is a ground term (i.e. has no vars)*)
+Fixpoint ground_termb (t : term) : bool :=
+  match t with
+    | VAR x => false
+    | SUM x y => andb (ground_termb x) (ground_termb y)
+    | PRODUCT x y => andb (ground_termb x) (ground_termb y)
+    | _ => true
+  end.
+
+Example ex_gt1 :
+  (ground_termb (O + S)) = true.
+Proof.
+simpl. reflexivity.
+Qed.
+
+Example ex_gt2 :
+  (ground_termb (VAR 0 * S)) = false.
+Proof.
+simpl. reflexivity.
+Qed.
+
+(* Unification Definitions and Examples *)
+
+Definition unifier := list subst.
+
+Fixpoint unify (t : term) (u : unifier) : term :=
+  match u with
+    | nil => t
+    | x :: y => unify (apply_subst t x) y
+  end.
+
+Definition unifies (u : unifier) (a b : term) : Prop :=
+  (unify a u) = (unify b u).
+
+Example ex_unif1 :
+  unifies ((0, O) :: nil) (VAR 0) (VAR 1) -> False.
+Proof.
+intros. inversion H.
+Qed.
+
+Example ex_unif2 :
+  unifies ((0, S) :: (1, S) :: nil) (VAR 0) (VAR 1).
+Proof.
+firstorder.
+Qed.
+
+Definition unifiable (a b : term) : Prop :=
+  exists (u : unifier), unifies u a b.
+
+
+
+
+
