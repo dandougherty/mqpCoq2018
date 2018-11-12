@@ -96,6 +96,8 @@ Hint Resolve x_equal_y_x_plus_y.
 
 Definition subst := (prod var term).
 
+Implicit Type s : subst.
+
 Fixpoint apply_subst (t : term) (s : subst) : term :=
   match t with
     | O => t
@@ -130,29 +132,37 @@ Qed.
 (* Ground Term Definition *)
 
 (* Check if a given term is a ground term (i.e. has no vars)*)
-Fixpoint ground_termb (t : term) : bool :=
+Fixpoint ground_term (t : term) : Prop :=
   match t with
-    | VAR x => false
-    | SUM x y => andb (ground_termb x) (ground_termb y)
-    | PRODUCT x y => andb (ground_termb x) (ground_termb y)
-    | _ => true
+    | VAR x => False
+    | SUM x y => (ground_term x) /\ (ground_term y)
+    | PRODUCT x y => (ground_term x) /\ (ground_term y)
+    | _ => True
   end.
 
 Example ex_gt1 :
-  (ground_termb (O + S)) = true.
+  (ground_term (O + S)).
 Proof.
-simpl. reflexivity.
+simpl. split. 
+- reflexivity.
+- reflexivity.
 Qed.
 
 Example ex_gt2 :
-  (ground_termb (VAR 0 * S)) = false.
+  (ground_term (VAR 0 * S)) -> False.
 Proof.
-simpl. reflexivity.
+simpl. intros. destruct H. apply H.
 Qed.
+
+Lemma ground_term_cannot_subst :
+  forall x, (ground_term x) -> (forall s, apply_subst x s = x).
+Admitted.
 
 (* Unification Definitions and Examples *)
 
 Definition unifier := list subst.
+
+Implicit Type u : unifier.
 
 Fixpoint unify (t : term) (u : unifier) : term :=
   match u with
@@ -175,10 +185,24 @@ Proof.
 firstorder.
 Qed.
 
+Lemma ground_terms_cannot_unify :
+  forall x y, (ground_term x /\ ground_term y) -> (forall u, unifies u x y -> x = y).
+Proof.
+intros. destruct H. eapply ground_term_cannot_subst in H.
+eapply ground_term_cannot_subst in H1. inversion H0. unfold unify in H3.
+Admitted.
+
 Definition unifiable (a b : term) : Prop :=
   exists (u : unifier), unifies u a b.
 
-
+Example ex_unifiable1 :
+  unifiable (O * VAR 0 + S) (O * VAR 0) -> False.
+Proof.
+intros. firstorder. inversion H. rewrite O_times_x in H1. rewrite O_plus_x in H1. 
+apply ground_terms_cannot_unify in H1.
+- inversion H1.
+- split. simpl. reflexivity. simpl. reflexivity.
+Qed. 
 
 
 
