@@ -828,12 +828,12 @@ Proof.
   - intros H0. induction A.
     + simpl. apply H0.
     + simpl. destruct a. apply unif_cons in H0 as []. apply unif_cons. split.
-      * simpl in *. repeat rewrite replace_term_eq.
-        { apply H0. }
+      * simpl in *. repeat rewrite replace_term_eq; destruct H1; trivial.
+(*         { apply H0. }
         { destruct H1. apply H1. }
         { apply H. }
         { destruct H1. apply H1. }
-        { apply H. }
+        { apply H. } *)
       * apply IHA. apply H1.
   - intros H0. induction A.
     + simpl in H0. apply H0.
@@ -989,22 +989,27 @@ Qed.
 (* 9.4 Presolved Equation Lists *)
 (* ============================ *)
 
+
 Inductive presolved : list eqn -> Prop :=
   | presolved_nil   : presolved []
-  | presolved_cons  : forall x t A, presolved A -> presolved (((V x),t)::A).
+  | presolved_cons  : forall x t A, (V x <> t) -> presolved A -> presolved (((V x),t)::A).
+
 
 Fixpoint presolve_term s t : list eqn :=
   match (s,t) with
+  | (V x, V y) => if (x =? y) then [] else [(s,t)]
   | (V x, _) => [(s,t)]
   | (_, V x) => [(t,s)]
   | (T s1 s2, T t1 t2) => (presolve_term s1 t1) ++ (presolve_term s2 t2)
   end.
+
 
 Fixpoint presolve A : list eqn :=
   match A with
   | nil => nil
   | (s,t)::A' => (presolve_term s t)++(presolve A')
   end.
+
 
 Lemma presolved_app:
   forall A B,
@@ -1013,7 +1018,9 @@ Proof.
   intros A B H H0. induction A.
   - simpl. apply H0.
   - simpl. destruct a as [s t]. destruct s.
-    + apply presolved_cons. apply IHA. inversion H. apply H2.
+    + apply presolved_cons.
+      * inversion H. apply H3.
+      * apply IHA. inversion H. apply H5.
     + inversion H.
 Qed.
 
@@ -1025,7 +1032,9 @@ Lemma presolve_term_refinement:
   refinement [(s,t)] (presolve_term s t).
 Proof.
   induction s; induction t.
-  - simpl. apply refinement_refl.
+  - simpl. destruct (v =? v0) eqn:H.
+    + apply beq_nat_true_iff in H. rewrite H. apply deletion_unif_rule.
+    + apply refinement_refl.
   - simpl. apply refinement_refl.
   - simpl. apply swap_unif_rule.
   - simpl. apply (refinement_trans [(T s1 s2, T t1 t2)] [(s1,t1);(s2,t2)] (presolve_term s1 t1 ++ presolve_term s2 t2)).
@@ -1035,14 +1044,23 @@ Proof.
       * apply IHs2.
 Qed.
 
+
 Lemma presolve_term_presolved:
   forall s t,
   presolved (presolve_term s t).
 Proof.
   intros s. induction s.
-  - intros. simpl. apply presolved_cons. apply presolved_nil.
+  - intros. destruct t.
+    + simpl. destruct (v =? v0) eqn:H.
+      * apply presolved_nil.
+      * apply presolved_cons. apply beq_nat_false_iff in H. congruence. apply presolved_nil.
+    + simpl. apply presolved_cons.
+      * congruence.
+      * apply presolved_nil.
   - induction t.
-    + simpl. apply presolved_cons. apply presolved_nil.
+    + simpl. apply presolved_cons.
+      * congruence.
+      * apply presolved_nil.
     + simpl. apply presolved_app.
       * apply IHs1.
       * apply IHs2.
@@ -1060,6 +1078,7 @@ Proof.
     + apply presolve_term_refinement.
     + apply IHA.
 Qed.
+
 
 Lemma presolve_list_presolve:
   forall A,
@@ -1116,9 +1135,8 @@ Proof.
       * rewrite app_nil_r in H. apply H.
       * apply H0.
     + destruct a as [s t]. destruct s.
-      * simpl. apply IHn.
-        { simpl. Search refinement.
-Admitted.
+      * simpl. Admitted.
+
 
 Lemma solveE_correct A B C :
   refinement C (A ++ B) ->
