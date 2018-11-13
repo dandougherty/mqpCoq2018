@@ -219,5 +219,9 @@ apply ground_terms_cannot_unify in H1.
 - split. simpl. reflexivity. simpl. reflexivity.
 Qed. 
 
+Definition most_general_unifier (a b : term) (u : unifier) : Prop :=
+  (unifies a b u) /\ (forall (u' : unifier), (unifies a b u') -> (exists (sigma : unifier), u' = sigma ++ u)).
 
+
+  
 
