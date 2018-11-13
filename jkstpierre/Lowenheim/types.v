@@ -167,7 +167,7 @@ rewrite H1. reflexivity.
 rewrite H1. reflexivity.
 Qed.
 
-(* Unification Definitions and Examples *)
+(** UNIFICATION DEFINITIONS AND LEMMAS **)
 
 Definition unifier := list subst.
 
@@ -178,6 +178,43 @@ Fixpoint unify (t : term) (u : unifier) : term :=
     | nil => t
     | x :: y => unify (apply_subst t x) y
   end.
+
+(* Helpful lemma for showing ground terms cannot unify *)
+Lemma ground_term_cannot_unify :
+  forall x, (ground_term x) -> (forall u, unify x u = x).
+Proof.
+intros. induction x.
+{ induction u.
+  { simpl. reflexivity. }
+  { simpl. apply IHu. }
+}
+{ induction u.
+  { simpl. reflexivity. }
+  { simpl. apply IHu. }
+}
+{ induction u.
+  { simpl. reflexivity. }
+  { simpl. unfold ground_term in H. contradiction. }
+}
+{ induction u.
+  { simpl. reflexivity. }
+  { simpl. firstorder. apply ground_term_cannot_subst with (s := a) in H. 
+    apply ground_term_cannot_subst with (s := a) in H0. rewrite H. rewrite H0.
+    apply IHu.
+    { intros. simpl in H1. rewrite H in H1. apply H1. }
+    { intros. simpl in H2. rewrite H0 in H2. apply H2. }
+  }
+}
+{ induction u.
+  { simpl. reflexivity. }
+  { simpl. firstorder. apply ground_term_cannot_subst with (s := a) in H.
+    apply ground_term_cannot_subst with (s := a) in H0. rewrite H. rewrite H0.
+    apply IHu.
+    { intros. simpl in H1. rewrite H in H1. apply H1. }
+    { intros. simpl in H2. rewrite H0 in H2. apply H2. }
+  }
+}
+Qed.
 
 Definition unifies (a b : term) (u : unifier) : Prop :=
   (unify a u) = (unify b u).
@@ -194,34 +231,35 @@ Proof.
 firstorder.
 Qed.
 
+Definition unifies_O (a b : term) (u : unifier) : Prop :=
+  (unify a u) + (unify b u) = O.
+
 (* Show that finding a unifier for x = y is the same as finding a unifier for x + y = 0 *)
 Lemma unifies_O_equiv :
-  forall x y u, unifies x y u -> ((unify x u) + (unify y u) = O).
+  forall x y u, unifies x y u <-> unifies_O x y u.
 Proof.
-intros. inversion H. rewrite x_plus_x. reflexivity.
+intros. split.
+{ intros. unfold unifies_O. unfold unifies in H. inversion H. 
+  rewrite x_plus_x. reflexivity.
+}
+{ intros. unfold unifies_O in H. unfold unifies. inversion H. }
 Qed.
 
-Lemma ground_terms_cannot_unify :
-  forall x y, (ground_term x /\ ground_term y) -> (forall u, unifies x y u -> x = y).
+Definition unifies_O_single_term (t : term) (u : unifier) : Prop :=
+  (unify t u) = O.
+
+Lemma unifies_O_single_term_equiv :
+  forall x y u, unifies_O x y u <-> unifies_O_single_term (x + y) u.
 Proof.
-intros. destruct H. apply unifies_O_equiv in H0. inversion H0.
-Qed. 
+intros. split.
+{ intros. inversion H. }
+{ intros. inversion H. unfold unifies_O.
+  unfold unifies_O_single_term in H. apply unifies_O_equiv. unfold unifies.
+  induction x.
+  { rewrite O_plus_x in H. rewrite H. apply ground_term_cannot_unify. reflexivity. }
+Admitted.
 
-Definition unifiable (a b : term) : Prop :=
-  exists (u : unifier), unifies a b u.
-
-Example ex_unifiable1 :
-  unifiable (O * VAR 0 + S) (O * VAR 0) -> False.
-Proof.
-intros. firstorder. inversion H. rewrite O_times_x in H1. rewrite O_plus_x in H1. 
-apply ground_terms_cannot_unify in H1.
-- inversion H1.
-- split. simpl. reflexivity. simpl. reflexivity.
-Qed. 
-
-Definition most_general_unifier (a b : term) (u : unifier) : Prop :=
-  (unifies a b u) /\ (forall (u' : unifier), (unifies a b u') -> (exists (sigma : unifier), u' = sigma ++ u)).
-
-
+Definition unifiable (t : term) : Prop :=
+  exists u, unifies_O_single_term t u.
   
 
