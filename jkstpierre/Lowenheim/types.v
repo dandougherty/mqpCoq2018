@@ -26,8 +26,8 @@ Inductive term: Type :=
 Implicit Types x y z : term.
 Implicit Types n m : var.
 
-Notation "x + y" := (PRODUCT x y).
-Notation "x * y" := (SUM x y).
+Notation "x + y" := (SUM x y).
+Notation "x * y" := (PRODUCT x y).
 
 (* Axiom definitions *)
 
@@ -179,29 +179,36 @@ Fixpoint unify (t : term) (u : unifier) : term :=
     | x :: y => unify (apply_subst t x) y
   end.
 
-Definition unifies (u : unifier) (a b : term) : Prop :=
+Definition unifies (a b : term) (u : unifier) : Prop :=
   (unify a u) = (unify b u).
 
 Example ex_unif1 :
-  unifies ((0, O) :: nil) (VAR 0) (VAR 1) -> False.
+  unifies (VAR 0) (VAR 1) ((0, O) :: nil) -> False.
 Proof.
 intros. inversion H.
 Qed.
 
 Example ex_unif2 :
-  unifies ((0, S) :: (1, S) :: nil) (VAR 0) (VAR 1).
+  unifies (VAR 0) (VAR 1) ((0, S) :: (1, S) :: nil).
 Proof.
 firstorder.
 Qed.
 
-Lemma ground_terms_cannot_unify :
-  forall x y, (ground_term x /\ ground_term y) -> (forall u, unifies u x y -> x = y).
+(* Show that finding a unifier for x = y is the same as finding a unifier for x + y = 0 *)
+Lemma unifies_O_equiv :
+  forall x y u, unifies x y u -> ((unify x u) + (unify y u) = O).
 Proof.
-intros. inversion H. inversion H0. unfold unify in H4. 
-Admitted.
+intros. inversion H. rewrite x_plus_x. reflexivity.
+Qed.
+
+Lemma ground_terms_cannot_unify :
+  forall x y, (ground_term x /\ ground_term y) -> (forall u, unifies x y u -> x = y).
+Proof.
+intros. destruct H. apply unifies_O_equiv in H0. inversion H0.
+Qed. 
 
 Definition unifiable (a b : term) : Prop :=
-  exists (u : unifier), unifies u a b.
+  exists (u : unifier), unifies a b u.
 
 Example ex_unifiable1 :
   unifiable (O * VAR 0 + S) (O * VAR 0) -> False.
