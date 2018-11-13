@@ -156,7 +156,16 @@ Qed.
 
 Lemma ground_term_cannot_subst :
   forall x, (ground_term x) -> (forall s, apply_subst x s = x).
-Admitted.
+Proof.
+intros. induction x.
+- simpl. reflexivity.
+- simpl. reflexivity.
+- simpl. inversion H.
+- simpl. inversion H. apply IHx1 in H0. apply IHx2 in H1. rewrite H0. 
+rewrite H1. reflexivity.
+- simpl. inversion H. apply IHx1 in H0. apply IHx2 in H1. rewrite H0.
+rewrite H1. reflexivity.
+Qed.
 
 (* Unification Definitions and Examples *)
 
@@ -188,8 +197,7 @@ Qed.
 Lemma ground_terms_cannot_unify :
   forall x y, (ground_term x /\ ground_term y) -> (forall u, unifies u x y -> x = y).
 Proof.
-intros. destruct H. eapply ground_term_cannot_subst in H.
-eapply ground_term_cannot_subst in H1. inversion H0. unfold unify in H3.
+intros. inversion H. inversion H0. unfold unify in H4. 
 Admitted.
 
 Definition unifiable (a b : term) : Prop :=
