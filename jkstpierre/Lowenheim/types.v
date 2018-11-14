@@ -12,10 +12,10 @@ Require Import List.
 
 (* Definitions *)
 
-(* Variable definition *)
+(* VARIABLE DEFINITIONS *)
 Definition var := nat.
 
-(* Term definition*)
+(* TERM DEFINITIONS AND AXIOMS *)
 Inductive term: Type :=
   | O  : term
   | S  : term
@@ -72,7 +72,7 @@ Hint Resolve x_times_x.
 Hint Resolve O_times_x.
 Hint Resolve identity.
 
-(* Useful Lemmas*)
+(* TERM LEMMAS *)
 
 Lemma x_times_x_plus_S :
   forall x, x * (x + S) = O.
@@ -92,7 +92,7 @@ Qed.
 Hint Resolve x_times_x_plus_S.
 Hint Resolve x_equal_y_x_plus_y.
 
-(* Substitution Definitions and Examples *)
+(** SUBSTITUTION DEFINITIONS AND LEMMAS **)
 
 Definition subst := (prod var term).
 
@@ -129,7 +129,7 @@ rewrite x_plus_x. rewrite sum_commutativity. rewrite O_plus_x. rewrite sum_commu
 rewrite O_plus_x. reflexivity.
 Qed.
 
-(* Ground Term Definition *)
+(** GROUND TERM DEFINITIONS AND LEMMAS **)
 
 (* Check if a given term is a ground term (i.e. has no vars)*)
 Fixpoint ground_term (t : term) : Prop :=
@@ -246,20 +246,18 @@ intros. split.
 Qed.
 
 Definition unifies_O_single_term (t : term) (u : unifier) : Prop :=
-  (unify t u) = O.
+  match t with
+    | SUM x y => (unify x u) + (unify y u) = O
+    | _ => (unify t u) + (unify O u) = O
+  end.
 
 Lemma unifies_O_single_term_equiv :
   forall x y u, unifies_O x y u <-> unifies_O_single_term (x + y) u.
 Proof.
-intros. split.
-{ intros. inversion H. }
-{ intros. inversion H. unfold unifies_O.
-  unfold unifies_O_single_term in H. apply unifies_O_equiv. unfold unifies.
-  induction x.
-  { rewrite O_plus_x in H. rewrite H. apply ground_term_cannot_unify. reflexivity. }
-Admitted.
+intros. split. 
+  { intros. inversion H. }
+  { unfold unifies_O_single_term. unfold unifies_O. intros. apply H. }
+Qed.
 
 Definition unifiable (t : term) : Prop :=
   exists u, unifies_O_single_term t u.
-  
-
