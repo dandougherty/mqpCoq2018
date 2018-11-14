@@ -72,12 +72,12 @@ Lemma plus_not :
   P One x = y <-> ~ x = y.
 Proof.
   intros x y []. split.
-  - intros H1. pose (ground_zero_one x). pose (ground_zero_one y). destruct o, o0; try auto.
+  - intros H1. pose (ground_zero_one x). pose (ground_zero_one y). destruct o, o0; auto.
     + rewrite H2, H3 in H1. inversion H1.
     + rewrite H2, H3. intro. inversion H4.
     + rewrite H2, H3. intro. inversion H4.
     + rewrite H2, H3 in H1. inversion H1.
-  - intros H1. unfold not in *. pose (ground_zero_one x). pose (ground_zero_one y). destruct o, o0; try auto.
+  - intros H1. unfold not in *. pose (ground_zero_one x). pose (ground_zero_one y). destruct o, o0; auto.
     + rewrite H2, H3 in H1. contradiction.
     + rewrite H2, H3. rewrite B_plus_comm. auto.
     + rewrite H2, H3. auto.
@@ -88,24 +88,18 @@ Lemma mult_not :
   forall (x : term),
   M x (P x One) = Zero.
 Proof.
-  intros x. 
-  (* - rewrite B_plus_zero. apply B_mult_zero.
-  - rewrite B_plus_self. rewrite B_mult_comm. apply B_mult_zero.
-  - admit.
-  - admit.
-  - admit. *)
-Admitted.
+  intros x. rewrite B_distr. rewrite B_mult_self. rewrite B_mult_comm. rewrite B_mult_one.
+  rewrite B_plus_self. reflexivity.
+Qed.
 
 Lemma plus_eq_zero :
   forall (x y : term),
   x = y <-> P x y = Zero.
 Proof.
-  intros x y. split. Admitted.
-  (* - intros H. rewrite H. apply B_plus_self.
-  - intros H. destruct x eqn:Hx.
-    + rewrite B_plus_zero in H. symmetry. apply H.
-    +  *)
-
+  intros x y. split.
+  - intros H. rewrite H. rewrite B_plus_self. reflexivity.
+  - intros H. inversion H.
+Qed.
 
 
 (* ===== Polynomial Representation - Data Types ===== *)
@@ -241,8 +235,11 @@ Definition mgu (s : subst) (p : polynomial) : Prop :=
 Definition unifiable (p : polynomial) : Prop :=
   exists s, unifier s p.
 
-Definition is_polynomial (p : polynomial) : Prop := NoDup p. (* add more *)
-Definition is_monomial (m : monomial) : Prop := False.
+Definition is_monomial (m : monomial) : Prop := NoDup m.
+
+Definition is_polynomial (p : polynomial) : Prop := 
+  NoDup p /\ forall (m : monomial), In m p -> is_monomial m.
+
 
 
 
