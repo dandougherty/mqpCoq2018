@@ -167,6 +167,24 @@ rewrite H1. reflexivity.
 rewrite H1. reflexivity.
 Qed.
 
+Lemma ground_term_equiv_O_S :
+  forall x, (ground_term x) -> (x = O \/ x = S).
+Proof.
+intros. induction x.
+- left. reflexivity.
+- right. reflexivity.
+- contradiction.
+- inversion H. destruct IHx1; destruct IHx2; auto. rewrite H2. left. rewrite O_times_x. reflexivity.
+rewrite H2. left. rewrite O_times_x. reflexivity.
+rewrite H3. left. rewrite mul_commutativity. rewrite O_times_x. reflexivity. 
+rewrite H2. rewrite H3. right. rewrite identity. reflexivity.
+- inversion H. destruct IHx1; destruct IHx2; auto. rewrite H2. left. rewrite O_plus_x. 
+apply H3. 
+rewrite H2. rewrite H3. rewrite O_plus_x. right. reflexivity.
+rewrite H2. rewrite H3. right. rewrite sum_commutativity. rewrite O_plus_x. reflexivity.
+rewrite H2. rewrite H3. rewrite x_plus_x. left. reflexivity.
+Qed.
+
 (** UNIFICATION DEFINITIONS AND LEMMAS **)
 
 Definition unifier := list subst.
