@@ -187,7 +187,7 @@ Fixpoint decomp2 (x : nat) (p r s : polynomial) : pair polynomial :=
     end
   end.
 
-Definition decomp (p : polynomial) : option (prod nat (pair polynomial)) :=
+Definition decomp (p : polynomial) : option (prod var (pair polynomial)) :=
   match p with
   | [] :: (x :: m) :: p' => Some (x, (decomp2 x p' [m] [[]]))
   | (x :: m) :: p' => Some (x, (decomp2 x p' [m] []))
@@ -220,6 +220,11 @@ Definition vars (p : polynomial) : list var :=
 Definition bUnify (p : polynomial) : option subst :=
   bUnifyN (1 + length (vars p)) p.
 
+Lemma vars_le :
+  forall (m : monomial) (p : polynomial) (n : nat),
+  length (vars (m :: p)) < n -> length (vars p) < n.
+Proof. Admitted.
+
 
 
 (* ===== Logic Definitions ===== *)
@@ -235,22 +240,153 @@ Definition mgu (s : subst) (p : polynomial) : Prop :=
 Definition unifiable (p : polynomial) : Prop :=
   exists s, unifier s p.
 
+Definition reprod_unif (sigma : subst) (t : polynomial) : Prop :=
+  unifier sigma t ->
+  forall (tau : subst), unifier tau t -> 
+  forall (x : polynomial), substP tau (substP sigma x) = substP tau x.
+
 Definition is_monomial (m : monomial) : Prop := NoDup m.
 
 Definition is_polynomial (p : polynomial) : Prop := 
   NoDup p /\ forall (m : monomial), In m p -> is_monomial m.
 
+Lemma is_polynomial_cons :
+  forall (m : monomial) (p : polynomial),
+  is_polynomial (m :: p) -> is_monomial m /\ is_polynomial p.
+Proof.
+  intros m p H. unfold is_polynomial in *. inversion H. split.
+  - apply H1. left. reflexivity.
+  - split.
+    + apply NoDup_cons_iff in H0. apply H0.
+    + intros m0 H2. apply H1. simpl. right. apply H2.
+Qed.
 
+(* Lemma is_polynomial_app : 
+  forall (m n : polynomial),
+  is_polynomial m /\ is_polynomial n <-> is_polynomial (m ++ n).
+Proof. Admitted.
+
+Hint Resolve is_polynomial_app is_polynomial_cons. *)
+
+
+
+(* ===== Lemma about Unification ===== *)
+(* Lemma substP_cons : 
+  forall (m : monomial) (p : polynomial) (s : subst),
+  is_polynomial p /\ is_monomial m ->
+  substP s (m :: p ) = addPP (substM s m) (substP s p).
+Proof. auto. Qed.
+
+Lemma substP_app :
+  forall (m n : polynomial) (s : subst),
+  is_polynomial m /\ is_polynomial n ->
+  substP s m ++ substP s n = substP s (m ++ n).
+Proof.
+  intros m n s H. induction m.
+  - simpl. reflexivity.
+  - induction n.
+    + simpl. repeat rewrite app_nil_r. reflexivity.
+    + rewrite <- app_comm_cons. rewrite (substP_cons a (m ++ a0 :: n) s).
+      rewrite (substP_cons a m s).
+      * admit.
+      * inversion H. apply is_polynomial_cons in H0 as []. split; auto.
+      * split.
+        -- apply is_polynomial_app. split.
+           ++ inversion H. apply is_polynomial_cons in H0. apply H0.
+           ++ inversion H. apply H1.
+        -- inversion H. apply is_polynomial_cons in H0 as []. apply H0.
+Admitted. (* rewrite <- app_assoc. rewrite IHm. reflexivity.
+Qed. *)
+
+Lemma substP_0_app :
+  forall (m n : polynomial) (s : subst),
+  is_polynomial m /\ is_polynomial n ->
+  substP s m = [] /\ substP s n = [] <-> substP s (m++n) = [].
+Proof.
+  intros m n s H. split.
+  - intros []. induction m.
+    + simpl. apply H1.
+    + simpl in *. rewrite <- substP_app.
+      * rewrite H1. rewrite app_nil_r. apply H0.
+      * inversion H. split.
+        -- apply is_polynomial_cons in H2. apply H2.
+        -- apply H3.
+  - intros. rewrite <- substP_app in H. apply app_eq_nil in H as []. split; auto.
+Qed.
+
+Lemma unif_app : 
+  forall (m n : polynomial) (s : subst),
+  is_polynomial m /\ is_polynomial n ->
+  unifier s m /\ unifier s n <-> unifier s (m ++ n).
+Proof.
+  intros m n s. split.
+  - intros []. unfold unifier in *. apply substP_0_app. split; auto.
+  - intros H. unfold unifier in *. split; apply substP_0_app in H as []; auto.
+Qed. *)
+
+Lemma empty_mgu : 
+  mgu [] [].
+Proof.
+Admitted.
+
+Lemma mgu_app :
+  forall (m n : polynomial) (s : subst),
+  is_polynomial m /\ is_polynomial n ->
+  mgu s m /\ mgu s n -> mgu s (m ++ n).
+Proof. Admitted.
 
 
 (* ===== Proof of Correctness ===== *)
+Definition t_prime (r s : polynomial) : polynomial := 
+  mulPP (addPP r [[]]) s.
+
+Lemma decomp_unif :
+  forall (p : polynomial) (sigma : subst),
+  is_polynomial p ->
+  match (decomp p) with
+  | None => True
+  | Some (x,(r,s)) => unifier sigma p -> unifier sigma (t_prime r s)
+  end.
+Proof. Admitted.
+
+Definition sig_prime (sig : subst) (x : var) (r s : polynomial) : subst := sig.
+
+Lemma reprod_build_sigma :
+  forall (sig : subst) (t : polynomial), 
+  match decomp t with
+  | None => True
+  | Some (x, (r,s)) => 
+      reprod_unif sig (t_prime r s) /\ inDom x sig = false ->
+      reprod_unif (sig_prime sig x r s) t
+  end.
+Proof. Admitted.
+
 Lemma bUnifyN_correct1 : forall (p : polynomial) (n : nat),
   is_polynomial p ->
   length (vars p) < n ->
   forall s, bUnifyN n p = Some s ->
             mgu s p.
 Proof. 
-  intros p n H H0 s H1.
+  intros p n H H0 s H1. induction n.
+  - simpl in *. destruct p.
+    + inversion H1. apply empty_mgu.
+    + inversion H0.
+  - induction p.
+    + simpl in H1. inversion H1. apply empty_mgu.
+    + replace (a :: p) with ([a] ++ p); try reflexivity. apply mgu_app.
+      * apply is_polynomial_cons in H. split.
+        -- unfold is_polynomial. split.
+           ++ apply NoDup_cons. intro. contradiction. apply NoDup_nil.
+           ++ intros. inversion H. simpl in H2. destruct H2.
+              ** rewrite <- H2. apply H3.
+              ** contradiction.
+         -- apply H.
+      * split.
+        -- admit.
+        -- apply IHp.
+           ++ apply is_polynomial_cons in H. apply H.
+           ++ apply (vars_le a p (S n)). apply H0.
+           ++ admit.
 Admitted.
 
 Lemma bUnifyN_correct2 : forall (p : polynomial) (n : nat),
