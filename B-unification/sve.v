@@ -194,8 +194,19 @@ Definition unifier (s : subst) (p : polynomial) : Prop :=
   substP s p = [].
 
 
+Definition is_monomial (m : monomial) : Prop :=
+  Sorted (fun x y => x < y) m.
+
+
+Definition is_polynomial (p : polynomial) : Prop :=
+  Sorted (fun m n => lex compare m n = Lt) p
+  /\ forall m, In m p -> is_monomial m.
+
+
 Definition more_general (s t : subst) : Prop :=
-  forall p, substP t (substP s p) = substP t p.
+  forall p, 
+  is_polynomial p ->
+  substP t (substP s p) = substP t p.
 
 
 Definition mgu (s : subst) (p : polynomial) : Prop :=
@@ -208,9 +219,87 @@ Definition unifiable (p : polynomial) : Prop :=
   exists s, unifier s p.
 
 
-Definition is_polynomial (p : polynomial) : Prop :=
-  Sorted (fun m n => lex compare m n = Lt) p.
+Lemma mono_order : forall x y m,
+  is_monomial (x :: y :: m) ->
+  is_monomial (y :: m) /\ x < y.
+Proof.
+  unfold is_monomial.
+  intros.
+  apply Sorted_inv in H.
+  destruct H.
+  split.
+  - apply H.
+  - apply HdRel_inv in H0. apply H0. 
+Qed.
 
+Lemma poly_order : forall m n p,
+  is_polynomial (m :: n :: p) ->
+  is_polynomial (n :: p) /\ lex compare m n = Lt.
+Proof.
+  unfold is_polynomial.
+  intros.
+  destruct H.
+  apply Sorted_inv in H.
+  destruct H.
+  split.
+  - split.
+    + apply H.
+    + intros. apply H0, in_cons, H2.
+  - apply HdRel_inv in H1. apply H1.
+Qed.
+
+Lemma empty_substM : forall (m : monomial),
+  is_monomial m ->
+  substM [] m = [m].
+Proof.
+  intros.
+  induction m.
+  - simpl. reflexivity.
+  - simpl.
+    destruct m.
+    + simpl. reflexivity.
+    + apply mono_order in H.
+      destruct H.
+      apply IHm in H.
+      rewrite H.
+      rewrite <- compare_lt_iff in H0.
+      simpl.
+      rewrite H0.
+      reflexivity.
+Qed.
+
+Lemma empty_substP : forall (p : polynomial),
+  is_polynomial p ->
+  substP [] p = p.
+Proof.
+  intros.
+  induction p.
+  - simpl. reflexivity.
+  - simpl.
+    destruct p.
+    + inversion H.
+      rewrite empty_substM.
+      * simpl. reflexivity.
+      * apply H1, in_eq.
+    + inversion H.
+      apply poly_order in H.
+      destruct H.
+      apply IHp in H.
+      rewrite H.
+      rewrite empty_substM.
+      * simpl. rewrite H2. reflexivity.
+      * apply H1, in_eq.
+Qed.
+
+Lemma empty_mgu : mgu [] [].
+Proof.
+  unfold mgu.
+  unfold more_general.
+  intros.
+  simpl.
+  rewrite (empty_substP _ H1).
+  reflexivity.
+Qed.
 
 Lemma bunifyN_correct1 : forall (p : polynomial) (n : nat),
   is_polynomial p ->
