@@ -195,7 +195,7 @@ Definition unifier (s : subst) (p : polynomial) : Prop :=
 
 
 Definition is_monomial (m : monomial) : Prop :=
-  Sorted (fun x y => x < y) m.
+  Sorted lt m.
 
 
 Definition is_polynomial (p : polynomial) : Prop :=
@@ -221,31 +221,50 @@ Definition unifiable (p : polynomial) : Prop :=
 
 Lemma mono_order : forall x y m,
   is_monomial (x :: y :: m) ->
-  is_monomial (y :: m) /\ x < y.
+  x < y.
 Proof.
   unfold is_monomial.
   intros.
-  apply Sorted_inv in H.
-  destruct H.
-  split.
-  - apply H.
-  - apply HdRel_inv in H0. apply H0. 
+  apply Sorted_inv in H as [].
+  apply HdRel_inv in H0.
+  apply H0. 
+Qed.
+
+Lemma mono_cons : forall x m,
+  is_monomial (x :: m) ->
+  is_monomial m.
+Proof.
+  unfold is_monomial.
+  intros.
+  apply Sorted_inv in H as [].
+  apply H.
 Qed.
 
 Lemma poly_order : forall m n p,
   is_polynomial (m :: n :: p) ->
-  is_polynomial (n :: p) /\ lex compare m n = Lt.
+  lex compare m n = Lt.
 Proof.
   unfold is_polynomial.
   intros.
   destruct H.
-  apply Sorted_inv in H.
+  apply Sorted_inv in H as [].
+  apply HdRel_inv in H1.
+  apply H1.
+Qed.
+
+Lemma poly_cons : forall m p,
+  is_polynomial (m :: p) ->
+  is_polynomial p /\ is_monomial m.
+Proof.
+  unfold is_polynomial.
+  intros.
   destruct H.
+  apply Sorted_inv in H as [].
   split.
   - split.
     + apply H.
     + intros. apply H0, in_cons, H2.
-  - apply HdRel_inv in H1. apply H1.
+  - apply H0, in_eq.
 Qed.
 
 Lemma empty_substM : forall (m : monomial),
@@ -256,15 +275,15 @@ Proof.
   induction m.
   - simpl. reflexivity.
   - simpl.
+    apply mono_cons in H as HMM.
+    apply IHm in HMM as HS.
+    rewrite HS.
     destruct m.
     + simpl. reflexivity.
-    + apply mono_order in H.
-      destruct H.
-      apply IHm in H.
-      rewrite H.
-      rewrite <- compare_lt_iff in H0.
+    + apply mono_order in H as HLT.
+      rewrite <- compare_lt_iff in HLT.
       simpl.
-      rewrite H0.
+      rewrite HLT.
       reflexivity.
 Qed.
 
@@ -276,19 +295,17 @@ Proof.
   induction p.
   - simpl. reflexivity.
   - simpl.
+    apply poly_cons in H as H1.
+    destruct H1 as [HPP HMA].
+    apply IHp in HPP as HS.
+    rewrite HS.
+    rewrite (empty_substM _ HMA).
     destruct p.
-    + inversion H.
-      rewrite empty_substM.
-      * simpl. reflexivity.
-      * apply H1, in_eq.
-    + inversion H.
-      apply poly_order in H.
-      destruct H.
-      apply IHp in H.
-      rewrite H.
-      rewrite empty_substM.
-      * simpl. rewrite H2. reflexivity.
-      * apply H1, in_eq.
+    + simpl. reflexivity.
+    + apply poly_order in H as HLT.
+      simpl.
+      rewrite HLT.
+      reflexivity.
 Qed.
 
 Lemma empty_mgu : mgu [] [].
