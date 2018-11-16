@@ -1,10 +1,10 @@
 (*
   Boolean Unification Type Declarations.
   Authors:
+    Joseph St. Pierre
     Spyridon Antonatos
     Matthew McDonald
     Dylan Richardson
-    Joseph St. Pierre
 *)
 
 (* Required Libraries *)
@@ -76,36 +76,36 @@ Qed.
 Hint Resolve mul_x_x_plus_S.
 Hint Resolve x_equal_y_x_plus_y.
 
-(** SUBSTITUTION DEFINITIONS AND LEMMAS **)
+(** REPLACEMENT DEFINITIONS AND LEMMAS **)
 
-Definition subst := (prod var term).
+Definition replacement := (prod var term).
 
-Implicit Type s : subst.
+Implicit Type r : replacement.
 
-Fixpoint apply_subst (t : term) (s : subst) : term :=
+Fixpoint replace (t : term) (r : replacement) : term :=
   match t with
     | O => t
     | S => t
-    | VAR x => if (beq_nat x (fst s)) then (snd s) else t
-    | SUM x y => SUM (apply_subst x s) (apply_subst y s)
-    | PRODUCT x y => PRODUCT (apply_subst x s) (apply_subst y s)
+    | VAR x => if (beq_nat x (fst r)) then (snd r) else t
+    | SUM x y => SUM (replace x r) (replace y r)
+    | PRODUCT x y => PRODUCT (replace x r) (replace y r)
   end.
 
-Example ex_subst1 : 
-  (apply_subst (VAR 0 + VAR 1) ((0, VAR 2 * VAR 3))) = (VAR 2 * VAR 3) + VAR 1.
+Example ex_replace1 : 
+  (replace (VAR 0 + VAR 1) ((0, VAR 2 * VAR 3))) = (VAR 2 * VAR 3) + VAR 1.
 Proof.
 simpl. reflexivity.
 Qed.
 
-Example ex_subst2 : 
-  (apply_subst ((VAR 0 * VAR 1 * VAR 3) + (VAR 3 * VAR 2) * VAR 2) ((2, O))) = VAR 0 * VAR 1 * VAR 3.
+Example ex_replace2 : 
+  (replace ((VAR 0 * VAR 1 * VAR 3) + (VAR 3 * VAR 2) * VAR 2) ((2, O))) = VAR 0 * VAR 1 * VAR 3.
 Proof.
 simpl. rewrite mul_comm with (x := VAR 3). rewrite mul_O_x. rewrite mul_O_x. 
 rewrite sum_comm with (x := VAR 0 * VAR 1 * VAR 3). rewrite sum_id. reflexivity.
 Qed.
 
-Example ex_subst3 :
-  (apply_subst ((VAR 0 + VAR 1) * (VAR 1 + VAR 2)) ((1, VAR 0 + VAR 2))) = VAR 2 * VAR 0.
+Example ex_replace3 :
+  (replace ((VAR 0 + VAR 1) * (VAR 1 + VAR 2)) ((1, VAR 0 + VAR 2))) = VAR 2 * VAR 0.
 Proof.
 simpl. rewrite sum_assoc. rewrite sum_x_x. rewrite sum_comm. 
 rewrite sum_comm with (x := VAR 0). rewrite sum_assoc. 
@@ -138,8 +138,8 @@ Proof.
 simpl. intros. destruct H. apply H.
 Qed.
 
-Lemma ground_term_cannot_subst :
-  forall x, (ground_term x) -> (forall s, apply_subst x s = x).
+Lemma ground_term_cannot_replace :
+  forall x, (ground_term x) -> (forall r, replace x r = x).
 Proof.
 intros. induction x.
 - simpl. reflexivity.
@@ -169,57 +169,57 @@ rewrite H2. rewrite H3. right. rewrite sum_comm. rewrite sum_id. reflexivity.
 rewrite H2. rewrite H3. rewrite sum_x_x. left. reflexivity.
 Qed.
 
-(** UNIFICATION DEFINITIONS AND LEMMAS **)
+(** SUBSTITUTION DEFINITIONS AND LEMMAS **)
 
-Definition unifier := list subst.
+Definition subst := list replacement.
 
-Implicit Type u : unifier.
+Implicit Type s : subst.
 
-Fixpoint unify (t : term) (u : unifier) : term :=
-  match u with
+Fixpoint apply_subst (t : term) (s : subst) : term :=
+  match s with
     | nil => t
-    | x :: y => unify (apply_subst t x) y
+    | x :: y => apply_subst (replace t x) y
   end.
 
-(* Helpful lemma for showing ground terms cannot unify *)
-Lemma ground_term_cannot_unify :
-  forall x, (ground_term x) -> (forall u, unify x u = x).
+(* Helpful lemma for showing substitutions do not affect ground terms *)
+Lemma ground_term_cannot_subst :
+  forall x, (ground_term x) -> (forall s, apply_subst x s = x).
 Proof.
 intros. induction x.
-{ induction u.
+{ induction s.
   { simpl. reflexivity. }
-  { simpl. apply IHu. }
+  { simpl. apply IHs. }
 }
-{ induction u.
+{ induction s.
   { simpl. reflexivity. }
-  { simpl. apply IHu. }
+  { simpl. apply IHs. }
 }
-{ induction u.
+{ induction s.
   { simpl. reflexivity. }
   { simpl. unfold ground_term in H. contradiction. }
 }
-{ induction u.
+{ induction s.
   { simpl. reflexivity. }
-  { simpl. firstorder. apply ground_term_cannot_subst with (s := a) in H. 
-    apply ground_term_cannot_subst with (s := a) in H0. rewrite H. rewrite H0.
-    apply IHu.
+  { simpl. firstorder. apply ground_term_cannot_replace with (r := a) in H. 
+    apply ground_term_cannot_replace with (r := a) in H0. rewrite H. rewrite H0.
+    apply IHs.
     { intros. simpl in H1. rewrite H in H1. apply H1. }
     { intros. simpl in H2. rewrite H0 in H2. apply H2. }
   }
 }
-{ induction u.
+{ induction s.
   { simpl. reflexivity. }
-  { simpl. firstorder. apply ground_term_cannot_subst with (s := a) in H.
-    apply ground_term_cannot_subst with (s := a) in H0. rewrite H. rewrite H0.
-    apply IHu.
+  { simpl. firstorder. apply ground_term_cannot_replace with (r := a) in H.
+    apply ground_term_cannot_replace with (r := a) in H0. rewrite H. rewrite H0.
+    apply IHs.
     { intros. simpl in H1. rewrite H in H1. apply H1. }
     { intros. simpl in H2. rewrite H0 in H2. apply H2. }
   }
 }
 Qed.
 
-Definition unifies (a b : term) (u : unifier) : Prop :=
-  (unify a u) = (unify b u).
+Definition unifies (a b : term) (s : subst) : Prop :=
+  (apply_subst a s) = (apply_subst b s).
 
 Example ex_unif1 :
   unifies (VAR 0) (VAR 1) ((0, O) :: nil) -> False.
@@ -233,12 +233,12 @@ Proof.
 firstorder.
 Qed.
 
-Definition unifies_O (a b : term) (u : unifier) : Prop :=
-  (unify a u) + (unify b u) = O.
+Definition unifies_O (a b : term) (s : subst) : Prop :=
+  (apply_subst a s) + (apply_subst b s) = O.
 
 (* Show that finding a unifier for x = y is the same as finding a unifier for x + y = 0 *)
 Lemma unifies_O_equiv :
-  forall x y u, unifies x y u <-> unifies_O x y u.
+  forall x y s, unifies x y s <-> unifies_O x y s.
 Proof.
 intros. split.
 { intros. unfold unifies_O. unfold unifies in H. inversion H. 
@@ -247,19 +247,57 @@ intros. split.
 { intros. unfold unifies_O in H. unfold unifies. inversion H. }
 Qed.
 
-Definition unifies_O_single_term (t : term) (u : unifier) : Prop :=
-  match t with
-    | SUM x y => (unify x u) + (unify y u) = O
-    | _ => (unify t u) + (unify O u) = O
-  end.
-
-Lemma unifies_O_single_term_equiv :
-  forall x y u, unifies_O x y u <-> unifies_O_single_term (x + y) u.
+Lemma unify_distribution : 
+  forall x y s, (unifies_O x y s) <-> (apply_subst (x + y) s = O).
 Proof.
-intros. split. 
-  { intros. inversion H. }
-  { unfold unifies_O_single_term. unfold unifies_O. intros. apply H. }
-Qed.
+intros. split.
+{ intros. inversion H. }
+{ intros. induction s. 
+  { simpl. simpl in H. apply H. }
+  { 
+Admitted.
 
 Definition unifiable (t : term) : Prop :=
-  exists u, unifies_O_single_term t u.
+  exists s, (apply_subst t s) = O.
+
+(** POLYNOMIALS **)
+
+Definition mult (a b : term) : term := 
+  match a,b with
+   | O, _ => O
+   | S, _ => S
+
+   | VAR v, O => O
+   | VAR v, S => VAR v
+   | VAR v, VAR v2 => (VAR v) * (VAR v2)
+   | VAR v, SUM t1 t2 => (a * t1) + (a * t2)
+   | VAR v, PRODUCT t1 t2 => (a * t1) * t2
+
+   | SUM t1 t2, O => O
+   | SUM t1 t2, S => a
+   | SUM t1 t2, VAR v2 => SUM (t1 + b) (t2 + b)
+   | SUM t1 t2, SUM t3 t4 => t1*t3 + t1*t4 + t2*t3 + t2*t4
+   | SUM t1 t2, PRODUCT t3 t4 => t1 * b + t2 * b
+   
+   | PRODUCT t1 t2, O => O
+   | PRODUCT t1 t2, S => a
+   | PRODUCT t1 t2, VAR v2 => a * b
+   | PRODUCT t1 t2, SUM t3 t4 => a * t3 + a * t4
+   | PRODUCT t1 t2, PRODUCT t3 t4 => a * b
+ end.
+
+(* Generates polynomial form of a term *)
+Fixpoint poly (t : term) (n : nat) : term :=
+  match t with
+    | O => O
+    | S => S
+    | VAR x => VAR x
+    | SUM x y => (poly x) + (poly y)
+    | PRODUCT x y => (poly (mult x y))
+  end.
+
+Definition more_general_unifier (u1 u2 : unifier) : Prop :=
+  exists (delta : unifier), forall x : var, 
+
+(* Most general unifier *)
+
