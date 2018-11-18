@@ -147,7 +147,7 @@ Fixpoint decomp2 (x : var) (p r s : polynomial)
   end.
 
 
-Definition decomp (p : polynomial)
+Definition decomp' (p : polynomial)
                   : option (prod var (prod polynomial polynomial)) :=
   match p with
   | [] => None
@@ -157,23 +157,46 @@ Definition decomp (p : polynomial)
   | (x :: m) :: p' => Some (x, decomp2 x p' [m] [])
   end.
 
+Fixpoint get_var (p : polynomial) : option var :=
+  match p with
+  | [] => None
+  | [] :: p' => get_var p'
+  | (x :: m) :: p' => Some x
+  end.
+
+Definition has_var (x : var) := existsb (eqb x).
+
+Definition elim_var (x : var) (p : polynomial)
+                    : prod polynomial polynomial :=
+  partition (has_var x) p.
+
+Definition decomp (p : polynomial)
+                  : option (prod var (prod polynomial polynomial)) :=
+  match get_var p with
+  | None => None
+  | Some x => Some (x, (elim_var x p))
+  end.
+
 
 Fixpoint bunifyN (n : nat) : polynomial -> option subst := fun p =>
-  match p, n  with
-  | [], _ => Some []
-  | [[]], _ => None
-  | _, 0 => None
-  | _, S n' => 
+  match n  with
+  | 0 => None
+  | S n' =>
       match decomp p with
-      | None => None
-      | Some (x, (r, s)) =>
-          let r1 := addPP [[]] r in
-          match bunifyN n' (mulPP r1 s) with
+      | None => match p with
+                | [] => Some []
+                | _  => None
+                end
+      | Some (x, (q, r)) =>
+          let q1 := addPP [[]] q in
+          let p' := mulPP q1 r in
+          match bunifyN n' p' with
           | None => None
           | Some u =>
-              let r1u := substP u r1 in
-              let su  := substP u s in
-              Some ((x, addPP (mulMP [x] r1u) su) :: u)
+              let q1u := substP u q1 in
+              let ru  := substP u r in
+              let xu  := (x, addPP (mulMP [x] q1u) ru) in
+              Some (xu :: u)
           end
       end
   end.
@@ -318,12 +341,48 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma bunifyN_correct1 : forall (p : polynomial) (n : nat),
+Lemma builds_mgu : forall x p q r u,
+  decomp p = Some (x, (q, r)) ->
+  let q1  := addPP [[]] q in
+  let p'  := mulPP q1 r in
+  let q1u := substP u q1 in
+  let ru  := substP u r in
+  let xu  := (x, addPP (mulMP [x] q1u) ru) in
+  mgu u p' ->
+  mgu (xu :: u) p.
+Proof.
+Admitted.
+
+Lemma bunifyN_correct1_try1 : forall (p : polynomial) (n : nat),
   is_polynomial p ->
   length (vars p) < n ->
   forall s, bunifyN n p = Some s ->
             mgu s p.
 Proof.
+  intros p n HPP HL s HBU.
+  assert (exists n', n = S n') as [n' Hn']. admit.
+  rewrite Hn' in HBU.
+  destruct (decomp p) eqn:HD.
+  - destruct p0 as [x [q r]].
+    assert (exists q1, q1 = addPP [[]] q) as [q1 HQ1]. eauto.
+    assert (exists p', p' = mulPP q1 r) as [p' HP']. eauto.
+    assert (exists u, bunifyN n' p' = Some u) as [u HU]. admit.
+    (* The next assert can't be proven *)
+    assert (HM': mgu u p'). admit.
+    assert (exists q1u, q1u = substP u q1) as [q1u HQ1U]. eauto.
+    assert (exists ru, ru = substP u r) as [ru HRU]. eauto.
+    assert (exists xu, xu = (x, addPP (mulMP [x] q1u) ru)) as [xu HXU]. eauto.
+    assert (HS: s = xu :: u). admit.
+    rewrite HS, HXU, HRU, HQ1U, HQ1.
+    apply builds_mgu.
+    apply HD.
+    rewrite HQ1 in HP'.
+    rewrite HP' in HM'.
+    apply HM'.
+  - assert (HP: p = []). admit.
+    assert (HS: s = []). admit.
+    rewrite HP, HS.
+    apply empty_mgu.
 Admitted.
 
 
