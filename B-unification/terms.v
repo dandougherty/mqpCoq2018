@@ -9,6 +9,7 @@
 
 (* Required Libraries *)
 Require Import Bool.
+Require Import Omega.
 Require Import EqNat.
 Require Import List.
 
@@ -19,8 +20,8 @@ Definition var := nat.
 
 (* TERM DEFINITIONS AND AXIOMS *)
 Inductive term: Type :=
-  | O  : term
-  | S  : term
+  | T0  : term
+  | T1  : term
   | VAR  : var -> term
   | PRODUCT : term -> term -> term
   | SUM : term -> term -> term.
@@ -37,9 +38,9 @@ Axiom sum_comm : forall x y, x + y = y + x.
 
 Axiom sum_assoc : forall x y z, (x + y) + z = x + (y + z).
 
-Axiom sum_id : forall x, O + x = x.
+Axiom sum_id : forall x, T0 + x = x.
 
-Axiom sum_x_x : forall x, x + x = O.
+Axiom sum_x_x : forall x, x + x = T0.
 
 Axiom mul_comm : forall x y, x * y = y * x.
 
@@ -47,33 +48,33 @@ Axiom mul_assoc : forall x y z, (x * y) * z = x * (y * z).
 
 Axiom mul_x_x : forall x, x * x = x.
 
-Axiom mul_O_x : forall x, O * x = O.
+Axiom mul_T0_x : forall x, T0 * x = T0.
 
-Axiom mul_id : forall x, S * x = x.
+Axiom mul_id : forall x, T1 * x = x.
 
 Axiom distr : forall x y z, x * (y + z) = (x * y) + (x * z).
 
 Hint Resolve sum_comm sum_assoc sum_x_x sum_id distr
-             mul_comm mul_assoc mul_x_x mul_O_x mul_id.
+             mul_comm mul_assoc mul_x_x mul_T0_x mul_id.
 
 (* TERM LEMMAS *)
 
-Lemma mul_x_x_plus_S :
-  forall x, x * (x + S) = O.
+Lemma mul_x_x_plus_T1 :
+  forall x, x * (x + T1) = T0.
 Proof.
 intros. rewrite distr. rewrite mul_x_x. rewrite mul_comm. 
 rewrite mul_id. rewrite sum_x_x. reflexivity.
 Qed.
 
 Lemma x_equal_y_x_plus_y :
-  forall x y, x = y <-> x + y = O.
+  forall x y, x = y <-> x + y = T0.
 Proof.
 intros. split.
 - intros. rewrite H. rewrite sum_x_x. reflexivity.
 - intros. inversion H.
 Qed.
 
-Hint Resolve mul_x_x_plus_S.
+Hint Resolve mul_x_x_plus_T1.
 Hint Resolve x_equal_y_x_plus_y.
 
 (** REPLACEMENT DEFINITIONS AND LEMMAS **)
@@ -84,8 +85,8 @@ Implicit Type r : replacement.
 
 Fixpoint replace (t : term) (r : replacement) : term :=
   match t with
-    | O => t
-    | S => t
+    | T0 => t
+    | T1 => t
     | VAR x => if (beq_nat x (fst r)) then (snd r) else t
     | SUM x y => SUM (replace x r) (replace y r)
     | PRODUCT x y => PRODUCT (replace x r) (replace y r)
@@ -98,9 +99,9 @@ simpl. reflexivity.
 Qed.
 
 Example ex_replace2 : 
-  (replace ((VAR 0 * VAR 1 * VAR 3) + (VAR 3 * VAR 2) * VAR 2) ((2, O))) = VAR 0 * VAR 1 * VAR 3.
+  (replace ((VAR 0 * VAR 1 * VAR 3) + (VAR 3 * VAR 2) * VAR 2) ((2, T0))) = VAR 0 * VAR 1 * VAR 3.
 Proof.
-simpl. rewrite mul_comm with (x := VAR 3). rewrite mul_O_x. rewrite mul_O_x. 
+simpl. rewrite mul_comm with (x := VAR 3). rewrite mul_T0_x. rewrite mul_T0_x. 
 rewrite sum_comm with (x := VAR 0 * VAR 1 * VAR 3). rewrite sum_id. reflexivity.
 Qed.
 
@@ -111,6 +112,43 @@ simpl. rewrite sum_assoc. rewrite sum_x_x. rewrite sum_comm.
 rewrite sum_comm with (x := VAR 0). rewrite sum_assoc. 
 rewrite sum_x_x. rewrite sum_comm. rewrite sum_id. rewrite sum_comm.
 rewrite sum_id. reflexivity.
+Qed.
+
+(* A useful lemma for later proving the substitutions distribute across terms *)
+Lemma replace_distribution :
+  forall x y r, (replace x r) + (replace y r) = (replace (x + y) r).
+Proof.
+intros. simpl. reflexivity.
+Qed.
+
+(* A simple proof for completeness to show that replacements are associative *)
+Lemma replace_associative :
+  forall x y r, (replace x r) * (replace y r) = (replace (x * y) r).
+Proof.
+intros. simpl. reflexivity.
+Qed.
+
+(* A simple function for determining whether a term contains a variable *)
+Fixpoint term_contains_var (t : term) (v : var) : bool :=
+  match t with
+    | VAR x => if (beq_nat x v) then true else false
+    | PRODUCT x y => (orb (term_contains_var x v) (term_contains_var y v))
+    | SUM x y => (orb (term_contains_var x v) (term_contains_var y v))
+    | _     => false
+  end.
+
+Lemma term_cannot_replace_var_if_not_exist :
+  forall x r, (term_contains_var x (fst r) = false) -> (replace x r) = x.
+Proof.
+intros. induction x.
+{ simpl. reflexivity. }
+{ simpl. reflexivity. }
+{ inversion H. unfold replace. destruct beq_nat.
+  inversion H1. reflexivity. } 
+{ simpl in *. apply orb_false_iff in H. destruct H. apply IHx1 in H.
+  apply IHx2 in H0. rewrite H. rewrite H0. reflexivity. }
+{ simpl in *. apply orb_false_iff in H. destruct H. apply IHx1 in H.
+  apply IHx2 in H0. rewrite H. rewrite H0. reflexivity. }
 Qed.
 
 (** GROUND TERM DEFINITIONS AND LEMMAS **)
@@ -125,7 +163,7 @@ Fixpoint ground_term (t : term) : Prop :=
   end.
 
 Example ex_gt1 :
-  (ground_term (O + S)).
+  (ground_term (T0 + T1)).
 Proof.
 simpl. split. 
 - reflexivity.
@@ -133,7 +171,7 @@ simpl. split.
 Qed.
 
 Example ex_gt2 :
-  (ground_term (VAR 0 * S)) -> False.
+  (ground_term (VAR 0 * T1)) -> False.
 Proof.
 simpl. intros. destruct H. apply H.
 Qed.
@@ -151,16 +189,16 @@ rewrite H1. reflexivity.
 rewrite H1. reflexivity.
 Qed.
 
-Lemma ground_term_equiv_O_S :
-  forall x, (ground_term x) -> (x = O \/ x = S).
+Lemma ground_term_equiv_T0_T1 :
+  forall x, (ground_term x) -> (x = T0 \/ x = T1).
 Proof.
 intros. induction x.
 - left. reflexivity.
 - right. reflexivity.
 - contradiction.
-- inversion H. destruct IHx1; destruct IHx2; auto. rewrite H2. left. rewrite mul_O_x. reflexivity.
-rewrite H2. left. rewrite mul_O_x. reflexivity.
-rewrite H3. left. rewrite mul_comm. rewrite mul_O_x. reflexivity. 
+- inversion H. destruct IHx1; destruct IHx2; auto. rewrite H2. left. rewrite mul_T0_x. reflexivity.
+rewrite H2. left. rewrite mul_T0_x. reflexivity.
+rewrite H3. left. rewrite mul_comm. rewrite mul_T0_x. reflexivity. 
 rewrite H2. rewrite H3. right. rewrite mul_id. reflexivity.
 - inversion H. destruct IHx1; destruct IHx2; auto. rewrite H2. left. rewrite sum_id. 
 apply H3. 
@@ -168,6 +206,8 @@ rewrite H2. rewrite H3. rewrite sum_id. right. reflexivity.
 rewrite H2. rewrite H3. right. rewrite sum_comm. rewrite sum_id. reflexivity.
 rewrite H2. rewrite H3. rewrite sum_x_x. left. reflexivity.
 Qed.
+
+(** TERM EQUIVALENCE **)
 
 (** SUBSTITUTION DEFINITIONS AND LEMMAS **)
 
@@ -218,86 +258,59 @@ intros. induction x.
 }
 Qed.
 
+
+
+(* A useful lemma for showing the distributivity of substitutions across terms *)
+Lemma subst_distribution :
+  forall x y s, apply_subst x s + apply_subst y s = apply_subst (x + y) s.
+Proof.
+intros. induction x, y. 
+{ simpl. induction s. reflexivity.
+Admitted.
+
 Definition unifies (a b : term) (s : subst) : Prop :=
   (apply_subst a s) = (apply_subst b s).
 
 Example ex_unif1 :
-  unifies (VAR 0) (VAR 1) ((0, O) :: nil) -> False.
+  unifies (VAR 0) (VAR 1) ((0, T0) :: nil) -> False.
 Proof.
 intros. inversion H.
 Qed.
 
 Example ex_unif2 :
-  unifies (VAR 0) (VAR 1) ((0, S) :: (1, S) :: nil).
+  unifies (VAR 0) (VAR 1) ((0, T1) :: (1, T1) :: nil).
 Proof.
 firstorder.
 Qed.
 
-Definition unifies_O (a b : term) (s : subst) : Prop :=
-  (apply_subst a s) + (apply_subst b s) = O.
+Definition unifies_T0 (a b : term) (s : subst) : Prop :=
+  (apply_subst a s) + (apply_subst b s) = T0.
 
 (* Show that finding a unifier for x = y is the same as finding a unifier for x + y = 0 *)
-Lemma unifies_O_equiv :
-  forall x y s, unifies x y s <-> unifies_O x y s.
+Lemma unifies_T0_equiv :
+  forall x y s, unifies x y s <-> unifies_T0 x y s.
 Proof.
 intros. split.
-{ intros. unfold unifies_O. unfold unifies in H. inversion H. 
+{ intros. unfold unifies_T0. unfold unifies in H. inversion H. 
   rewrite sum_x_x. reflexivity.
 }
-{ intros. unfold unifies_O in H. unfold unifies. inversion H. }
+{ intros. unfold unifies_T0 in H. unfold unifies. inversion H. }
 Qed.
 
+(* Is s a unifier for t? *)
+Definition unifier (t : term) (s : subst) : Prop :=
+  (apply_subst t s) = T0.
+
 Lemma unify_distribution : 
-  forall x y s, (unifies_O x y s) <-> (apply_subst (x + y) s = O).
+  forall x y s, (unifies_T0 x y s) <-> (unifier (x + y) s).
 Proof.
 intros. split.
 { intros. inversion H. }
-{ intros. induction s. 
-  { simpl. simpl in H. apply H. }
-  { 
-Admitted.
+{ intros. unfold unifies_T0. unfold unifier in H.
+  rewrite <- H. apply subst_distribution. }
+Qed.
 
 Definition unifiable (t : term) : Prop :=
-  exists s, (apply_subst t s) = O.
+  exists s, unifier t s.
 
 (** POLYNOMIALS **)
-
-Definition mult (a b : term) : term := 
-  match a,b with
-   | O, _ => O
-   | S, _ => S
-
-   | VAR v, O => O
-   | VAR v, S => VAR v
-   | VAR v, VAR v2 => (VAR v) * (VAR v2)
-   | VAR v, SUM t1 t2 => (a * t1) + (a * t2)
-   | VAR v, PRODUCT t1 t2 => (a * t1) * t2
-
-   | SUM t1 t2, O => O
-   | SUM t1 t2, S => a
-   | SUM t1 t2, VAR v2 => SUM (t1 + b) (t2 + b)
-   | SUM t1 t2, SUM t3 t4 => t1*t3 + t1*t4 + t2*t3 + t2*t4
-   | SUM t1 t2, PRODUCT t3 t4 => t1 * b + t2 * b
-   
-   | PRODUCT t1 t2, O => O
-   | PRODUCT t1 t2, S => a
-   | PRODUCT t1 t2, VAR v2 => a * b
-   | PRODUCT t1 t2, SUM t3 t4 => a * t3 + a * t4
-   | PRODUCT t1 t2, PRODUCT t3 t4 => a * b
- end.
-
-(* Generates polynomial form of a term *)
-Fixpoint poly (t : term) (n : nat) : term :=
-  match t with
-    | O => O
-    | S => S
-    | VAR x => VAR x
-    | SUM x y => (poly x) + (poly y)
-    | PRODUCT x y => (poly (mult x y))
-  end.
-
-Definition more_general_unifier (u1 u2 : unifier) : Prop :=
-  exists (delta : unifier), forall x : var, 
-
-(* Most general unifier *)
-
