@@ -395,4 +395,3 @@ unfold unifier in *. simpl in *. induction s_prime.
 { simpl in *. inversion H. }
 { simpl. inversion H. }
 Qed.
-

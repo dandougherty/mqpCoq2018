@@ -1,0 +1,16 @@
+Changelog for jkstpierre:
+
+11/20/2018:
+  - Proved with Professor Dougherty that substitutions 
+    distribute. This was the final link required for 
+    connecting the fundamental idea behind unification, 
+    namely that "sigma" being a unifier for terms "t1, t2"
+    if (sigma t1) = (sigma t2) is equivalent to saying
+    (sigma t) = 0 for some term t.
+  - Wrote functions for evaluating ground terms to 0 or 1.
+  - Wrote definition for a more general substitution.
+  - Wrote definition for a most general unifier.
+  - Proved an example from the book for being a most 
+    general unifier
+    
+
