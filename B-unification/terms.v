@@ -151,6 +151,8 @@ intros. induction x.
   apply IHx2 in H0. rewrite H. rewrite H0. reflexivity. }
 Qed.
 
+
+
 (** GROUND TERM DEFINITIONS AND LEMMAS **)
 
 (* Check if a given term is a ground term (i.e. has no vars)*)
@@ -207,8 +209,6 @@ rewrite H2. rewrite H3. right. rewrite sum_comm. rewrite sum_id. reflexivity.
 rewrite H2. rewrite H3. rewrite sum_x_x. left. reflexivity.
 Qed.
 
-(** TERM EQUIVALENCE **)
-
 (** SUBSTITUTION DEFINITIONS AND LEMMAS **)
 
 Definition subst := list replacement.
@@ -225,48 +225,23 @@ Fixpoint apply_subst (t : term) (s : subst) : term :=
 Lemma ground_term_cannot_subst :
   forall x, (ground_term x) -> (forall s, apply_subst x s = x).
 Proof.
-intros. induction x.
-{ induction s.
-  { simpl. reflexivity. }
-  { simpl. apply IHs. }
-}
-{ induction s.
-  { simpl. reflexivity. }
-  { simpl. apply IHs. }
-}
-{ induction s.
-  { simpl. reflexivity. }
-  { simpl. unfold ground_term in H. contradiction. }
-}
-{ induction s.
-  { simpl. reflexivity. }
-  { simpl. firstorder. apply ground_term_cannot_replace with (r := a) in H. 
-    apply ground_term_cannot_replace with (r := a) in H0. rewrite H. rewrite H0.
-    apply IHs.
-    { intros. simpl in H1. rewrite H in H1. apply H1. }
-    { intros. simpl in H2. rewrite H0 in H2. apply H2. }
-  }
-}
-{ induction s.
-  { simpl. reflexivity. }
-  { simpl. firstorder. apply ground_term_cannot_replace with (r := a) in H.
-    apply ground_term_cannot_replace with (r := a) in H0. rewrite H. rewrite H0.
-    apply IHs.
-    { intros. simpl in H1. rewrite H in H1. apply H1. }
-    { intros. simpl in H2. rewrite H0 in H2. apply H2. }
-  }
-}
+intros. induction s. simpl. reflexivity. simpl. apply ground_term_cannot_replace with (r := a) in H.
+rewrite H. apply IHs.
 Qed.
-
-
 
 (* A useful lemma for showing the distributivity of substitutions across terms *)
 Lemma subst_distribution :
-  forall x y s, apply_subst x s + apply_subst y s = apply_subst (x + y) s.
+  forall s x y, apply_subst x s + apply_subst y s = apply_subst (x + y) s.
 Proof.
-intros. induction x, y. 
-{ simpl. induction s. reflexivity.
-Admitted.
+intro. induction s. simpl. intros. reflexivity. intros. simpl. 
+apply IHs.
+Qed.
+
+Lemma subst_associative :
+  forall s x y, apply_subst x s * apply_subst y s = apply_subst (x * y) s.
+Proof.
+intro. induction s. intros. reflexivity. intros. apply IHs.
+Qed.
 
 Definition unifies (a b : term) (s : subst) : Prop :=
   (apply_subst a s) = (apply_subst b s).
@@ -313,4 +288,16 @@ Qed.
 Definition unifiable (t : term) : Prop :=
   exists s, unifier t s.
 
-(** POLYNOMIALS **)
+Example unifiable_ex1 :
+  unifiable (T1) -> False.
+Proof.
+intros. inversion H. unfold unifier in H0. rewrite ground_term_cannot_subst in H0.
+inversion H0. reflexivity.
+Qed.
+
+Example unifiable_ex2 :
+  forall x, unifiable (x + x + T1) -> False.
+Proof.
+intros. inversion H. unfold unifier in H0. rewrite sum_x_x in H0. rewrite sum_id in H0.
+rewrite ground_term_cannot_subst in H0. inversion H0. reflexivity.
+Qed.
