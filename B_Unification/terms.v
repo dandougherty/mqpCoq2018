@@ -9,14 +9,16 @@
 
 (* Required Libraries *)
 Require Import Bool.
-Require Import Omega.
-Require Import EqNat.
+Require Import Arith.
 Require Import List.
+Import ListNotations.
 
 (* Definitions *)
 
 (* VARIABLE DEFINITIONS *)
 Definition var := nat.
+
+Definition var_eq_dec := Nat.eq_dec.
 
 (* TERM DEFINITIONS AND AXIOMS *)
 Inductive term: Type :=

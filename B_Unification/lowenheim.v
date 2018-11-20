@@ -7,4 +7,4 @@
 
 (* Required Libraries *)
 
-Require Export terms.
+Require Export terms_unif.

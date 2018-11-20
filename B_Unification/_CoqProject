@@ -1,7 +1,8 @@
--R . B_Unification_Project
+-R . B_Unification
 
 terms.v
+poly.v
 terms_unif.v
-sve.v
-sve_listset.v
+poly_unif.v
 lowenheim.v
+sve.v
