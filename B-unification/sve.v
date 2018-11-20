@@ -353,36 +353,12 @@ Lemma builds_mgu : forall x p q r u,
 Proof.
 Admitted.
 
-Lemma bunifyN_correct1_try1 : forall (p : polynomial) (n : nat),
+Lemma bunifyN_correct1 : forall (p : polynomial) (n : nat),
   is_polynomial p ->
   length (vars p) < n ->
   forall s, bunifyN n p = Some s ->
             mgu s p.
 Proof.
-  intros p n HPP HL s HBU.
-  assert (exists n', n = S n') as [n' Hn']. admit.
-  rewrite Hn' in HBU.
-  destruct (decomp p) eqn:HD.
-  - destruct p0 as [x [q r]].
-    assert (exists q1, q1 = addPP [[]] q) as [q1 HQ1]. eauto.
-    assert (exists p', p' = mulPP q1 r) as [p' HP']. eauto.
-    assert (exists u, bunifyN n' p' = Some u) as [u HU]. admit.
-    (* The next assert can't be proven *)
-    assert (HM': mgu u p'). admit.
-    assert (exists q1u, q1u = substP u q1) as [q1u HQ1U]. eauto.
-    assert (exists ru, ru = substP u r) as [ru HRU]. eauto.
-    assert (exists xu, xu = (x, addPP (mulMP [x] q1u) ru)) as [xu HXU]. eauto.
-    assert (HS: s = xu :: u). admit.
-    rewrite HS, HXU, HRU, HQ1U, HQ1.
-    apply builds_mgu.
-    apply HD.
-    rewrite HQ1 in HP'.
-    rewrite HP' in HM'.
-    apply HM'.
-  - assert (HP: p = []). admit.
-    assert (HS: s = []). admit.
-    rewrite HP, HS.
-    apply empty_mgu.
 Admitted.
 
 
