@@ -151,8 +151,6 @@ intros. induction x.
   apply IHx2 in H0. rewrite H. rewrite H0. reflexivity. }
 Qed.
 
-
-
 (** GROUND TERM DEFINITIONS AND LEMMAS **)
 
 (* Check if a given term is a ground term (i.e. has no vars)*)
@@ -300,4 +298,70 @@ Example unifiable_ex2 :
 Proof.
 intros. inversion H. unfold unifier in H0. rewrite sum_x_x in H0. rewrite sum_id in H0.
 rewrite ground_term_cannot_subst in H0. inversion H0. reflexivity.
+Qed.
+
+(** TERM OPERATIONS **)
+
+(* Addition for ground terms *)
+Definition plus (a b : term) : term :=
+  match a, b with
+    | T0, T0 => T0
+    | T0, T1 => T1
+    | T1, T0 => T1
+    | T1, T1 => T0
+    | _ , _  => T0 (* Not considered *)
+  end.
+
+(* Multiplication for ground terms *)
+Definition mult (a b : term) : term :=
+  match a, b with
+    | T0, T0 => T0
+    | T0, T1 => T0
+    | T1, T0 => T0
+    | T1, T1 => T1
+    | _ , _  => T0 (* Not considered *)
+  end.
+
+(** TERM EQUIVALENCE **)
+
+(* Evaluate a term, any uninstantiated vars assumed to be 0 *)
+Fixpoint evaluate (t : term) : term :=
+  match t with 
+    | T0 => T0
+    | T1 => T1
+    | VAR x => T0
+    | PRODUCT x y => mult (evaluate x) (evaluate y)
+    | SUM x y => plus (evaluate x) (evaluate y)
+  end.
+
+Example eval_ex1 :
+  evaluate ((T0 + T1 + (T0 * T1)) * (T1 + T1 + T0 + T0)) = T0.
+Proof.
+simpl. reflexivity.
+Qed.
+
+Example eval_ex2 :
+  evaluate ((VAR 0 + VAR 1 * VAR 3) + (VAR 0 * T1) * (VAR 1 + T1)) = T0.
+Proof.
+simpl. reflexivity.
+Qed.
+
+Example eval_ex3 :
+  evaluate ((T0 + T1)) = T1.
+Proof.
+simpl. reflexivity.
+Qed.
+
+(* Equates a term to either 0 or 1. Any var in var_list will be set to 1, any var not 
+   present in var_list will be set to 0. Computes the result *)
+Fixpoint solve (t : term) (var_list : list var) : term :=
+  match var_list with
+    | nil => (evaluate t)
+    | v :: v' => solve (replace t (v, T1)) v'
+  end.
+
+Example solve_ex1 :
+  solve (VAR 0 + VAR 1 * (VAR 0 + T1 * VAR 1)) (0 :: nil) = T1.
+Proof.
+simpl. reflexivity.
 Qed.
