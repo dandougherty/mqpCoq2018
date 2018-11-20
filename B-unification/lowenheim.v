@@ -7,4 +7,4 @@
 
 (* Required Libraries *)
 
-Require Export types.
+Require Export terms.

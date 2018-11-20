@@ -66,6 +66,8 @@ Proof.
   - destruct IHs1; destruct IHs2; try apply H; try rewrite H0, H1; auto.
 Qed.
 
+(* TEMPORARY 
+
 Lemma plus_not :
   forall (x y : term),
   ground_term x /\ ground_term y ->
@@ -83,6 +85,8 @@ Proof.
     + rewrite H2, H3. auto.
     + rewrite H2, H3 in H1. contradiction.
 Qed.
+
+*)
 
 Lemma mult_not :
   forall (x : term),
