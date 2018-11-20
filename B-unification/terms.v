@@ -300,10 +300,17 @@ intros. inversion H. unfold unifier in H0. rewrite sum_x_x in H0. rewrite sum_id
 rewrite ground_term_cannot_subst in H0. inversion H0. reflexivity.
 Qed.
 
+Example unifiable_ex3 :
+  exists x, unifiable (x + T1).
+Proof.
+exists (T1). rewrite sum_x_x. unfold unifiable. unfold unifier.
+exists (nil). apply ground_term_cannot_subst. reflexivity.
+Qed.
+
 (** TERM OPERATIONS **)
 
 (* Addition for ground terms *)
-Definition plus (a b : term) : term :=
+Definition plus_trivial (a b : term) : term :=
   match a, b with
     | T0, T0 => T0
     | T0, T1 => T1
@@ -313,7 +320,7 @@ Definition plus (a b : term) : term :=
   end.
 
 (* Multiplication for ground terms *)
-Definition mult (a b : term) : term :=
+Definition mult_trivial (a b : term) : term :=
   match a, b with
     | T0, T0 => T0
     | T0, T1 => T0
@@ -330,8 +337,8 @@ Fixpoint evaluate (t : term) : term :=
     | T0 => T0
     | T1 => T1
     | VAR x => T0
-    | PRODUCT x y => mult (evaluate x) (evaluate y)
-    | SUM x y => plus (evaluate x) (evaluate y)
+    | PRODUCT x y => mult_trivial (evaluate x) (evaluate y)
+    | SUM x y => plus_trivial (evaluate x) (evaluate y)
   end.
 
 Example eval_ex1 :
@@ -365,3 +372,4 @@ Example solve_ex1 :
 Proof.
 simpl. reflexivity.
 Qed.
+
