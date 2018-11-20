@@ -39,8 +39,8 @@ $(call includecmdwithout@,$(COQBIN)coqtop -config)
 #                        #
 ##########################
 
-COQLIBS?= -R . B-UnificationProject
-COQDOCLIBS?=-R . B-UnificationProject
+COQLIBS?= -R . B_Unification_Project
+COQDOCLIBS?=-R . B_Unification_Project
 
 ##########################
 #                        #
@@ -80,10 +80,10 @@ endif
 #                    #
 ######################
 
-VFILES:=terms.v\
+VFILES:=lowenheim.v\
   sve_listset.v\
   sve.v\
-  lowenheim.v
+  terms.v
 
 -include $(addsuffix .d,$(VFILES))
 .SECONDARY: $(addsuffix .d,$(VFILES))
@@ -159,14 +159,14 @@ userinstall:
 
 install:
 	for i in $(VOFILES); do \
-	 install -d `dirname $(DSTROOT)$(COQLIBINSTALL)/B-UnificationProject/$$i`; \
-	 install -m 0644 $$i $(DSTROOT)$(COQLIBINSTALL)/B-UnificationProject/$$i; \
+	 install -d `dirname $(DSTROOT)$(COQLIBINSTALL)/B_Unification_Project/$$i`; \
+	 install -m 0644 $$i $(DSTROOT)$(COQLIBINSTALL)/B_Unification_Project/$$i; \
 	done
 
 install-doc:
-	install -d $(DSTROOT)$(COQDOCINSTALL)/B-UnificationProject/html
+	install -d $(DSTROOT)$(COQDOCINSTALL)/B_Unification_Project/html
 	for i in html/*; do \
-	 install -m 0644 $$i $(DSTROOT)$(COQDOCINSTALL)/B-UnificationProject/$$i;\
+	 install -m 0644 $$i $(DSTROOT)$(COQDOCINSTALL)/B_Unification_Project/$$i;\
 	done
 
 clean:
