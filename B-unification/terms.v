@@ -270,7 +270,7 @@ intros. split.
 { intros. unfold unifies_T0 in H. unfold unifies. inversion H. }
 Qed.
 
-(* Is s a unifier for t? *)
+(* Is 's' a unifier for t? *)
 Definition unifier (t : term) (s : subst) : Prop :=
   (apply_subst t s) = T0.
 
@@ -329,14 +329,14 @@ Definition mult_trivial (a b : term) : term :=
     | _ , _  => T0 (* Not considered *)
   end.
 
-(** TERM EQUIVALENCE **)
+(** TERM EVALUATION **)
 
 (* Evaluate a term, any uninstantiated vars assumed to be 0 *)
 Fixpoint evaluate (t : term) : term :=
   match t with 
     | T0 => T0
     | T1 => T1
-    | VAR x => T0
+    | VAR x => T0 (* Set to 0 *)
     | PRODUCT x y => mult_trivial (evaluate x) (evaluate y)
     | SUM x y => plus_trivial (evaluate x) (evaluate y)
   end.
@@ -371,5 +371,28 @@ Example solve_ex1 :
   solve (VAR 0 + VAR 1 * (VAR 0 + T1 * VAR 1)) (0 :: nil) = T1.
 Proof.
 simpl. reflexivity.
+Qed.
+
+Example solve_ex2 :
+  solve (VAR 0 + VAR 0 * (VAR 2 + T1 * (T1 + T0)) * VAR 1) (0 :: 2 :: nil) = T1.
+Proof.
+simpl. reflexivity.
+Qed.
+
+(** MOST GENERAL UNIFIER **)
+
+Definition more_general_subst (a b : subst) : Prop :=
+  forall x, apply_subst (apply_subst x a) b = apply_subst x b.
+
+Definition mgu (t : term) (s : subst) : Prop :=
+  unifier t s -> (forall (s_prime : subst), unifier t s_prime -> more_general_subst s s_prime).
+
+Example mgu_ex1 :
+  mgu (VAR 0 * VAR 1) ((0, VAR 0 * (T1 + VAR 1)) :: nil).
+Proof.
+unfold mgu. intros. unfold more_general_subst. intros. simpl.
+unfold unifier in *. simpl in *. induction s_prime.
+{ simpl in *. inversion H. }
+{ simpl. inversion H. }
 Qed.
 
