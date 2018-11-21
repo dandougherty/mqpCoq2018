@@ -35,6 +35,13 @@ Admitted.
 Definition build_poly (q r : poly) : poly := 
   mulPP (addPP [[]] q) r.
 
+Definition build_subst (s : subst) (x : var) (q r : poly) : subst :=
+  let q1 := addPP [[]] q in
+  let q1s := substP s q1 in
+  let rs  := substP s r in
+  let xs  := (x, addPP (mulMP [x] q1s) rs) in
+  xs :: s.
+
 
 Lemma decomp_unif : forall x p q r s,
   is_poly p ->
@@ -62,21 +69,13 @@ Proof.
   reflexivity.
 Qed.
 
-Definition build_subst (s : subst) (x : var) (q r : poly) : subst :=
-  let q1 := addPP [[]] q in
-  let q1s := substP s q1 in
-  let rs  := substP s r in
-  let xs  := (x, addPP (mulMP [x] q1s) rs) in
-  xs :: s.
-
-Lemma reprod_build_subst : forall (s : subst) (p : poly), 
-  match decomp p with
-  | None => True
-  | Some (x, (q,  r)) => 
-      reprod_unif s (build_poly q r) /\ inDom x s = false ->
-      reprod_unif (build_subst s x q r) p
-  end.
-Proof. Admitted.
+Lemma reprod_build_subst : forall x p q r s, 
+  decomp p = Some (x, (q,  r)) ->
+  reprod_unif s (build_poly q r) ->
+  inDom x s = false ->
+  reprod_unif (build_subst s x q r) p.
+Proof.
+Admitted.
 
 
 Fixpoint bunifyN (n : nat) : poly -> option subst := fun p =>
