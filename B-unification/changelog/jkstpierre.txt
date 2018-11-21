@@ -11,6 +11,11 @@ Changelog for jkstpierre:
   - Wrote definition for a more general substitution.
   - Wrote definition for a most general unifier.
   - Proved an example from the book for being a most 
-    general unifier
+    general unifier.
+  - Wrote preliminary definitions for Lowenheim's formula.
+  - Wrote auxilliary helpers for variable membership in
+    terms.
     
-
+11/21/2018:
+  - Wrote some tentative examples for Lowenheim's formula
+    checking to see if it is generating mgu's.
