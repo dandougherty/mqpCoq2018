@@ -63,18 +63,24 @@ Definition more_general (s t : subst) : Prop :=
 
 
 Definition mgu (s : subst) (p : poly) : Prop :=
-  unifier s p ->
+  unifier s p /\
   forall t,
   unifier t p ->
   more_general s t.
 
 
 Definition reprod_unif (s : subst) (p : poly) : Prop :=
-  unifier s p ->
+  unifier s p /\
   forall t,
   unifier t p ->
   subst_comp s t t.
 
+
+Lemma reprod_is_mgu : forall p s,
+  reprod_unif s p ->
+  mgu s p.
+Proof.
+Admitted.
 
 Lemma empty_substM : forall (m : mono),
   is_mono m ->
@@ -107,8 +113,15 @@ Proof.
   unfold mgu, more_general, subst_comp.
   intros.
   simpl.
-  exists t.
-  intros.
-  rewrite (empty_substP _ H1).
-  reflexivity.
+  split.
+  - unfold unifier. apply empty_substP.
+    unfold is_poly.
+    split.
+    + apply NoDup_nil.
+    + intros. inversion H.
+  - intros.
+    exists t.
+    intros.
+    rewrite (empty_substP _ H0).
+    reflexivity.
 Qed.
