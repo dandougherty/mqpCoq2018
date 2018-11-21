@@ -37,6 +37,14 @@ Fixpoint substP (s : subst) (p : poly) : poly :=
   | m :: p' => addPP (substM s m) (substP s p')
   end.
 
+
+Lemma substP_distr_mulPP : forall p q s,
+  substP s (mulPP p q) = mulPP (substP s p) (substP s q).
+Proof.
+Admitted.
+
+
+
 Definition unifier (s : subst) (p : poly) : Prop :=
   substP s p = [].
 
@@ -57,10 +65,10 @@ Definition mgu (s : subst) (p : poly) : Prop :=
   unifier t p -> more_general s t.
 
 
-Definition reprod_unif (sigma : subst) (t : poly) : Prop :=
-  unifier sigma t ->
-  forall (tau : subst), unifier tau t -> 
-  forall (x : poly), substP tau (substP sigma x) = substP tau x.
+Definition reprod_unif (s : subst) (p : poly) : Prop :=
+  unifier s p ->
+  forall (t : subst), unifier t p ->
+  forall (q : poly), substP t (substP s q) = substP t q.
 
 
 Lemma empty_substM : forall (m : mono),

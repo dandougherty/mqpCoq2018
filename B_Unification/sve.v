@@ -26,18 +26,41 @@ Definition decomp (p : poly) : option (prod var (pair poly)) :=
   | Some x => Some (x, (elim_var x p))
   end.
 
+Lemma decomp_eq : forall x p q r,
+  decomp p = Some (x, (q, r)) ->
+  p = addPP (mulMP [x] q) r.
+Proof.
+Admitted.
 
 Definition build_poly (q r : poly) : poly := 
   mulPP (addPP [[]] q) r.
 
-Lemma decomp_unif :
-  forall (p : poly) (sigma : subst),
+
+Lemma decomp_unif : forall x p q r s,
   is_poly p ->
-  match (decomp p) with
-  | None => True
-  | Some (x,(r,s)) => unifier sigma p -> unifier sigma (build_poly r s)
-  end.
-Proof. Admitted.
+  decomp p = Some (x, (q, r)) ->
+  unifier s p ->
+  unifier s (build_poly q r).
+Proof.
+  unfold build_poly, unifier.
+  intros x p q r s HPp HD Hsp0.
+  apply decomp_eq in HD as Hp.
+  (* multiply both sides of Hsp0 by s(q+1) *)
+  assert (exists q1, q1 = addPP [[]] q) as [q1 Hq1]. eauto.
+  assert (exists sp, sp = substP s p) as [sp Hsp]. eauto.
+  assert (exists sq1, sq1 = substP s q1) as [sq1 Hsq1]. eauto.
+  rewrite <- Hsp in Hsp0.
+  apply (mulPP_l_r sp [] sq1) in Hsp0.
+  rewrite mulPP_0 in Hsp0.
+  rewrite <- Hsp0.
+  rewrite Hsp, Hsq1.
+  rewrite Hp, Hq1.
+  rewrite <- substP_distr_mulPP.
+  f_equal.
+  rewrite mulMP_mulPP_eq.
+  rewrite mulPP_addPP_1.
+  reflexivity.
+Qed.
 
 Definition build_subst (s : subst) (x : var) (q r : poly) : subst :=
   let q1 := addPP [[]] q in
@@ -46,13 +69,12 @@ Definition build_subst (s : subst) (x : var) (q r : poly) : subst :=
   let xs  := (x, addPP (mulMP [x] q1s) rs) in
   xs :: s.
 
-Lemma reprod_build_sigma :
-  forall (sig : subst) (t : poly), 
-  match decomp t with
+Lemma reprod_build_subst : forall (s : subst) (p : poly), 
+  match decomp p with
   | None => True
-  | Some (x, (r,s)) => 
-      reprod_unif sig (build_poly r s) /\ inDom x sig = false ->
-      reprod_unif (build_subst sig x r s) t
+  | Some (x, (q,  r)) => 
+      reprod_unif s (build_poly q r) /\ inDom x s = false ->
+      reprod_unif (build_subst s x q r) p
   end.
 Proof. Admitted.
 

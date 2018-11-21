@@ -21,33 +21,8 @@ Definition polynomial_eq_dec := (list_eq_dec mono_eq_dec).
 Definition is_poly (p : poly) : Prop := 
   NoDup p /\ forall (m : mono), In m p -> is_mono m.
 
-
-(* ===== Functions over Sets ===== *)
-
-Definition set_symdiff {X:Type} Aeq_dec (x y:set X) : set X :=
-  set_diff Aeq_dec (set_union Aeq_dec x y) (set_inter Aeq_dec x y).
-
-Lemma set_symdiff_cons : forall X a (x : set X) Aeq_dec,
-  ~ In a x ->
-  set_symdiff Aeq_dec [a] x = a :: x.
-Proof.
-Admitted.
-
-(* ===== Functions over Monomials and Polynomials ===== *)
-
-Definition addPP (p q : poly) : poly := set_symdiff mono_eq_dec p q.
-
-Definition mulMM (m n : mono) : mono := set_union var_eq_dec m n.
-
-Definition mulMP (m : mono) (p : poly) : poly :=
-  fold_left addPP (map (fun n => [mulMM m n]) p) [].
-
-Definition mulPP (p q : poly) : poly :=
-  fold_left addPP (map (fun m => mulMP m q) p) [].
-
 Definition vars (p : poly) : set var :=
   nodup var_eq_dec (concat p).
-
 
 
 Lemma mono_cons : forall x m,
@@ -72,3 +47,58 @@ Proof.
     + intros. apply HIm, in_cons, H.
   - apply HIm, in_eq.
 Qed.
+
+
+(* ===== Functions over Sets ===== *)
+
+Definition set_symdiff {X:Type} Aeq_dec (x y:set X) : set X :=
+  set_diff Aeq_dec (set_union Aeq_dec x y) (set_inter Aeq_dec x y).
+
+
+Lemma set_symdiff_cons : forall X a (x : set X) Aeq_dec,
+  ~ In a x ->
+  set_symdiff Aeq_dec [a] x = a :: x.
+Proof.
+Admitted.
+
+(* ===== Functions over Monomials and Polynomials ===== *)
+
+Definition addPP (p q : poly) : poly := set_symdiff mono_eq_dec p q.
+
+Definition mulMM (m n : mono) : mono := set_union var_eq_dec m n.
+
+Definition mulMP (m : mono) (p : poly) : poly :=
+  fold_left addPP (map (fun n => [mulMM m n]) p) [].
+
+Definition mulPP (p q : poly) : poly :=
+  fold_left addPP (map (fun m => mulMP m q) p) [].
+
+
+Lemma mulPP_l_r : forall p q r,
+  p = q ->
+  mulPP p r = mulPP q r.
+Proof.
+Admitted.
+
+Lemma mulPP_0 : forall p,
+  mulPP [] p = [].
+Proof.
+Admitted.
+
+Lemma mulPP_addPP_1 : forall p q r,
+  mulPP (addPP (mulPP p q) r) (addPP [[]] q) =
+  mulPP (addPP [[]] q) r.
+Proof.
+Admitted.
+
+Lemma mulMP_mulPP_eq : forall m p,
+  mulMP m p = mulPP [m] p.
+Proof.
+Admitted.
+
+Lemma mulPP_comm : forall p q,
+  mulPP p q = mulPP q p.
+Proof.
+Admitted.
+
+
