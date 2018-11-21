@@ -12,6 +12,7 @@ Require Import Bool.
 Require Import Omega.
 Require Import EqNat.
 Require Import List.
+Import ListNotations.
 
 (* Definitions *)
 
@@ -150,6 +151,81 @@ intros. induction x.
 { simpl in *. apply orb_false_iff in H. destruct H. apply IHx1 in H.
   apply IHx2 in H0. rewrite H. rewrite H0. reflexivity. }
 Qed.
+
+(** VARIABLE SETS **)
+
+Definition var_set := list var.
+Implicit Type vars: var_set.
+
+(* Checks to see if a variable is in a variable set *)
+Fixpoint var_set_includes_var (v : var) (vars : var_set) : bool :=
+  match vars with
+    | nil => false
+    | n :: n' => if (beq_nat v n) then true else var_set_includes_var v n'
+  end.
+
+(* Removes all instances of v from vars *)
+Fixpoint var_set_remove_var (v : var) (vars : var_set) : var_set :=
+  match vars with
+    | nil => nil
+    | n :: n' => if (beq_nat v n) then (var_set_remove_var v n') else n :: (var_set_remove_var v n')
+  end.
+
+(* Returns a unique var_set without duplicates. Found_vars should be empty for correctness
+   guarantee *)
+Fixpoint var_set_create_unique (vars : var_set) (found_vars : var_set) : var_set :=
+  match vars with
+    | nil => nil
+    | n :: n' => 
+    if (var_set_includes_var n found_vars) then var_set_create_unique n' (n :: found_vars)
+    else n :: var_set_create_unique n' (n :: found_vars)
+  end.
+
+Example var_set_create_unique_ex1 :
+  var_set_create_unique [0;5;2;1;1;2;2;9;5;3] [] = [0;5;2;1;9;3].
+Proof.
+simpl. reflexivity.
+Qed.
+
+(* Checks if a given var_set is unique *)
+Fixpoint var_set_is_unique (vars : var_set) (found_vars : var_set) : bool :=
+  match vars with
+    | nil => true
+    | n :: n' => 
+    if (var_set_includes_var n found_vars) then false 
+    else var_set_is_unique n' (n :: found_vars)
+  end.
+
+Example var_set_is_unique_ex1 :
+  var_set_is_unique [0;2;2;2] [] = false.
+Proof.
+simpl. reflexivity.
+Qed.
+
+(* Get the variables of a term as a var_set *)
+Fixpoint term_vars (t : term) : var_set :=
+  match t with
+    | T0 => nil
+    | T1 => nil
+    | VAR x => x :: nil
+    | PRODUCT x y => (term_vars x) ++ (term_vars y)
+    | SUM x y => (term_vars x) ++ (term_vars y)
+  end.
+
+Example term_vars_ex1 :
+  term_vars (VAR 0 + VAR 0 + VAR 1) = [0;0;1].
+Proof.
+simpl. reflexivity.
+Qed.
+
+Example term_vars_ex2 :
+  In 0 (term_vars (VAR 0 + VAR 0 + VAR 1)).
+Proof.
+simpl. left. reflexivity.
+Qed.
+
+Definition term_unique_vars (t : term) : var_set :=
+  (var_set_create_unique (term_vars t) []).
 
 (** GROUND TERM DEFINITIONS AND LEMMAS **)
 
@@ -360,9 +436,9 @@ simpl. reflexivity.
 Qed.
 
 (* Equates a term to either 0 or 1. Any var in var_list will be set to 1, any var not 
-   present in var_list will be set to 0. Computes the result *)
-Fixpoint solve (t : term) (var_list : list var) : term :=
-  match var_list with
+   present in var_set will be set to 0. Computes the result *)
+Fixpoint solve (t : term) (vars : var_set) : term :=
+  match vars with
     | nil => (evaluate t)
     | v :: v' => solve (replace t (v, T1)) v'
   end.
@@ -395,3 +471,4 @@ unfold unifier in *. simpl in *. induction s_prime.
 { simpl in *. inversion H. }
 { simpl. inversion H. }
 Qed.
+
