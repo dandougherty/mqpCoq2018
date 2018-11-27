@@ -71,6 +71,23 @@ unfold more_general_subst. intros. unfold lowenheim_replace. simpl.
 inversion H.
 Qed.
 
+Example lowenheim_ex4 :
+  mgu (VAR 0 * VAR 1) (lowenheim (VAR 0 * VAR 1) ([])).
+Proof.
+unfold mgu. intros. unfold lowenheim. simpl in *.
+unfold more_general_subst. intros. unfold lowenheim_replace. simpl.
+inversion H.
+Qed.
+
+(* check that the input given to lowenheim is actually a ground solutions *)
+Definition check_correct_input (t : term)(vars : var_set) : bool := 
+  match (solve t vars) with
+    | T0 => true
+    | T1 => false
+    | _ => false
+  end.
+
+
 (* Proof of lowenheim's formula *)
 Theorem lowenheim_generates_mgus :
   forall t vars, (solve t vars = T0) -> (mgu t (lowenheim t vars)).
