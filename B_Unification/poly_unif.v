@@ -102,11 +102,12 @@ Proof.
     apply IHp in HPP as HS.
     rewrite HS.
     unfold addPP.
-    apply set_symdiff_cons.
+    Admitted.
+    (* apply set_symdiff_cons.
     unfold is_poly in H.
     destruct H.
     apply NoDup_cons_iff in H as [Ha Hp]. apply Ha.
-Qed.
+Qed. *)
 
 Lemma empty_mgu : mgu [] [].
 Proof.
