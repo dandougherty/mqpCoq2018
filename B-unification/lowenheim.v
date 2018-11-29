@@ -40,7 +40,7 @@ Definition lowenheim (t : term) (vars : var_set) : subst :=
   lowenheim_subst t (term_unique_vars t) vars.
 
 Example lowenheim_ex1 :
-  mgu (VAR 0 * VAR 1) (lowenheim (VAR 0 * VAR 1) ([0;1])).
+  mgu (VAR 0 * VAR 1) (lowenheim (VAR 0 * VAR 1) ([0; 1])).
 Proof.
 unfold mgu. intros. unfold lowenheim. simpl in *.
 unfold more_general_subst. intros. unfold lowenheim_replace. simpl.

@@ -12,7 +12,6 @@ Require Import Bool.
 Require Import Omega.
 Require Import EqNat.
 Require Import List.
-Require Import Setoid.
 Import ListNotations.
 
 (* Definitions *)
@@ -31,95 +30,49 @@ Inductive term: Type :=
 Implicit Types x y z : term.
 Implicit Types n m : var.
 
-Notation "x + y" := (SUM x y) (at level 50, left associativity).
-Notation "x * y" := (PRODUCT x y) (at level 40, left associativity).
+Notation "x + y" := (SUM x y).
+Notation "x * y" := (PRODUCT x y).
 
-(* Boolean Ring Axioms *)
+(* Axiom definitions *)
 
-Parameter eqv : term -> term -> Prop.
-Infix " == " := eqv (at level 70).
+Axiom sum_comm : forall x y, x + y = y + x.
 
-Axiom sum_comm : forall x y, x + y == y + x.
+Axiom sum_assoc : forall x y z, (x + y) + z = x + (y + z).
 
-Axiom sum_assoc : forall x y z, (x + y) + z == x + (y + z).
+Axiom sum_id : forall x, T0 + x = x.
 
-Axiom sum_id : forall x, T0 + x == x.
+Axiom sum_x_x : forall x, x + x = T0.
 
-Axiom sum_x_x : forall x, x + x == T0.
+Axiom mul_comm : forall x y, x * y = y * x.
 
-Axiom mul_comm : forall x y, x * y == y * x.
+Axiom mul_assoc : forall x y z, (x * y) * z = x * (y * z).
 
-Axiom mul_assoc : forall x y z, (x * y) * z == x * (y * z).
+Axiom mul_x_x : forall x, x * x = x.
 
-Axiom mul_x_x : forall x, x * x == x.
+Axiom mul_T0_x : forall x, T0 * x = T0.
 
-Axiom mul_T0_x : forall x, T0 * x == T0.
+Axiom mul_id : forall x, T1 * x = x.
 
-Axiom mul_id : forall x, T1 * x == x.
-
-Axiom distr : forall x y z, x * (y + z) == (x * y) + (x * z).
+Axiom distr : forall x y z, x * (y + z) = (x * y) + (x * z).
 
 Hint Resolve sum_comm sum_assoc sum_x_x sum_id distr
              mul_comm mul_assoc mul_x_x mul_T0_x mul_id.
 
-Axiom eqv_ref : Reflexive eqv.
-Axiom eqv_sym : Symmetric eqv.
-Axiom eqv_trans : Transitive eqv.
-
-Add Parametric Relation : term eqv
-  reflexivity proved by @eqv_ref
-  symmetry proved by @eqv_sym
-  transitivity proved by @eqv_trans
-  as eq_set_rel.
-
-Axiom SUM_compat :
-  forall x x', eqv x x' ->
-  forall y y', eqv y y' ->
-    eqv (x + y) (x' + y').
-
-Axiom PRODUCT_compat :
-  forall x x', eqv x x' ->
-  forall y y', eqv y y' ->
-    eqv (x * y) (x' * y').
-
-Add Parametric Morphism : SUM with
-  signature eqv ==> eqv ==> eqv as SUM_mor.
-Proof.
-exact SUM_compat.
-Qed.
-
-Add Parametric Morphism : PRODUCT with
-  signature eqv ==> eqv ==> eqv as PRODUCT_mor.
-Proof.
-exact PRODUCT_compat.
-Qed.
-
-Hint Resolve eqv_ref eqv_sym eqv_trans SUM_compat PRODUCT_compat.
-
-(* ARITHMETIC AXIOMS *)
-
-Axiom term_sum_symmetric :
-  forall x y z, x == y <-> x + z == y + z.
-
-Axiom term_product_symmetric :
-  forall x y z, x == y <-> x * z == y * z.
-
 (* TERM LEMMAS *)
 
 Lemma mul_x_x_plus_T1 :
-  forall x, x * (x + T1) == T0.
+  forall x, x * (x + T1) = T0.
 Proof.
 intros. rewrite distr. rewrite mul_x_x. rewrite mul_comm. 
 rewrite mul_id. apply sum_x_x.
 Qed.
 
 Lemma x_equal_y_x_plus_y :
-  forall x y, x == y <-> x + y == T0.
+  forall x y, x = y <-> x + y = T0.
 Proof.
 intros. split.
 - intros. rewrite H. rewrite sum_x_x. reflexivity.
-- intros. rewrite term_sum_symmetric with (y := y) (z := y). rewrite sum_x_x.
-  apply H.
+- intros. inversion H.
 Qed.
 
 Hint Resolve mul_x_x_plus_T1.
@@ -141,20 +94,20 @@ Fixpoint replace (t : term) (r : replacement) : term :=
   end.
 
 Example ex_replace1 : 
-  replace (VAR 0 + VAR 1) ((0, VAR 2 * VAR 3)) == (VAR 2 * VAR 3) + VAR 1.
+  replace (VAR 0 + VAR 1) ((0, VAR 2 * VAR 3)) = (VAR 2 * VAR 3) + VAR 1.
 Proof.
 simpl. reflexivity.
 Qed.
 
 Example ex_replace2 : 
-  replace ((VAR 0 * VAR 1 * VAR 3) + (VAR 3 * VAR 2) * VAR 2) ((2, T0)) == VAR 0 * VAR 1 * VAR 3.
+  replace ((VAR 0 * VAR 1 * VAR 3) + (VAR 3 * VAR 2) * VAR 2) ((2, T0)) = VAR 0 * VAR 1 * VAR 3.
 Proof.
 simpl. rewrite mul_comm with (x := VAR 3). rewrite mul_T0_x. rewrite mul_T0_x. 
 rewrite sum_comm with (x := VAR 0 * VAR 1 * VAR 3). rewrite sum_id. reflexivity.
 Qed.
 
 Example ex_replace3 :
-  (replace ((VAR 0 + VAR 1) * (VAR 1 + VAR 2)) ((1, VAR 0 + VAR 2))) == VAR 2 * VAR 0.
+  (replace ((VAR 0 + VAR 1) * (VAR 1 + VAR 2)) ((1, VAR 0 + VAR 2))) = VAR 2 * VAR 0.
 Proof.
 simpl. rewrite sum_assoc. rewrite sum_x_x. rewrite sum_comm. 
 rewrite sum_comm with (x := VAR 0). rewrite sum_assoc. 
@@ -164,14 +117,14 @@ Qed.
 
 (* A useful lemma for later proving the substitutions distribute across terms *)
 Lemma replace_distribution :
-  forall x y r, (replace x r) + (replace y r) == (replace (x + y) r).
+  forall x y r, (replace x r) + (replace y r) = (replace (x + y) r).
 Proof.
 intros. simpl. reflexivity.
 Qed.
 
 (* A simple proof for completeness to show that replacements are associative *)
 Lemma replace_associative :
-  forall x y r, (replace x r) * (replace y r) == (replace (x * y) r).
+  forall x y r, (replace x r) * (replace y r) = (replace (x * y) r).
 Proof.
 intros. simpl. reflexivity.
 Qed.
@@ -186,7 +139,7 @@ Fixpoint term_contains_var (t : term) (v : var) : bool :=
   end.
 
 Lemma term_cannot_replace_var_if_not_exist :
-  forall x r, (term_contains_var x (fst r) = false) -> (replace x r) == x.
+  forall x r, (term_contains_var x (fst r) = false) -> (replace x r) = x.
 Proof.
 intros. induction x.
 { simpl. reflexivity. }
@@ -313,7 +266,7 @@ rewrite H1. reflexivity.
 Qed.
 
 Lemma ground_term_equiv_T0_T1 :
-  forall x, (ground_term x) -> (x == T0 \/ x == T1).
+  forall x, (ground_term x) -> (x = T0 \/ x = T1).
 Proof.
 intros. induction x.
 - left. reflexivity.
@@ -344,7 +297,7 @@ Fixpoint apply_subst (t : term) (s : subst) : term :=
 
 (* Helpful lemma for showing substitutions do not affect ground terms *)
 Lemma ground_term_cannot_subst :
-  forall x, (ground_term x) -> (forall s, apply_subst x s == x).
+  forall x, (ground_term x) -> (forall s, apply_subst x s = x).
 Proof.
 intros. induction s. simpl. reflexivity. simpl. apply ground_term_cannot_replace with (r := a) in H.
 rewrite H. apply IHs.
@@ -352,73 +305,62 @@ Qed.
 
 (* A useful lemma for showing the distributivity of substitutions across terms *)
 Lemma subst_distribution :
-  forall s x y, apply_subst x s + apply_subst y s == apply_subst (x + y) s.
+  forall s x y, apply_subst x s + apply_subst y s = apply_subst (x + y) s.
 Proof.
 intro. induction s. simpl. intros. reflexivity. intros. simpl. 
 apply IHs.
 Qed.
 
 Lemma subst_associative :
-  forall s x y, apply_subst x s * apply_subst y s == apply_subst (x * y) s.
+  forall s x y, apply_subst x s * apply_subst y s = apply_subst (x * y) s.
 Proof.
 intro. induction s. intros. reflexivity. intros. apply IHs.
 Qed.
 
 Definition unifies (a b : term) (s : subst) : Prop :=
-  (apply_subst a s) == (apply_subst b s).
+  (apply_subst a s) = (apply_subst b s).
 
 Example ex_unif1 :
   unifies (VAR 0) (VAR 1) ((0, T0) :: nil) -> False.
 Proof.
-intros. unfold unifies in H. simpl in H. 
-Admitted.
+intros. inversion H.
+Qed.
 
 Example ex_unif2 :
   unifies (VAR 0) (VAR 1) ((0, T1) :: (1, T1) :: nil).
 Proof.
-unfold unifies. simpl. reflexivity.
+firstorder.
 Qed.
 
 Definition unifies_T0 (a b : term) (s : subst) : Prop :=
-  (apply_subst a s) + (apply_subst b s) == T0.
+  (apply_subst a s) + (apply_subst b s) = T0.
 
 (* Show that finding a unifier for x = y is the same as finding a unifier for x + y = 0 *)
 Lemma unifies_T0_equiv :
   forall x y s, unifies x y s <-> unifies_T0 x y s.
 Proof.
 intros. split.
-{ 
-  intros. unfold unifies_T0. unfold unifies in H. rewrite H.
+{ intros. unfold unifies_T0. unfold unifies in H. inversion H. 
   rewrite sum_x_x. reflexivity.
 }
-{ 
-  intros. unfold unifies_T0 in H. unfold unifies. 
-  rewrite term_sum_symmetric with (x := apply_subst x s + apply_subst y s) 
-  (z := apply_subst y s) in H. rewrite sum_id in H.
-  rewrite sum_comm in H.
-  rewrite sum_comm with (y := apply_subst y s) in H.
-  rewrite <- sum_assoc in H.
-  rewrite sum_x_x in H.
-  rewrite sum_id in H.
-  apply H.
-}
+{ intros. unfold unifies_T0 in H. unfold unifies. inversion H. }
 Qed.
 
 (* Is 's' a unifier for t? *)
 Definition unifier (t : term) (s : subst) : Prop :=
-  (apply_subst t s) == T0.
+  (apply_subst t s) = T0.
 
 Example unifier_ex1 :
   ~(unifier (VAR 0) ((1, T1) :: nil)).
 Proof.
-unfold unifier. simpl. intuition.
-Admitted.
+unfold unifier. simpl. easy.
+Qed.
 
 Example unifier_ex2 :
   ~(unifier (VAR 0) ((0, VAR 0) :: nil)).
 Proof.
-unfold unifier. simpl. intuition.
-Admitted.
+unfold unifier. simpl. easy.
+Qed.
 
 Example unifier_ex3 : 
   (unifier (VAR 0) ((0, T0) :: nil)).
@@ -430,14 +372,9 @@ Lemma unify_distribution :
   forall x y s, (unifies_T0 x y s) <-> (unifier (x + y) s).
 Proof.
 intros. split.
-{ 
-  intros. unfold unifies_T0 in H. unfold unifier.
-  rewrite <- H. symmetry. apply subst_distribution.
-}
-{ 
-  intros. unfold unifies_T0. unfold unifier in H.
-  rewrite <- H. apply subst_distribution. 
-}
+{ intros. inversion H. }
+{ intros. unfold unifies_T0. unfold unifier in H.
+  rewrite <- H. apply subst_distribution. }
 Qed.
 
 Definition unifiable (t : term) : Prop :=
@@ -447,25 +384,22 @@ Example unifiable_ex1 :
   unifiable (T1) -> False.
 Proof.
 intros. inversion H. unfold unifier in H0. rewrite ground_term_cannot_subst in H0.
-Admitted.
+inversion H0. reflexivity.
+Qed.
 
 Example unifiable_ex2 :
   forall x, unifiable (x + x + T1) -> False.
 Proof.
-intros. inversion H. unfold unifier in H0.
-Admitted. 
-(*rewrite sum_x_x in H0. rewrite sum_id in H0.
+intros. inversion H. unfold unifier in H0. rewrite sum_x_x in H0. rewrite sum_id in H0.
 rewrite ground_term_cannot_subst in H0. inversion H0. reflexivity.
-Qed.*)
+Qed.
 
 Example unifiable_ex3 :
   exists x, unifiable (x + T1).
 Proof.
-exists (T1). 
-Admitted.
-(* rewrite sum_x_x. unfold unifiable. unfold unifier.
+exists (T1). rewrite sum_x_x. unfold unifiable. unfold unifier.
 exists (nil). apply ground_term_cannot_subst. reflexivity.
-Qed. *)
+Qed.
 
 (** TERM OPERATIONS **)
 
@@ -502,19 +436,19 @@ Fixpoint evaluate (t : term) : term :=
   end.
 
 Example eval_ex1 :
-  evaluate ((T0 + T1 + (T0 * T1)) * (T1 + T1 + T0 + T0)) == T0.
+  evaluate ((T0 + T1 + (T0 * T1)) * (T1 + T1 + T0 + T0)) = T0.
 Proof.
 simpl. reflexivity.
 Qed.
 
 Example eval_ex2 :
-  evaluate ((VAR 0 + VAR 1 * VAR 3) + (VAR 0 * T1) * (VAR 1 + T1)) == T0.
+  evaluate ((VAR 0 + VAR 1 * VAR 3) + (VAR 0 * T1) * (VAR 1 + T1)) = T0.
 Proof.
 simpl. reflexivity.
 Qed.
 
 Example eval_ex3 :
-  evaluate ((T0 + T1)) == T1.
+  evaluate ((T0 + T1)) = T1.
 Proof.
 simpl. reflexivity.
 Qed.
@@ -528,13 +462,13 @@ Fixpoint solve (t : term) (vars : var_set) : term :=
   end.
 
 Example solve_ex1 :
-  solve (VAR 0 + VAR 1 * (VAR 0 + T1 * VAR 1)) (0 :: nil) == T1.
+  solve (VAR 0 + VAR 1 * (VAR 0 + T1 * VAR 1)) (0 :: nil) = T1.
 Proof.
 simpl. reflexivity.
 Qed.
 
 Example solve_ex2 :
-  solve (VAR 0 + VAR 0 * (VAR 2 + T1 * (T1 + T0)) * VAR 1) (0 :: 2 :: nil) == T1.
+  solve (VAR 0 + VAR 0 * (VAR 2 + T1 * (T1 + T0)) * VAR 1) (0 :: 2 :: nil) = T1.
 Proof.
 simpl. reflexivity.
 Qed.
@@ -543,7 +477,7 @@ Qed.
 
 (* More general substitution *)
 Definition more_general_subst (s s_prime : subst) : Prop :=
-  forall x, apply_subst (apply_subst x s) s_prime == apply_subst x s_prime.
+  forall x, apply_subst (apply_subst x s) s_prime = apply_subst x s_prime.
 
 (* Most general unifier *)
 Definition mgu (t : term) (s : subst) : Prop :=
@@ -561,9 +495,8 @@ unfold mgu. unfold unifier. simpl. unfold more_general_subst. simpl. split.
   rewrite sum_x_x. reflexivity.
 }
 { 
-  intros. 
-Admitted. (* rewrite distr. rewrite mul_comm. rewrite mul_id.
+  intros. rewrite distr. rewrite mul_comm. rewrite mul_id.
   induction s_prime.
   { simpl. inversion H. }
-  { simpl.  
-Admitted. *)
+  { simpl. simpl in H. 
+Admitted.
