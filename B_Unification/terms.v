@@ -59,7 +59,7 @@ Axiom distr : forall x y z, x * (y + z) = (x * y) + (x * z).
 Hint Resolve sum_comm sum_assoc sum_x_x sum_id distr
              mul_comm mul_assoc mul_x_x mul_T0_x mul_id.
 
-(* TERM LEMMAS *)
+    (* TERM LEMMAS *)
 
 Lemma mul_x_x_plus_T1 :
   forall x, x * (x + T1) = T0.
