@@ -37,6 +37,14 @@ Fixpoint substP (s : subst) (p : poly) : poly :=
   | m :: p' => addPP (substM s m) (substP s p')
   end.
 
+
+Lemma substP_distr_mulPP : forall p q s,
+  substP s (mulPP p q) = mulPP (substP s p) (substP s q).
+Proof.
+Admitted.
+
+
+
 Definition unifier (s : subst) (p : poly) : Prop :=
   substP s p = [].
 
@@ -44,24 +52,35 @@ Definition unifiable (p : poly) : Prop :=
   exists s, unifier s p.
 
 
+Definition subst_comp (s t u : subst) : Prop :=
+  forall p,
+  is_poly p ->
+  substP t (substP s p) = substP u p.
+
 
 Definition more_general (s t : subst) : Prop :=
-  forall p, 
-  is_poly p ->
-  substP t (substP s p) = substP t p.
+  exists u, subst_comp s u t.
 
 
 Definition mgu (s : subst) (p : poly) : Prop :=
-  unifier s p ->
+  unifier s p /\
   forall t,
-  unifier t p -> more_general s t.
+  unifier t p ->
+  more_general s t.
 
 
-Definition reprod_unif (sigma : subst) (t : poly) : Prop :=
-  unifier sigma t ->
-  forall (tau : subst), unifier tau t -> 
-  forall (x : poly), substP tau (substP sigma x) = substP tau x.
+Definition reprod_unif (s : subst) (p : poly) : Prop :=
+  unifier s p /\
+  forall t,
+  unifier t p ->
+  subst_comp s t t.
 
+
+Lemma reprod_is_mgu : forall p s,
+  reprod_unif s p ->
+  mgu s p.
+Proof.
+Admitted.
 
 Lemma empty_substM : forall (m : mono),
   is_mono m ->
@@ -83,18 +102,27 @@ Proof.
     apply IHp in HPP as HS.
     rewrite HS.
     unfold addPP.
-    apply set_symdiff_cons.
+    Admitted.
+    (* apply set_symdiff_cons.
     unfold is_poly in H.
     destruct H.
     apply NoDup_cons_iff in H as [Ha Hp]. apply Ha.
-Qed.
+Qed. *)
 
 Lemma empty_mgu : mgu [] [].
 Proof.
-  unfold mgu.
-  unfold more_general.
+  unfold mgu, more_general, subst_comp.
   intros.
   simpl.
-  rewrite (empty_substP _ H1).
-  reflexivity.
+  split.
+  - unfold unifier. apply empty_substP.
+    unfold is_poly.
+    split.
+    + apply NoDup_nil.
+    + intros. inversion H.
+  - intros.
+    exists t.
+    intros.
+    rewrite (empty_substP _ H0).
+    reflexivity.
 Qed.
