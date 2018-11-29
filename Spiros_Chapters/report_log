@@ -11,3 +11,16 @@ Problems and things to work on:
 - add more example with lowenheim's new formula
 - potential feauture, lowenheim finds its ground solutions by itself
 - look more into the proof, the definition of mgu and "more general unfier"
+
+for Thursday 11/29:
+
+things I am working on and will be working on this week:
+- developing the feauture that lowenheim finds the ground solutions on its own.
+Having some trouble finding a way to produce all the possible combinations (subsets )
+of a list of vars, perhaps using the permutation coq library?
+
+- refactoring the code to eqv from equal. After replacing the definitions with eqv and using prof's Dougherty
+helper definitions / additions, there are issues with some of the proofs. Complex examples do not work as before, they require special 
+changes , as well as some of the proofs. The usual error that comes up is that "eqv" is not "Proper" inside the error message. Joseph said he fixed the above by adding two
+more axioms and he will talk with the professor about them; awaiting further counseling on this.
+
