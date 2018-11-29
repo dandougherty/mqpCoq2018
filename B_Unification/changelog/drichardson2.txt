@@ -1,9 +1,0 @@
- Since 11/20/18:
-  Done:
- 	- Reorganized project structure with Matt. There are now 6 files. Two are for the data structures; terms and polynomials. Two are for definitions and lemmas about unification in each representation. One file for both of the algorithms.
- 	- Decided on representing polynomials as list sets instead of ascending lists. Order only played a role in the decomp function which has been redefined to use partition.
- 	- Prove the first fact of Theorem 10.4.10 from the book. It uses admitted lemmas that Matt is proving.
- 	- Fix the definition of mgu and reporductive unifier, by changing an implication to an and.
- 	Goals:
-  - Incorporate two facts of Theorem 10.4.10 into correctness theorem. I am unsure how to assert that eventually after decomposing terms into quotients and remainders that there is either the identity substitution or no solution. This is implicit in the theorem from the book.
- 

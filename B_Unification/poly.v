@@ -123,6 +123,28 @@ Lemma set_symdiff_nil : forall X (x : set X) Aeq_dec,
 Proof.
 Admitted.
 
+Lemma set_part_nodup : forall X p (x t f : set X),
+  NoDup x ->
+  partition p x = (t, f) ->
+  NoDup t /\ NoDup f.
+Proof.
+Admitted.
+
+Lemma set_part_no_inter : forall X p (x t f : set X) Aeq_dec,
+  NoDup x ->
+  partition p x = (t, f) ->
+  set_inter Aeq_dec t f = [].
+Proof.
+Admitted.
+
+Lemma set_part_union : forall X p (x t f : set X) Aeq_dec,
+  NoDup x ->
+  partition p x = (t, f) ->
+  x = set_union Aeq_dec t f.
+Proof.
+Admitted.
+
+
 (* ===== Functions over Monomials and Polynomials ===== *)
 
 Definition addPP (p q : poly) : poly := set_symdiff mono_eq_dec p q.
@@ -187,7 +209,7 @@ Admitted.
 Lemma mulPP_comm : forall p q,
   mulPP p q = mulPP q p.
 Proof.
-  intros p q. unfold mulPP. 
+  intros p q. unfold mulPP.
 Admitted.
 
 Lemma mulPP_addPP_1 : forall p q r,
@@ -198,3 +220,25 @@ Proof.
 Admitted.
 
 
+Lemma set_part_add : forall f p l r,
+  NoDup p ->
+  partition f p = (l, r) ->
+  p = addPP l r.
+Proof.
+  intros.
+  unfold addPP.
+  unfold set_symdiff.
+
+  rewrite (set_part_no_inter _ _ _ _ _ _ H H0).
+  
+  assert (NoDup l /\ NoDup r) as [Hl Hr].
+  apply (set_part_nodup _ _ _ _ _ H H0).
+  assert (Hndu: NoDup (set_union mono_eq_dec l r)).
+  apply (set_union_nodup _ Hl Hr).
+  
+  rewrite (set_diff_nil _ _ _ Hndu).
+
+  assert (p = (set_union mono_eq_dec l r)). (* remove after set_eq refactor *)
+  
+  apply (set_part_union _ _ _ _ _ _ H H0).
+Admitted.
