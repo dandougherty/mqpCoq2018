@@ -30,6 +30,21 @@ Definition decomp (p : poly) : option (prod var (pair poly)) :=
   | Some x => Some (x, (div_by_var x p))
   end.
 
+Lemma fold_add_self : forall p,
+  is_poly p ->
+  p = fold_left addPP (map (fun x => [x]) p) [].
+Proof.
+Admitted.
+
+Lemma mulMM_cons : forall x m,
+  ~ In x m ->
+  mulMM [x] m = x :: m.
+Proof.
+  intros.
+  unfold mulMM.
+  apply set_union_cons, H.
+Qed.
+
 Lemma mulMP_map_cons : forall x p q,
   is_poly p ->
   is_poly q ->
@@ -37,7 +52,20 @@ Lemma mulMP_map_cons : forall x p q,
   p = map (cons x) q ->
   p = mulMP [x] q.
 Proof.
-Admitted.
+  intros.
+  unfold mulMP.
+  
+  assert (map (fun n : mono => [mulMM [x] n]) q = map (fun n => [x :: n]) q).
+  apply map_ext_in. intros. f_equal. apply mulMM_cons. auto.
+  rewrite H3.
+
+  assert (map (fun n => [x :: n]) q = map (fun n => [n]) (map (cons x) q)).
+  rewrite map_map. auto.
+  rewrite H4.
+
+  rewrite <- H2.
+  apply (fold_add_self p H).
+Qed.
 
 Lemma elim_var_not_in_rem : forall x p r,
   elim_var x p = r ->
@@ -59,7 +87,7 @@ Proof.
   intros.
   unfold elim_var in H0.
   rewrite <- H0.
-  rewrite map_comp.
+  rewrite map_map.
   rewrite set_rem_cons_id.
   rewrite map_id.
   reflexivity.
