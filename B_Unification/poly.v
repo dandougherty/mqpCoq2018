@@ -2,6 +2,7 @@ Require Import ListSet.
 Require Import Arith.
 Require Import List.
 Import ListNotations.
+Require Import FunctionalExtensionality.
 
 Require Export terms.
 
@@ -143,6 +144,26 @@ Lemma set_part_union : forall X p (x t f : set X) Aeq_dec,
   x = set_union Aeq_dec t f.
 Proof.
 Admitted.
+
+
+Lemma map_comp : forall A B C (l : list A) (f : A -> B) (g : B -> C),
+  map g (map f l) = map (fun x => g (f x)) l.
+Proof.
+Admitted.
+
+Lemma set_remove_cons : forall X (l : set X) x Xeq_dec,
+  x :: remove Xeq_dec x l = l.
+Proof.
+Admitted.
+
+Lemma set_rem_cons_id : forall x,
+  (fun x0 : list nat => x :: remove var_eq_dec x x0) = id.
+Proof.
+  intros.
+  apply functional_extensionality.
+  intros.
+  apply set_remove_cons.
+Qed.
 
 
 (* ===== Functions over Monomials and Polynomials ===== *)
