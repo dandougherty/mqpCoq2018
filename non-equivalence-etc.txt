@@ -1,0 +1,67 @@
+About negating eqv
+==================
+
+We defined a relation eqv (infix ===) and made 10 axioms for it, in
+the form of "equivalences".  The key point is that these are a bunch
+of axioms stating when certain things ARE eqv.
+
+If we just stopped there, there is no way we could every prove that
+any two things are NOT equivalent.  And so there will be no way to
+prove that some subst is NOT a unifier.
+
+If we want to be able to talk about non-eqv, (and hence talk about
+non-unifiability) what we want to capture is the idea that we don't
+want to terms s and t to be eqv unless that is provable from our 10
+axioms.
+
+Here are two choices.  
+
+1)   Add this single axiom
+--------------------------
+
+Axiom consis: (T0 == T1) -> False
+
+Why will this give us what we want?
+
+(i) Suppose we want to prove that some substitution sigma is NOT a
+solution to a unification problem given by term t?  That is, how to
+prove that (sigma t) is NOT eqv T0?
+
+-- Well, if sigma is a ground substitution then it's easy:
+
+To prove "sigma is not a unifier for t" is to prove
+( (sigma t) == T0 ) -> False
+
+Since sigma is ground, if (sigma t) does not simplify to T0
+then it must simplify to T1.  So the thing we want to proves
+simplifies to
+( (T1) == T0 ) -> False
+
+which is our axiom.
+
+-- If sigma is not ground then use that trick of following it with a
+   substitution that grounds all the answers...
+
+(ii) More generally suppose you have two terms s and t, and you want
+to prove them to be NOT eqv.  If that's the case, there must be some
+substitution sigma such that, say, (sigma s) simplifies to T0 and
+(sigma t) simplifies to T1.  Then a proof that (s == t) -> False can
+go like this:
+
+Assume (s == t)
+From that get (sigma s == sigma t)
+From that get (T0 == T1)
+From that get False.
+ 
+2) Make eqv an Inductive relation
+---------------------------------
+
+This is a more sophisticated solution.  You don't add any explicit
+"not eqv" axioms.  The essence of being an Inductive relation is
+precisely that yo are guaranteed that noting is in the relation except
+what the orignal definition says.  So there are no "accidental" eqvs
+that can hold.  Then if (s == t) doesn't deserve to be true, you will
+be able to prove that fact by using inversion.
+
+Doing that may involve more changes to your current code than you want
+to make, so I'll just stop here...
