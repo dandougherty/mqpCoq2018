@@ -34,7 +34,7 @@ Require Export Setoid.
 Require Export Morphisms.
 Require Export Relation_Definitions.
 
-Require Import Utilities.
+(* Require Import Utilities. *)
 
 
 (** * Variables *)
