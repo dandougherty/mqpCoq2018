@@ -73,14 +73,14 @@ Add Parametric Relation : term eqv
   as eq_set_rel.
 
 Axiom SUM_compat :
-  forall x x', eqv x x' ->
-  forall y y', eqv y y' ->
-    eqv (x + y) (x' + y').
+  forall x x', x == x' ->
+  forall y y', y == y' ->
+    (x + y) == (x' + y').
 
 Axiom PRODUCT_compat :
-  forall x x', eqv x x' ->
-  forall y y', eqv y y' ->
-    eqv (x * y) (x' * y').
+  forall x x', x == x' ->
+  forall y y', y == y' ->
+    (x * y) == (x' * y').
 
 Add Parametric Morphism : SUM with
   signature eqv ==> eqv ==> eqv as SUM_mor.
@@ -139,6 +139,8 @@ Fixpoint replace (t : term) (r : replacement) : term :=
     | SUM x y => SUM (replace x r) (replace y r)
     | PRODUCT x y => PRODUCT (replace x r) (replace y r)
   end.
+
+
 
 Example ex_replace1 : 
   replace (VAR 0 + VAR 1) ((0, VAR 2 * VAR 3)) == (VAR 2 * VAR 3) + VAR 1.
@@ -426,7 +428,7 @@ Proof.
 unfold unifier. simpl. reflexivity.
 Qed.
 
-Lemma unify_distribution : 
+Lemma unifier_distribution : 
   forall x y s, (unifies_T0 x y s) <-> (unifier (x + y) s).
 Proof.
 intros. split.
@@ -440,6 +442,14 @@ intros. split.
 }
 Qed.
 
+Lemma unifier_subset_imply_superset :
+  forall s t r, unifier t s -> unifier t (r :: s).
+Proof.
+intro. induction s.
+{
+  intros. unfold unifier in *. simpl in H. simpl. 
+Admitted.
+
 Definition unifiable (t : term) : Prop :=
   exists s, unifier t s.
 
@@ -452,7 +462,7 @@ Admitted.
 Example unifiable_ex2 :
   forall x, unifiable (x + x + T1) -> False.
 Proof.
-intros. inversion H. unfold unifier in H0.
+intros. unfold unifiable in H. unfold unifier in H.
 Admitted. 
 (*rewrite sum_x_x in H0. rewrite sum_id in H0.
 rewrite ground_term_cannot_subst in H0. inversion H0. reflexivity.
@@ -461,11 +471,9 @@ Qed.*)
 Example unifiable_ex3 :
   exists x, unifiable (x + T1).
 Proof.
-exists (T1). 
-Admitted.
-(* rewrite sum_x_x. unfold unifiable. unfold unifier.
-exists (nil). apply ground_term_cannot_subst. reflexivity.
-Qed. *)
+exists (T1). unfold unifiable. unfold unifier. 
+exists nil. simpl. rewrite sum_x_x. reflexivity.
+Qed.
 
 (** TERM OPERATIONS **)
 
@@ -538,6 +546,7 @@ Example solve_ex2 :
 Proof.
 simpl. reflexivity.
 Qed.
+    
 
 (** MOST GENERAL UNIFIER **)
 
