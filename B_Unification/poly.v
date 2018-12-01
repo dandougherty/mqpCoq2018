@@ -2,6 +2,7 @@ Require Import ListSet.
 Require Import Arith.
 Require Import List.
 Import ListNotations.
+Require Import FunctionalExtensionality.
 
 Require Export terms.
 
@@ -69,6 +70,12 @@ Qed.
 
 Lemma set_union_cons : 
   forall X (x : set X) (a : X) Aeq_dec,
+  ~ In a x -> set_union Aeq_dec [a] x = a :: x.
+Proof.
+Admitted.
+
+Lemma set_union_cons_rev : 
+  forall X (x : set X) (a : X) Aeq_dec,
   NoDup x -> ~ In a x -> set_union Aeq_dec [a] x = a :: (rev x).
 Proof.
   intros X x a Aeq_dec Hn H. induction x.
@@ -102,7 +109,7 @@ Proof.
   intros X a x Aeq_dec Hn H. unfold set_symdiff. simpl.
   replace (set_mem Aeq_dec a x) with (false).
   - rewrite set_diff_nil.
-    + rewrite set_union_cons.
+    + rewrite set_union_cons_rev.
       * simpl. rewrite rev_involutive. reflexivity.
       * apply Hn.
       * apply H. 
@@ -143,6 +150,21 @@ Lemma set_part_union : forall X p (x t f : set X) Aeq_dec,
   x = set_union Aeq_dec t f.
 Proof.
 Admitted.
+
+
+Lemma set_remove_cons : forall X (l : set X) x Xeq_dec,
+  x :: remove Xeq_dec x l = l.
+Proof.
+Admitted.
+
+Lemma set_rem_cons_id : forall x,
+  (fun x0 : list nat => x :: remove var_eq_dec x x0) = id.
+Proof.
+  intros.
+  apply functional_extensionality.
+  intros.
+  apply set_remove_cons.
+Qed.
 
 
 (* ===== Functions over Monomials and Polynomials ===== *)

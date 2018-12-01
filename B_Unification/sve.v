@@ -30,12 +30,81 @@ Definition decomp (p : poly) : option (prod var (pair poly)) :=
   | Some x => Some (x, (div_by_var x p))
   end.
 
-Lemma elim_var_mul : forall x p q,
-  (forall m, In m p -> In x m) ->
-  elim_var x p = q ->
-  p = mulMP [x] q.
+Lemma fold_add_self : forall p,
+  is_poly p ->
+  p = fold_left addPP (map (fun x => [x]) p) [].
 Proof.
 Admitted.
+
+Lemma mulMM_cons : forall x m,
+  ~ In x m ->
+  mulMM [x] m = x :: m.
+Proof.
+  intros.
+  unfold mulMM.
+  apply set_union_cons, H.
+Qed.
+
+Lemma mulMP_map_cons : forall x p q,
+  is_poly p ->
+  is_poly q ->
+  (forall m, In m q -> ~ In x m) ->
+  p = map (cons x) q ->
+  p = mulMP [x] q.
+Proof.
+  intros.
+  unfold mulMP.
+  
+  assert (map (fun n : mono => [mulMM [x] n]) q = map (fun n => [x :: n]) q).
+  apply map_ext_in. intros. f_equal. apply mulMM_cons. auto.
+  rewrite H3.
+
+  assert (map (fun n => [x :: n]) q = map (fun n => [n]) (map (cons x) q)).
+  rewrite map_map. auto.
+  rewrite H4.
+
+  rewrite <- H2.
+  apply (fold_add_self p H).
+Qed.
+
+Lemma elim_var_not_in_rem : forall x p r,
+  elim_var x p = r ->
+  (forall m, In m r -> ~ In x m).
+Proof.
+  intros.
+  unfold elim_var in H.
+  rewrite <- H in H0.
+  apply in_map_iff in H0 as [n []].
+  rewrite <- H0.
+  apply remove_In.
+Qed.
+
+Lemma elim_var_map_cons_rem : forall x p r,
+  (forall m, In m p -> In x m) ->
+  elim_var x p = r ->
+  p = map (cons x) r.
+Proof.
+  intros.
+  unfold elim_var in H0.
+  rewrite <- H0.
+  rewrite map_map.
+  rewrite set_rem_cons_id.
+  rewrite map_id.
+  reflexivity.
+Qed.
+
+Lemma elim_var_mul : forall x p r,
+  is_poly p ->
+  is_poly r ->
+  (forall m, In m p -> In x m) ->
+  elim_var x p = r ->
+  p = mulMP [x] r.
+Proof.
+  intros.
+  apply mulMP_map_cons; auto.
+  apply (elim_var_not_in_rem _ _ _ H2).
+  apply (elim_var_map_cons_rem _ _ _ H1 H2).
+Qed.
 
 Lemma part_fst_true : forall X p (x t f : list X),
   partition p x = (t, f) ->
@@ -45,6 +114,20 @@ Admitted.
 
 Lemma has_var_eq_in : forall x m,
   has_var x m = true <-> In x m.
+Proof.
+Admitted.
+
+Lemma decomp_is_poly : forall x p q r,
+  is_poly p ->
+  decomp p = Some (x, (q, r)) ->
+  is_poly q /\ is_poly r.
+Proof.
+Admitted.
+
+Lemma part_is_poly : forall f p l r,
+  is_poly p ->
+  partition f p = (l, r) ->
+  is_poly l /\ is_poly r.
 Proof.
 Admitted.
 
@@ -64,7 +147,12 @@ Proof.
   assert (HIH: forall m, In m qx -> In x m). intros.
   apply has_var_eq_in.
   apply (part_fst_true _ _ _ _ _ Hqr _ H).
-  apply (elim_var_mul _ _ _ HIH) in Hq.
+
+  assert (is_poly q /\ is_poly r) as [HPq HPr].
+  apply (decomp_is_poly x p q r HP HD).
+  assert (is_poly qx /\ is_poly r0) as [HPqx HPr0].
+  apply (part_is_poly (has_var x) p qx r0 HP Hqr).
+  apply (elim_var_mul _ _ _ HPqx HPq HIH) in Hq.
   
   unfold is_poly in HP.
   destruct HP as [Hnd].
