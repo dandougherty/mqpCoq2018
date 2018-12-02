@@ -1,13 +1,11 @@
-(*
+(***
   Boolean Unification Type Declarations.
   Authors:
     Joseph St. Pierre
     Spyridon Antonatos
-    Matthew McDonald
-    Dylan Richardson
-*)
+***)
 
-(* Required Libraries *)
+(*** Required Libraries ***)
 Require Import Bool.
 Require Import Omega.
 Require Import EqNat.
@@ -15,53 +13,72 @@ Require Import List.
 Require Import Setoid.
 Import ListNotations.
 
-(* Definitions *)
+(*** BEGIN DEFINITIONS ***)
 
-(* VARIABLE DEFINITIONS *)
+(** TERM DEFINITIONS AND AXIOMS **)
+(* Define a variable to be a natural number *)
 Definition var := nat.
 
-(* TERM DEFINITIONS AND AXIOMS *)
+(* 
+   Inductively define a term to be of the form, {0, 1, x_n, t1 + t2, t1 * t2} where
+   x_n is a variable and t1, t2 are terms 
+*)
 Inductive term: Type :=
   | T0  : term
   | T1  : term
   | VAR  : var -> term
-  | PRODUCT : term -> term -> term
-  | SUM : term -> term -> term.
+  | SUM : term -> term -> term
+  | PRODUCT : term -> term -> term.
 
+(* Implicit types for axioms below *)
 Implicit Types x y z : term.
 Implicit Types n m : var.
 
+(* Shorthanded notation for readability *)
 Notation "x + y" := (SUM x y) (at level 50, left associativity).
 Notation "x * y" := (PRODUCT x y) (at level 40, left associativity).
 
 (* Boolean Ring Axioms *)
 
+(* Custom equivalence relation *)
 Parameter eqv : term -> term -> Prop.
+(* Notation for term equivalence *)
 Infix " == " := eqv (at level 70).
 
+(* Commutatitivty across summations *)
 Axiom sum_comm : forall x y, x + y == y + x.
 
+(* Associativity across summations *)
 Axiom sum_assoc : forall x y z, (x + y) + z == x + (y + z).
 
+(* Identity relation accross summations *)
 Axiom sum_id : forall x, T0 + x == x.
 
+(* Across boolean rings, summation x + x will always be 0 because x can only be 0 or 1*)
 Axiom sum_x_x : forall x, x + x == T0.
 
+(* Commutativity across multiplications *)
 Axiom mul_comm : forall x y, x * y == y * x.
 
+(* Associativity across multiplications *)
 Axiom mul_assoc : forall x y z, (x * y) * z == x * (y * z).
 
+(* Across bollean rings, x * x will always be x because x can only be 0 or 1 *)
 Axiom mul_x_x : forall x, x * x == x.
 
+(* Multiplying anything by 0 is 0*)
 Axiom mul_T0_x : forall x, T0 * x == T0.
 
+(* Identity relation across multiplications *)
 Axiom mul_id : forall x, T1 * x == x.
 
+(* Distributivity relation *)
 Axiom distr : forall x y z, x * (y + z) == (x * y) + (x * z).
 
 Hint Resolve sum_comm sum_assoc sum_x_x sum_id distr
              mul_comm mul_assoc mul_x_x mul_T0_x mul_id.
 
+(* Mundane coq magic for custom equivalence relation *)
 Axiom eqv_ref : Reflexive eqv.
 Axiom eqv_sym : Symmetric eqv.
 Axiom eqv_trans : Transitive eqv.
@@ -96,15 +113,23 @@ Qed.
 
 Hint Resolve eqv_ref eqv_sym eqv_trans SUM_compat PRODUCT_compat.
 
-(* ARITHMETIC AXIOMS *)
+(** ARITHMETIC AXIOMS **)
 
+(* 
+   Across all equations, adding an expression to both sides does not 
+   break the equivalence of the relation 
+*)
 Axiom term_sum_symmetric :
   forall x y z, x == y <-> x + z == y + z.
 
+(* 
+  Across all equations, multiplying an expression to both sides does not break
+  the equivalence of the relation
+*)
 Axiom term_product_symmetric :
   forall x y z, x == y <-> x * z == y * z.
 
-(* TERM LEMMAS *)
+(** USEFUL LEMMAS **)
 
 Lemma mul_x_x_plus_T1 :
   forall x, x * (x + T1) == T0.
@@ -125,12 +150,39 @@ Qed.
 Hint Resolve mul_x_x_plus_T1.
 Hint Resolve x_equal_y_x_plus_y.
 
+Lemma sum_id_sym :
+  forall x, x + T0 == x.
+Proof.
+intros. rewrite sum_comm. apply sum_id.
+Qed.
+
+Lemma mul_id_sym :
+  forall x, x * T1 == x.
+Proof.
+intros. rewrite mul_comm. apply mul_id.
+Qed.
+
+Lemma mul_T0_x_sym :
+  forall x, x * T0 == T0.
+Proof.
+intros. rewrite mul_comm. apply mul_T0_x.
+Qed.
+
 (** REPLACEMENT DEFINITIONS AND LEMMAS **)
 
+(* 
+  A replacement is an ordered pair describing the relation, x -> term
+  where x is a variable and term is any expression across terms
+*)
 Definition replacement := (prod var term).
 
 Implicit Type r : replacement.
 
+(*
+  The replace function consumes a term and a replacement and applies the 
+  given replacement across the entirety of the term (i.e. replacing all instances
+  of the variable, x, and replacing them with the associated term from the replacement)
+*)
 Fixpoint replace (t : term) (r : replacement) : term :=
   match t with
     | T0 => t
@@ -139,8 +191,6 @@ Fixpoint replace (t : term) (r : replacement) : term :=
     | SUM x y => SUM (replace x r) (replace y r)
     | PRODUCT x y => PRODUCT (replace x r) (replace y r)
   end.
-
-
 
 Example ex_replace1 : 
   replace (VAR 0 + VAR 1) ((0, VAR 2 * VAR 3)) == (VAR 2 * VAR 3) + VAR 1.
@@ -178,7 +228,10 @@ Proof.
 intros. simpl. reflexivity.
 Qed.
 
-(* A simple function for determining whether a term contains a variable *)
+(* 
+  A simple function for determining whether a term contains a given variable. 
+  Returns true if the variable is found, false otherwise
+*)
 Fixpoint term_contains_var (t : term) (v : var) : bool :=
   match t with
     | VAR x => if (beq_nat x v) then true else false
@@ -187,6 +240,10 @@ Fixpoint term_contains_var (t : term) (v : var) : bool :=
     | _     => false
   end.
 
+(*
+  A replacement will do nothing to a term if the term does not contain 
+  the variable in the replacement
+*)
 Lemma term_cannot_replace_var_if_not_exist :
   forall x r, (term_contains_var x (fst r) = false) -> (replace x r) == x.
 Proof.
@@ -321,15 +378,15 @@ intros. induction x.
 - left. reflexivity.
 - right. reflexivity.
 - contradiction.
-- inversion H. destruct IHx1; destruct IHx2; auto. rewrite H2. left. rewrite mul_T0_x. reflexivity.
-rewrite H2. left. rewrite mul_T0_x. reflexivity.
-rewrite H3. left. rewrite mul_comm. rewrite mul_T0_x. reflexivity. 
-rewrite H2. rewrite H3. right. rewrite mul_id. reflexivity.
 - inversion H. destruct IHx1; destruct IHx2; auto. rewrite H2. left. rewrite sum_id. 
 apply H3. 
 rewrite H2. rewrite H3. rewrite sum_id. right. reflexivity.
 rewrite H2. rewrite H3. right. rewrite sum_comm. rewrite sum_id. reflexivity.
 rewrite H2. rewrite H3. rewrite sum_x_x. left. reflexivity.
+- inversion H. destruct IHx1; destruct IHx2; auto. rewrite H2. left. rewrite mul_T0_x. reflexivity.
+rewrite H2. left. rewrite mul_T0_x. reflexivity.
+rewrite H3. left. rewrite mul_comm. rewrite mul_T0_x. reflexivity. 
+rewrite H2. rewrite H3. right. rewrite mul_id. reflexivity.
 Qed.
 
 (** SUBSTITUTION DEFINITIONS AND LEMMAS **)
@@ -445,9 +502,9 @@ Qed.
 Lemma unifier_subset_imply_superset :
   forall s t r, unifier t s -> unifier t (r :: s).
 Proof.
-intro. induction s.
-{
-  intros. unfold unifier in *. simpl in H. simpl. 
+intros. induction s.
+{ 
+  unfold unifier in *. simpl in *.
 Admitted.
 
 Definition unifiable (t : term) : Prop :=

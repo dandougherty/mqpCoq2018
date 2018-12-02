@@ -49,43 +49,49 @@ rewrite distr. rewrite <- mul_assoc with (y := VAR 0).
 rewrite mul_x_x. rewrite sum_x_x. reflexivity.
 Qed.
 
+Example lowenheim_subst_ex2 :
+  (unifier 
+    (VAR 0 + VAR 1) 
+    (lowenheim_subst (VAR 0 + VAR 1) ((0, VAR 0) :: (1, VAR 0) :: nil))).
+Proof.
+unfold unifier. unfold lowenheim_subst. simpl.
+rewrite mul_comm. rewrite distr. rewrite distr. rewrite distr.
+rewrite mul_x_x. rewrite mul_comm with (y := VAR 1). rewrite distr.
+rewrite distr. rewrite distr. rewrite distr. rewrite mul_x_x. 
+rewrite mul_id_sym. rewrite mul_comm with (y := VAR 0). 
+rewrite <- mul_assoc with (x := VAR 0). rewrite mul_x_x. rewrite sum_x_x.
+rewrite sum_id. rewrite mul_comm with (y := VAR 0). rewrite distr.
+rewrite mul_x_x. rewrite distr. rewrite mul_x_x. rewrite <- mul_assoc with (x := VAR 0).
+rewrite mul_x_x. rewrite sum_comm with (y := VAR 0 * VAR 1).
+rewrite <- sum_assoc with (x := VAR 0 * VAR 1). rewrite sum_x_x. rewrite sum_id.
+rewrite sum_x_x. rewrite sum_id. rewrite sum_comm with (x := VAR 0 * VAR 1).
+rewrite sum_comm with (y := VAR 1). rewrite <- sum_assoc with (x := VAR 1).
+rewrite sum_x_x. rewrite sum_id. rewrite mul_id_sym.
+rewrite mul_comm with (y := VAR 0). rewrite distr. rewrite mul_x_x.
+rewrite distr. rewrite <- mul_assoc with (x := VAR 0). rewrite mul_x_x.
+rewrite distr. rewrite <- mul_assoc with (x := VAR 0). rewrite mul_x_x.
+rewrite <- sum_assoc with (x := VAR 0 * VAR 1). rewrite sum_x_x. rewrite sum_id.
+rewrite sum_x_x. rewrite sum_id_sym. rewrite sum_x_x. 
+reflexivity.
+Qed.
+
+Lemma lowenheim_unif_subset_imply_superset :
+  forall (t : term) (sigma : subst) (r : replacement),
+  unifier t (lowenheim_subst t sigma) -> unifier t (lowenheim_subst t (r:: sigma)).
+Proof.
+intros. unfold unifier in *. induction sigma.
+{
+  simpl in *. 
+Admitted.
+
 Lemma lowenheim_subst_generates_unifiers :
   forall (t : term) (sigma : subst) , unifier t sigma -> unifier t (lowenheim_subst t sigma).
 Proof.
-intro. induction sigma.
+intros. induction sigma.
 {
-  simpl in *. intros. apply H.
+  simpl in *. apply H.
 }
 {
-  apply unifier_subset_imply_superset with (r := a) in IHsigma.
-  {
-Admitted.
-
-
-(* check that the input given to lowenheim is actually a ground solutions *)
-Definition check_correct_input (t : term)(vars : var_set) : bool := 
-  match (solve t vars) with
-    | T0 => true
-    | T1 => false
-    | _ => false
-  end.
-
-
-(* Proof of lowenheim's formula *)
-Theorem lowenheim_generates_mgus :
-  forall t vars, (solve t vars = T0) -> (mgu t (lowenheim t vars)).
-Proof.
-intros. induction t, vars. 
-{ simpl in *. unfold mgu. intros. unfold more_general_subst. intros. simpl.
-  reflexivity. }
-{ simpl in *. unfold mgu. intros. unfold more_general_subst. intros. simpl.
-  reflexivity. }
-{ simpl in *. unfold mgu. intros. unfold more_general_subst. intros. simpl.
-  reflexivity. }
-{ simpl in *. unfold mgu. intros. unfold more_general_subst. intros. simpl.
-  reflexivity. }
-{ simpl in *. unfold mgu. intros. unfold more_general_subst. intros. simpl.
-  unfold lowenheim in H0. simpl in *.
 Admitted.
 
 
