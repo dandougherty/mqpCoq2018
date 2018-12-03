@@ -24,3 +24,14 @@ helper definitions / additions, there are issues with some of the proofs. Comple
 changes , as well as some of the proofs. The usual error that comes up is that "eqv" is not "Proper" inside the error message. Joseph said he fixed the above by adding two
 more axioms and he will talk with the professor about them; awaiting further counseling on this.
 
+For Monday 12 / 3 :
+
+Things I worked on :
+- completed Lowenheims main formula / function
+- worked with Joseph to slightly tweak definitions of more general unifiers and most general unifiers, added reproductive unifier definition.
+- added new versions of term evaluation / simplification functions that helped to define the main Lowenheim formula
+
+Problems / plans :
+- still a bit unclear path about the proof. Perhaps the use of reproductive unifier would help? further focus / consultation on the proof now that most/all of Lowenheim formulation is complete
+- some issues with rewrites with the "==" equivalence symbol, cannot rewrite within context of other function, to use ub the proofs if simple examples.
+
