@@ -28,6 +28,53 @@ Fixpoint lowenheim_subst (t : term) (sigma : subst) : subst :=
     | nil => nil
     | r :: s' => (lowenheim_replace t r) :: (lowenheim_subst t s')
   end.
+  
+  
+Compute (simplify   ( (VAR 0)*((VAR 0) * (VAR 1) + (VAR 0) * (VAR 2))* T0 + T0 + T1 + 
+                    T1 * ((VAR 1) + (VAR 0) + (VAR 0))      ) ).
+
+Compute (Simplify_N   ( (VAR 0)*((VAR 0) * (VAR 1) + (VAR 0) * (VAR 2))* T0 + T0 + T1 + 
+                    T1 * ((VAR 1) + (VAR 0) + (VAR 0)) ) 50  ).
+
+  
+(* function to find a substitution with ground terms that makes a term equivalent to T0
+start with empty list of replacements as substs *)
+Fixpoint find_ground_solution (t : term) (vars : var_set) (s : subst) : subst :=
+  match vars with
+    | nil => s
+    | v' :: v => 
+      (*if (identical (simplify (apply_subst t (cons (v' , T0) s) )) T0) then
+          (cons (v' , T0) s)
+      else 
+          if (identical (simplify (apply_subst t (cons (v' , T1) s) )) T0) then
+            (cons (v' , T1) s)
+          else *)
+            if (identical (simplify (apply_subst  
+                  (simplify (apply_subst t (cons (v' , T0) s) ) )
+                  (find_ground_solution (simplify (apply_subst t (cons (v' , T0) s) ) )
+                                          v (cons (v' , T0) s)) ))
+                           T0) then
+                  (find_ground_solution (simplify (apply_subst t (cons (v' , T0) s) ) )
+                                          v (cons (v' , T0) s))
+            else
+                  (find_ground_solution (simplify (apply_subst t (cons (v' , T1) s) ) )
+                                          v (cons (v' , T1) s ) )
+            end.
+
+
+Compute (find_ground_solution  ((VAR 0) * (VAR 1)) (cons 0 (cons 1 nil)) nil) .
+Compute (find_ground_solution  ((VAR 0) + (VAR 1)) (cons 0 (cons 1 nil)) nil) .
+Compute (find_ground_solution  ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) * ( (VAR 2) + (VAR 0)) ) (cons 0 (cons 1 (cons 2 (cons 3 nil))))  nil) .
+
+(* MAIN lowenheim formula give it a term, produce an MGU that make it equivalent to T0 *)
+
+Definition Lowenheim_Main (t : term) : subst :=
+  (lowenheim_subst t 
+                    (find_ground_solution t (term_unique_vars t) nil)). 
+
+Compute (Lowenheim_Main ((VAR 0) * (VAR 1))).
+Compute (Lowenheim_Main ((VAR 0) + (VAR 1)) ).
+Compute (Lowenheim_Main ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) * ( (VAR 2) + (VAR 0)) ) ).
 
 Example lowenheim_subst_ex1 :
   (unifier (VAR 0 * VAR 1) (lowenheim_subst (VAR 0 * VAR 1) ((0, T1) :: (1, T0) :: nil))).
