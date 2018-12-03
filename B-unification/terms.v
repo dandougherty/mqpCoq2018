@@ -605,6 +605,84 @@ simpl. reflexivity.
 Qed.
     
 
+(** MORE DEFINITIONS FOR TERM OPERATIONS / SIMPLIFICATIONS **)
+
+Fixpoint identical (a b: term) : bool :=
+  match a , b with
+    | T0, T0 => true
+    | T0, _ => false
+    | T1 , T1 => true
+    | T1 , _ => false
+    | VAR x , VAR y => if beq_nat x y then true else false
+    | VAR x, _ => false
+    | PRODUCT x y, PRODUCT x1 y1 => if ((identical x x1) && (identical y y1)) ||
+                                       ((identical x y1) && (identical y x1)) then true
+                                    else false
+    | PRODUCT x y, _ => false
+    | SUM x y, SUM x1 y1 => if ((identical x x1) && (identical y y1)) ||
+                                       ((identical x y1) && (identical y x1)) then true
+                                    else false
+    | SUM x y, _ => false
+  end.
+    
+
+Definition plus_one_step (a b : term) : term :=
+  match a, b with
+    | T0, _ => b
+    | T1, T0 => T1
+    | T1, T1 => T0
+    | T1 , _  => SUM a b 
+    | VAR x , T0 => a
+    | VAR x , _ => if identical a b then T0 else SUM a b
+    | PRODUCT x y , T0 => a
+    | PRODUCT x y, _ => if identical a b then T0 else SUM a b
+    | SUM x y , T0 => a
+    | SUM x y, _ => if identical a b then T0 else SUM a b(* Not considered *)
+  end.
+
+(* Multiplication for ground terms *)
+Definition mult_one_step (a b : term) : term :=
+  match a, b with
+    | T0, _ => T0
+    | T1 , _  => b 
+    | VAR x , T0 => T0
+    | VAR x , T1 => a
+    | VAR x , _ => if identical a b then a else PRODUCT a b
+    | PRODUCT x y , T0 => T0
+    | PRODUCT x y , T1 => a
+    | PRODUCT x y, _ => if identical a b then a else PRODUCT a b
+    | SUM x y , T0 => T0
+    | SUM x y , T1 => a
+    | SUM x y, _ => if identical a b then a else SUM a b(* Not considered *)
+  end.
+
+(** TERM EVALUATION **)
+
+(* Evaluate a term, any uninstantiated vars assumed to be 0 *)
+Fixpoint simplify (t : term) : term :=
+  match t with 
+    | T0 => T0
+    | T1 => T1
+    | VAR x => VAR x (* T0 (* Set to 0 *) *)
+    | PRODUCT x y => mult_one_step (simplify x) (simplify y)
+    | SUM x y => plus_one_step (simplify x) (simplify y)
+  end.
+
+Fixpoint Simplify_N (t : term) (counter : nat): term :=
+  match counter with
+    | O => t
+    | S n' => (Simplify_N (simplify t) n')
+  end.
+
+
+
+
+
+
+
+
+
+
 (** MOST GENERAL UNIFIER **)
 
 Definition subst_comp_eqv (s s' delta : subst) : Prop :=
