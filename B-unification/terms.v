@@ -607,14 +607,31 @@ Qed.
 
 (** MOST GENERAL UNIFIER **)
 
-(* More general substitution *)
-Definition more_general_subst (s s_prime : subst) : Prop :=
-  forall x, apply_subst (apply_subst x s) s_prime == apply_subst x s_prime.
+Definition subst_comp_eqv (s s' delta : subst) : Prop :=
+  forall t, apply_subst t s' == apply_subst (apply_subst t s') delta.
 
-(* Most general unifier *)
+Definition more_general_subst (s s': subst) : Prop :=
+  exists delta, subst_comp_eqv s s' delta.
+
+Notation "u1 <_ u2" := (more_general_subst u1 u2) (at level 51, left associativity).
+
 Definition mgu (t : term) (s : subst) : Prop :=
-  (unifier t s) /\ (forall (s_prime : subst), unifier t s_prime -> 
-  more_general_subst s s_prime).
+  (unifier t s) /\ (forall (s' : subst), s <_ s').
+
+Definition reprod_unif (t : term) (s : subst) : Prop :=
+  unifier t s /\
+  forall u,
+  unifier t u ->
+  subst_comp_eqv s u u.
+
+
+
+(* might be useful for the proof *)
+Lemma reprod_is_mgu : forall (t : term) (u : subst),
+  reprod_unif t u ->
+  mgu t u.
+Proof.
+Admitted.
 
 Example mgu_ex1 :
   mgu (VAR 0 * VAR 1) ((0, VAR 0 * (T1 + VAR 1)) :: nil).
