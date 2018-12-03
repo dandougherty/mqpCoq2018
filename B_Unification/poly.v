@@ -1,39 +1,106 @@
-Require Import ListSet.
 Require Import Arith.
 Require Import List.
 Import ListNotations.
 Require Import FunctionalExtensionality.
+Require Import Sorting.
+Import Nat.
 
 Require Export terms.
 
 
 (* ===== Polynomial Representation - Data Types ===== *)
 
-Definition mono := set var.
+Definition mono := list var.
 
-Definition mono_eq_dec := (list_eq_dec var_eq_dec).
+Definition poly := list mono.
 
-Definition is_mono (m : mono) : Prop := NoDup m.
+Fixpoint lex {T : Type} (cmp : T -> T -> comparison) (l1 l2 : list T)
+              : comparison :=
+  match l1, l2 with
+  | [], [] => Eq
+  | [], _ => Lt
+  | _, [] => Gt
+  | h1 :: t1, h2 :: t2 =>
+      match cmp h1 h2 with
+      | Eq => lex cmp t1 t2
+      | c => c
+      end
+  end.
 
-Definition poly := set mono.
+Theorem lex_nat_refl : forall (l : list nat), lex compare l l = Eq.
+Proof.
+  intros.
+  induction l.
+  - simpl. reflexivity.
+  - simpl. rewrite compare_refl. apply IHl.
+Qed.
 
-Definition polynomial_eq_dec := (list_eq_dec mono_eq_dec).
+Theorem lex_nat_antisym : forall (l1 l2 : list nat),
+  lex compare l1 l2 = CompOpp (lex compare l2 l1).
+Proof.
+  intros l1.
+  induction l1.
+  - intros. simpl. destruct l2; reflexivity.
+  - intros. simpl. destruct l2.
+    + simpl. reflexivity.
+    + simpl. destruct (a ?= n) eqn:H;
+      rewrite compare_antisym in H;
+      rewrite CompOpp_iff in H; simpl in H;
+      rewrite H; simpl.
+      * apply IHl1.
+      * reflexivity.
+      * reflexivity.
+Qed.
 
-Definition is_poly (p : poly) : Prop := 
-  NoDup p /\ forall (m : mono), In m p -> is_mono m.
+Theorem lex_nat_cons : forall (l1 l2 : list nat) n,
+  lex compare l1 l2 = lex compare (n::l1) (n::l2).
+Proof.
+  intros. simpl. rewrite compare_refl. reflexivity.
+Qed.
 
-Definition vars (p : poly) : set var :=
+Hint Resolve lex_nat_refl lex_nat_antisym lex_nat_cons.
+
+Definition is_mono (m : mono) : Prop := Sorted lt m.
+
+Definition is_poly (p : poly) : Prop :=
+  Sorted (fun m n => lex compare m n = Lt) p /\ forall m, In m p -> is_mono m.
+
+Hint Unfold is_mono is_poly.
+
+Definition vars (p : poly) : list var :=
   nodup var_eq_dec (concat p).
 
+Lemma mono_order : forall x y m,
+  is_mono (x :: y :: m) ->
+  x < y.
+Proof.
+  unfold is_mono.
+  intros.
+  apply Sorted_inv in H as [].
+  apply HdRel_inv in H0.
+  apply H0. 
+Qed.
 
 Lemma mono_cons : forall x m,
   is_mono (x :: m) ->
   is_mono m.
 Proof.
   unfold is_mono.
-  intros x m Hxm.
-  apply NoDup_cons_iff in Hxm as [Hx Hm].
-  apply Hm.
+  intros.
+  apply Sorted_inv in H as [].
+  apply H.
+Qed.
+
+Lemma poly_order : forall m n p,
+  is_poly (m :: n :: p) ->
+  lex compare m n = Lt.
+Proof.
+  unfold is_poly.
+  intros.
+  destruct H.
+  apply Sorted_inv in H as [].
+  apply HdRel_inv in H1.
+  apply H1.
 Qed.
 
 Lemma poly_cons : forall m p,
@@ -41,143 +108,90 @@ Lemma poly_cons : forall m p,
   is_poly p /\ is_mono m.
 Proof.
   unfold is_poly.
-  intros m p [Hmp HIm].
+  intros.
+  destruct H.
+  apply Sorted_inv in H as [].
   split.
   - split.
-    + apply NoDup_cons_iff in Hmp as [Hm Hp]. apply Hp.
-    + intros. apply HIm, in_cons, H.
-  - apply HIm, in_eq.
+    + apply H.
+    + intros. apply H0, in_cons, H2.
+  - apply H0, in_eq.
 Qed.
 
-
-(* ===== Functions over Sets ===== *)
-
-Definition set_symdiff {X:Type} Aeq_dec (x y:set X) : set X :=
-  set_diff Aeq_dec (set_union Aeq_dec x y) (set_inter Aeq_dec x y).
-
-Lemma set_add_cons :
-  forall X (x : set X) (a : X) Aeq_dec,
-  ~ In a x -> set_add Aeq_dec a x = x ++ [a].
+Lemma nil_is_mono :
+  is_mono [].
 Proof.
-  intros X x a Aeq_dec H. induction x.
-  - reflexivity.
-  - simpl. destruct (Aeq_dec a a0).
-    + unfold not in H. exfalso. apply H. simpl. left. rewrite e. reflexivity.
-    + rewrite IHx.
-      * reflexivity.
-      * unfold not in *. intro. apply H. simpl. right. apply H0.
+  auto.
 Qed.
 
-Lemma set_union_cons : 
-  forall X (x : set X) (a : X) Aeq_dec,
-  ~ In a x -> set_union Aeq_dec [a] x = a :: x.
+Lemma nil_is_poly :
+  is_poly [].
 Proof.
-Admitted.
-
-Lemma set_union_cons_rev : 
-  forall X (x : set X) (a : X) Aeq_dec,
-  NoDup x -> ~ In a x -> set_union Aeq_dec [a] x = a :: (rev x).
-Proof.
-  intros X x a Aeq_dec Hn H. induction x.
-  - reflexivity.
-  - simpl set_union. rewrite IHx.
-    + rewrite set_add_cons.
-      * simpl. reflexivity.
-      * unfold not in *. intro. apply H. destruct H0.
-        -- rewrite H0. left. reflexivity.
-        -- apply NoDup_cons_iff in Hn as []. apply In_rev in H0. contradiction.
-    + apply NoDup_cons_iff in Hn. apply Hn.
-    + unfold not in *. intro. apply H. right. apply H0.
+  unfold is_poly. split.
+  - auto.
+  - intro; contradiction.
 Qed.
 
-Lemma set_diff_nil : 
-  forall X (x : set X) Aeq_dec,
-  NoDup x -> set_diff Aeq_dec x [] = (rev x).
-Proof.
-  intros X x Aeq_dec H. simpl. induction x.
-  - reflexivity.
-  - simpl. rewrite IHx.
-    + apply set_add_cons. apply NoDup_cons_iff in H as []. unfold not in *.
-      intro. apply H. apply In_rev in H1. apply H1.
-    + apply NoDup_cons_iff in H. apply H.
-Qed.
+Hint Resolve mono_order mono_cons poly_order poly_cons nil_is_mono nil_is_poly.
 
-Lemma set_symdiff_app : forall X a (x : set X) Aeq_dec,
-  NoDup x -> ~ In a x ->
-  set_symdiff Aeq_dec [a] x = x ++ [a].
-Proof.
-  intros X a x Aeq_dec Hn H. unfold set_symdiff. simpl.
-  replace (set_mem Aeq_dec a x) with (false).
-  - rewrite set_diff_nil.
-    + rewrite set_union_cons_rev.
-      * simpl. rewrite rev_involutive. reflexivity.
-      * apply Hn.
-      * apply H. 
-    + apply set_union_nodup.
-      * apply NoDup_cons. intro. contradiction. apply NoDup_nil.
-      * apply Hn.
-  - symmetry. apply set_mem_complete2. unfold set_In. apply H.
-Qed.
-
-Lemma set_symdiff_refl : forall X (x y : set X) Aeq_dec,
-  set_symdiff Aeq_dec x y = set_symdiff Aeq_dec y x.
-Proof.
-  intros X x y Aeq_dec. unfold set_symdiff.
-Admitted.
-
-Lemma set_symdiff_nil : forall X (x : set X) Aeq_dec,
-  set_symdiff Aeq_dec [] x = x.
-Proof.
-Admitted.
-
-Lemma set_part_nodup : forall X p (x t f : set X),
-  NoDup x ->
-  partition p x = (t, f) ->
-  NoDup t /\ NoDup f.
-Proof.
-Admitted.
-
-Lemma set_part_no_inter : forall X p (x t f : set X) Aeq_dec,
-  NoDup x ->
-  partition p x = (t, f) ->
-  set_inter Aeq_dec t f = [].
-Proof.
-Admitted.
-
-Lemma set_part_union : forall X p (x t f : set X) Aeq_dec,
-  NoDup x ->
-  partition p x = (t, f) ->
-  x = set_union Aeq_dec t f.
-Proof.
-Admitted.
-
-
-Lemma set_remove_cons : forall X (l : set X) x Xeq_dec,
-  x :: remove Xeq_dec x l = l.
-Proof.
-Admitted.
-
-Lemma set_rem_cons_id : forall x,
-  (fun x0 : list nat => x :: remove var_eq_dec x x0) = id.
-Proof.
-  intros.
-  apply functional_extensionality.
-  intros.
-  apply set_remove_cons.
-Qed.
 
 
 (* ===== Functions over Monomials and Polynomials ===== *)
 
-Definition addPP (p q : poly) : poly := set_symdiff mono_eq_dec p q.
+Fixpoint addPPn (p q : poly) (n : nat) : poly :=
+  match n with
+  | 0 => []
+  | S n' =>
+    match p with
+    | [] => q
+    | m::p' =>
+      match q with
+      | [] => (m :: p')
+      | n::q' =>
+        match lex compare m n with
+        | Eq => addPPn p' q' (pred n')
+        | Lt => m :: addPPn p' q n'
+        | Gt => n :: addPPn (m::p') q' n'
+        end
+      end
+    end
+  end.
 
-Definition mulMM (m n : mono) : mono := set_union var_eq_dec m n.
+Definition addPP (p q : poly) : poly :=
+  addPPn p q (length p + length q).
 
-Definition mulMP (m : mono) (p : poly) : poly :=
-  fold_left addPP (map (fun n => [mulMM m n]) p) [].
+Fixpoint mulMMn (m n : mono) (f : nat) : mono :=
+  match f with
+  | 0 => []
+  | S f' => 
+    match m, n with
+    | [], _ => n
+    | _, [] => m
+    | a :: m', b :: n' =>
+        match compare a b with
+        | Eq => a :: mulMMn m' n' (pred f')
+        | Lt => a :: mulMMn m' n f'
+        | Gt => b :: mulMMn m n' f'
+        end
+    end
+  end.
 
-Definition mulPP (p q : poly) : poly :=
-  fold_left addPP (map (fun m => mulMP m q) p) [].
+Definition mulMM (m n : mono) : mono :=
+  mulMMn m n (length m + length n).
+
+Fixpoint mulMP (m : mono) (p : poly) : poly :=
+  match p with
+  | [] => []
+  | n :: p' => addPP [mulMM m n] (mulMP m p')
+  end.
+
+Fixpoint mulPP (p q : poly) : poly :=
+  match p with
+  | [] => []
+  | m :: p' => addPP (mulMP m q) (mulPP p' q)
+  end.
+
+Hint Unfold addPP addPPn mulMP mulMMn mulMM mulPP.
 
 
 Lemma mulPP_l_r : forall p q r,
@@ -196,37 +210,89 @@ Qed.
 Lemma addPP_0 : forall p,
   addPP [] p = p.
 Proof. 
-  intros p. unfold addPP. simpl. apply set_symdiff_nil.
+  intros p. unfold addPP. destruct p; auto.
 Qed.
 
 Lemma mulMM_0 : forall m,
   mulMM [] m = m.
-Proof. Admitted.
-
-Lemma mulMP_0 : forall p,
-  mulMP [] p = p.
 Proof.
-  intros p. unfold mulMP. induction p.
-  - simpl. reflexivity.
-  - simpl. 
-Admitted.
-
-Lemma mullPP_1 : forall p,
-  mulPP [[]] p = p.
-Proof.
-  intros p. unfold mulPP. simpl. rewrite addPP_0. apply mulMP_0.
+  intros m. unfold mulMM. destruct m; auto.
 Qed.
 
-Lemma mulMP_mulPP_eq : forall m p,
-  mulMP m p = mulPP [m] p.
+Lemma mulMP_0 : forall p,
+  is_poly p -> mulMP [] p = p.
 Proof.
-  intros m p. unfold mulPP. simpl. rewrite addPP_0. reflexivity.
+  intros p Hp. induction p.
+  - simpl. reflexivity.
+  - simpl. rewrite mulMM_0. rewrite IHp.
+    + unfold addPP. simpl. destruct p.
+      * reflexivity.
+      * apply poly_order in Hp. rewrite Hp. auto.
+    + apply poly_cons in Hp. apply Hp.
+Qed.
+
+Lemma addPP_is_poly : forall p q,
+  is_poly p /\ is_poly q -> is_poly (addPP p q).
+Proof.
+Admitted.
+
+Lemma lex_eq : forall n m,
+  lex compare n m = Eq <-> lex compare m n = Eq.
+Proof.
+  intros n m. split; intro; rewrite lex_nat_antisym in H; unfold CompOpp in H.
+  - destruct (lex compare m n) eqn:H0; inversion H. reflexivity.
+  - destruct (lex compare n m) eqn:H0; inversion H. reflexivity.
+Qed.
+
+Lemma lex_lt_gt : forall n m,
+  lex compare n m = Lt <-> lex compare m n = Gt.
+Proof.
+  intros n m. split; intro; rewrite lex_nat_antisym in H; unfold CompOpp in H.
+  - destruct (lex compare m n) eqn:H0; inversion H. reflexivity.
+  - destruct (lex compare n m) eqn:H0; inversion H. reflexivity.
 Qed.
 
 Lemma addPP_comm : forall p q,
-  addPP p q = addPP q p.
+  is_poly p /\ is_poly q -> addPP p q = addPP q p.
 Proof.
+  intros p q H. generalize dependent q. induction p; induction q.
+  - reflexivity.
+  - rewrite addPP_0. destruct q; auto.
+  - rewrite addPP_0. destruct p; auto.
+  - intro. unfold addPP. simpl. destruct (lex compare a a0) eqn:Hlex.
+    + apply lex_eq in Hlex. rewrite Hlex. rewrite plus_comm. simpl.
+      rewrite <- (plus_comm (S (length p))). simpl. unfold addPP in IHp.
+      rewrite plus_comm. rewrite IHp.
+      * rewrite plus_comm. reflexivity.
+      * destruct H. apply poly_cons in H as []. apply poly_cons in H0 as []. split; auto.
+    + apply lex_lt_gt in Hlex. rewrite Hlex. f_equal. admit.
+    + apply lex_lt_gt in Hlex. rewrite Hlex. f_equal. unfold addPP in IHq. simpl length in IHq. rewrite <- IHq.
+      * rewrite <- add_1_l. rewrite plus_assoc. rewrite <- (add_1_r (length p)). reflexivity.
+      * destruct H. apply poly_cons in H0 as []. split; auto.
 Admitted.
+
+Lemma mullPP_1 : forall p,
+  is_poly p -> mulPP [[]] p = p.
+Proof.
+  intros p H. unfold mulPP. rewrite mulMP_0. rewrite addPP_comm.
+  - apply addPP_0.
+  - split; auto.
+  - apply H.
+Qed.
+
+Lemma mulMP_is_poly : forall m p,
+  is_mono m /\ is_poly p -> is_poly (mulMP m p).
+Proof. Admitted.
+
+Hint Resolve mulMP_is_poly.
+
+Lemma mulMP_mulPP_eq : forall m p,
+  is_mono m /\ is_poly p -> mulMP m p = mulPP [m] p.
+Proof.
+  intros m p H. unfold mulPP. rewrite addPP_comm.
+  - rewrite addPP_0. reflexivity.
+  - split; auto.
+Qed.
 
 Lemma mulPP_comm : forall p q,
   mulPP p q = mulPP q p.
@@ -242,7 +308,7 @@ Proof.
 Admitted.
 
 
-Lemma set_part_add : forall f p l r,
+(* Lemma set_part_add : forall f p l r,
   NoDup p ->
   partition f p = (l, r) ->
   p = addPP l r.
@@ -263,4 +329,4 @@ Proof.
   assert (p = (set_union mono_eq_dec l r)). (* remove after set_eq refactor *)
   
   apply (set_part_union _ _ _ _ _ _ H H0).
-Admitted.
+Admitted. *)
