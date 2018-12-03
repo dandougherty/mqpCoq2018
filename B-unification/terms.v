@@ -607,6 +607,8 @@ Qed.
 
 (** MORE DEFINITIONS FOR TERM OPERATIONS / SIMPLIFICATIONS **)
 
+
+(* check if two terms are exaclty identical *)
 Fixpoint identical (a b: term) : bool :=
   match a , b with
     | T0, T0 => true
@@ -625,7 +627,7 @@ Fixpoint identical (a b: term) : bool :=
     | SUM x y, _ => false
   end.
     
-
+(* Basic addition fot terms *)
 Definition plus_one_step (a b : term) : term :=
   match a, b with
     | T0, _ => b
@@ -640,7 +642,7 @@ Definition plus_one_step (a b : term) : term :=
     | SUM x y, _ => if identical a b then T0 else SUM a b(* Not considered *)
   end.
 
-(* Multiplication for ground terms *)
+(* Basic Multiplication for terms *)
 Definition mult_one_step (a b : term) : term :=
   match a, b with
     | T0, _ => T0
@@ -656,9 +658,9 @@ Definition mult_one_step (a b : term) : term :=
     | SUM x y, _ => if identical a b then a else SUM a b(* Not considered *)
   end.
 
-(** TERM EVALUATION **)
+(** TERM SIMPLIFICATION **)
 
-(* Evaluate a term, any uninstantiated vars assumed to be 0 *)
+(* Simplifies a term in very apparent and basic ways *)
 Fixpoint simplify (t : term) : term :=
   match t with 
     | T0 => T0
@@ -668,6 +670,7 @@ Fixpoint simplify (t : term) : term :=
     | SUM x y => plus_one_step (simplify x) (simplify y)
   end.
 
+(* apply the simplify function n times, in case more simplifications are needed. Needs correction, does not always correctly *)
 Fixpoint Simplify_N (t : term) (counter : nat): term :=
   match counter with
     | O => t
@@ -685,17 +688,21 @@ Fixpoint Simplify_N (t : term) (counter : nat): term :=
 
 (** MOST GENERAL UNIFIER **)
 
+(* substitution composition *)
 Definition subst_comp_eqv (s s' delta : subst) : Prop :=
   forall t, apply_subst t s' == apply_subst (apply_subst t s') delta.
 
+(* more general unifier *)
 Definition more_general_subst (s s': subst) : Prop :=
   exists delta, subst_comp_eqv s s' delta.
 
 Notation "u1 <_ u2" := (more_general_subst u1 u2) (at level 51, left associativity).
 
+(* most general unifier *)
 Definition mgu (t : term) (s : subst) : Prop :=
   (unifier t s) /\ (forall (s' : subst), s <_ s').
 
+(* reproductive unifier *)
 Definition reprod_unif (t : term) (s : subst) : Prop :=
   unifier t s /\
   forall u,
