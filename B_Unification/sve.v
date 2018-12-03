@@ -209,73 +209,74 @@ Proof.
 Admitted.
 
 
-Fixpoint bunifyN (n : nat) : poly -> option subst := fun p =>
-  match n  with
-  | 0 => None
-  | S n' =>
-      match decomp p with
-      | None => match p with
-                | [] => Some []
-                | _  => None
-                end
-      | Some (x, (q, r)) =>
-          match bunifyN n' (build_poly q r) with
-          | None => None
-          | Some s => Some (build_subst s x q r)
-          end
+Fixpoint sveVars (vars : list var) (p : poly) : option subst :=
+  match vars with
+  | [] => 
+      match p with
+      | [] => Some []
+      | _  => None
+      end
+  | x :: xs =>
+      let (q, r) := div_by_var x p in
+      match sveVars xs (build_poly q r) with
+      | None => None
+      | Some s => Some (build_subst s x q r)
       end
   end.
 
 
-Definition bunify (p : poly) : option subst :=
-  bunifyN (1 + length (vars p)) p.
+Definition sve (p : poly) : option subst :=
+  sveVars (vars p) p.
 
 
-Lemma bunifyN_correct1 : forall (p : poly) (n : nat),
+Lemma sveVars_correct1 : forall (p : poly),
   is_poly p ->
-  length (vars p) < n ->
-  forall s, bunifyN n p = Some s ->
+  forall s, sveVars (vars p) p = Some s ->
             mgu s p.
 Proof.
+  intros.
+  induction (vars p) as [|x xs] eqn:HV.
+  - simpl in H0.
+    destruct p; inversion H0.
+    apply empty_mgu.
+  - apply IHxs.
+    
 Admitted.
 
 
-Lemma bunifyN_correct2 : forall (p : poly) (n : nat),
+Lemma sveVars_correct2 : forall (p : poly),
   is_poly p ->
-  length (vars p) < n ->
-  bunifyN n p = None ->
+  sveVars (vars p) p = None ->
   ~ unifiable p.
 Proof.
 Admitted.
 
 
-Lemma bunifyN_correct : forall (p : poly) (n : nat),
+Lemma sveVars_correct : forall (p : poly),
   is_poly p ->
-  length (vars p) < n ->
-  match bunifyN n p with
+  match sveVars (vars p) p with
   | Some s => mgu s p
   | None => ~ unifiable p
   end.
 Proof.
   intros.
-  remember (bunifyN n p).
+  remember (sveVars (vars p) p).
   destruct o.
-  - apply (bunifyN_correct1 p n H H0 s). auto.
-  - apply (bunifyN_correct2 p n H H0). auto.
+  - apply sveVars_correct1; auto.
+  - apply sveVars_correct2; auto.
 Qed.
 
 
-Theorem bunify_correct : forall (p : poly),
+Theorem sve_correct : forall (p : poly),
   is_poly p ->
-  match bunify p with
+  match sve p with
   | Some s => mgu s p
   | None => ~ unifiable p
   end.
 Proof.
   intros.
-  apply bunifyN_correct.
-  - apply H.
-  - auto.
+  apply sveVars_correct.
+  auto.
 Qed.
 
 
