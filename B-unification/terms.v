@@ -607,14 +607,18 @@ Qed.
 
 (** MOST GENERAL UNIFIER **)
 
+Definition subst_compose (s s_prime delta : subst) : Prop :=
+  forall x, apply_subst (apply_subst x s) delta == apply_subst x s_prime.
+
 (* More general substitution *)
 Definition more_general_subst (s s_prime : subst) : Prop :=
-  forall x, apply_subst (apply_subst x s) s_prime == apply_subst x s_prime.
+  exists delta, subst_compose s s_prime delta.
+
+Notation  "u_one <' u_two " := (more_general_subst u_one u_two) (at level 51, left associativity).
 
 (* Most general unifier *)
 Definition mgu (t : term) (s : subst) : Prop :=
-  (unifier t s) /\ (forall (s_prime : subst), unifier t s_prime -> 
-  more_general_subst s s_prime).
+  (unifier t s) /\ (forall (s_prime : subst), unifier t s_prime -> s <' s_prime).
 
 Example mgu_ex1 :
   mgu (VAR 0 * VAR 1) ((0, VAR 0 * (T1 + VAR 1)) :: nil).
@@ -627,7 +631,7 @@ unfold mgu. unfold unifier. simpl. unfold more_general_subst. simpl. split.
   rewrite sum_x_x. reflexivity.
 }
 { 
-  intros. 
+  intros. unfold subst_compose. 
 Admitted. (* rewrite distr. rewrite mul_comm. rewrite mul_id.
   induction s_prime.
   { simpl. inversion H. }
