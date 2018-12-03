@@ -1,24 +1,39 @@
- Since 11/27/18:
-    Done:
-        - Made a new branch (set_eq) to work on developing a new set equivalence function for use with poly/mono
-        - Proved necessary theorems about reflexivity, symmetry, transitivity, and compatibility with various functions
-          to enable rewriting as used before
-        - Updated all existing lemmas in poly.v to use the new operator, adding new lemmas as needed
-    Problems:
-        - My computer still won't behave, so I just coded without using the _CoqProject file all day.
-        - Have run into another issue with the set_eq operator, namely that since it uses incl in its definition,
-          when comparing sets-of-sets (ie polynomials), it still uses the normal = (and not mine) to compare the
-          inner layer of sets (ie the monomials). Not sure how to fix this one without redefining incl and In and 
-          reproving all of the useful standard library lemmas myself!
-        - poly_unif.v and sve.v still use the old equal operator in places, and make fails at the moment
-    To-Do:
-        - Fix my computer (or just give up and keep working like this)
-        - Fix the issue with set_eq and polynomials
-        - Finish proving the remaining admitted lemmas needed to prove 10.4.10
+Since 12/03/18:
+	Done:
+		- Rewrote the entire set_eq definition, relations/morphisms, and all related proofs in sets.v to use a custom 
+		  equality function, so that equivalence on polynomials could compare the monomials orderlessly.
+	Problems:
+		- Discovered that the entire file I rewrote won't work, since the listset library uses Aeq_dec plusbools as
+		  the equality function, which uses normal equals under the hood. Reached a lemma where I needed to show that 
+		  a =* b -> a = b, which just isn't true.
+	To-Do:
+		- The only way to solve this is probably to use one of the sorted solutions, so that the lists are actually 
+		  equal as far as Coq is concerned. Pretty frustrating as I feel like the set solution is more "pure" in a
+		  way, since they are really sets of variables/monomials, but I guess it will have to do.
+
+	
+	
+Since 11/27/18:
+	Done:
+		- Made a new branch (set_eq) to work on developing a new set equivalence function for use with poly/mono
+		- Proved necessary theorems about reflexivity, symmetry, transitivity, and compatibility with various functions
+		  to enable rewriting as used before
+		- Updated all existing lemmas in poly.v to use the new operator, adding new lemmas as needed
+	Problems:
+		- My computer still won't behave, so I just coded without using the _CoqProject file all day.
+		- Have run into another issue with the set_eq operator, namely that since it uses incl in its definition,
+		  when comparing sets-of-sets (ie polynomials), it still uses the normal = (and not mine) to compare the
+		  inner layer of sets (ie the monomials). Not sure how to fix this one without redefining incl and In and 
+		  reproving all of the useful standard library lemmas myself!
+		- poly_unif.v and sve.v still use the old equal operator in places, and make fails at the moment
+	To-Do:
+		- Fix my computer (or just give up and keep working like this)\
+		- Fix the issue with set_eq and polynomials
+		- Finish proving the remaining admitted lemmas needed to prove 10.4.10
         
 
 
- Since 11/20/18:
+Since 11/20/18:
 	Done:
 		- Reorganized project structure with Dylan. More information in his changelog.
 		- Worked on replacing lemmas involving polynomials to use my listset as opposed to dylan's ordered lists
