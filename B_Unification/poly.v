@@ -231,11 +231,6 @@ Proof.
     + apply poly_cons in Hp. apply Hp.
 Qed.
 
-Lemma addPP_is_poly : forall p q,
-  is_poly p /\ is_poly q -> is_poly (addPP p q).
-Proof.
-Admitted.
-
 Lemma lex_eq : forall n m,
   lex compare n m = Eq <-> lex compare m n = Eq.
 Proof.
@@ -269,6 +264,25 @@ Proof.
     + apply lex_lt_gt in Hlex. rewrite Hlex. f_equal. unfold addPP in IHq. simpl length in IHq. rewrite <- IHq.
       * rewrite <- add_1_l. rewrite plus_assoc. rewrite <- (add_1_r (length p)). reflexivity.
       * destruct H. apply poly_cons in H0 as []. split; auto.
+Admitted.
+
+Lemma addPP_is_poly : forall p q,
+  is_poly p /\ is_poly q -> is_poly (addPP p q).
+Proof.
+  intros p q Hpoly. inversion Hpoly. unfold is_poly in H, H0. destruct H, H0.  split.
+  - remember (fun m n : list nat => lex compare m n = Lt) as comp. generalize dependent q. induction p, q.
+    + intros. apply Sorted_nil.
+    + intros. rewrite addPP_0. apply H0.
+    + intros. rewrite addPP_comm. rewrite addPP_0. apply H. apply Hpoly.
+    + intros. unfold addPP. simpl. destruct (lex compare a m) eqn:Hlex.
+      * rewrite plus_comm. simpl. rewrite plus_comm. apply IHp.
+        -- apply Sorted_inv in H as []; auto.
+        -- intuition.
+        -- destruct Hpoly. apply poly_cons in H3 as []. apply poly_cons in H4 as []. split; auto.
+        -- apply Sorted_inv in H0 as []; auto.
+        -- intuition.
+      * apply Sorted_cons.
+        -- rewrite plus_comm. simpl.
 Admitted.
 
 Lemma mullPP_1 : forall p,
