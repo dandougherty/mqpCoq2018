@@ -9,7 +9,7 @@
 (* Required Libraries *)
 
 Require Export terms.
-Require Export lowenheim.
+Require Export lowenheim_formula.
 
 Require Import List.
 Import ListNotations.
