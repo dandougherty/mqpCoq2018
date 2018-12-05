@@ -8,13 +8,6 @@ Require Export poly_unif.
 (* ===== Implementation of SVE ===== *)
 Definition pair (U : Type) : Type := (U * U).
 
-Fixpoint get_var (p : poly) : option var :=
-  match p with
-  | [] => None
-  | [] :: p' => get_var p'
-  | (x :: m) :: p' => Some x
-  end.
-
 Definition has_var (x : var) := existsb (beq_nat x).
 
 Definition elim_var (x : var) (p : poly) : poly :=
@@ -23,12 +16,6 @@ Definition elim_var (x : var) (p : poly) : poly :=
 Definition div_by_var (x : var) (p : poly) : pair poly :=
   let (qx, r) := partition (has_var x) p in
   (elim_var x qx, r).
-
-Definition decomp (p : poly) : option (prod var (pair poly)) :=
-  match get_var p with
-  | None => None
-  | Some x => Some (x, (div_by_var x p))
-  end.
 
 Lemma fold_add_self : forall p,
   is_poly p ->
@@ -117,9 +104,9 @@ Lemma has_var_eq_in : forall x m,
 Proof.
 Admitted.
 
-Lemma decomp_is_poly : forall x p q r,
+Lemma div_is_poly : forall x p q r,
   is_poly p ->
-  decomp p = Some (x, (q, r)) ->
+  div_by_var x p = (q, r) ->
   is_poly q /\ is_poly r.
 Proof.
 Admitted.
@@ -131,15 +118,14 @@ Lemma part_is_poly : forall f p l r,
 Proof.
 Admitted.
 
-Lemma decomp_eq : forall x p q r,
+Lemma div_eq : forall x p q r,
   is_poly p ->
-  decomp p = Some (x, (q, r)) ->
+  div_by_var x p = (q, r) ->
   p = addPP (mulMP [x] q) r.
 Proof.
   intros x p q r HP HD.
-  assert (HE: div_by_var x p = (q, r)).
-  unfold decomp in HD. destruct (get_var p); inversion HD; auto.
   
+  assert (HE := HD).
   unfold div_by_var in HE.
   destruct ((partition (has_var x) p)) as [qx r0] eqn:Hqr.
   injection HE. intros Hr Hq.
@@ -149,7 +135,7 @@ Proof.
   apply (part_fst_true _ _ _ _ _ Hqr _ H).
 
   assert (is_poly q /\ is_poly r) as [HPq HPr].
-  apply (decomp_is_poly x p q r HP HD).
+  apply (div_is_poly x p q r HP HD).
   assert (is_poly qx /\ is_poly r0) as [HPqx HPr0].
   apply (part_is_poly (has_var x) p qx r0 HP Hqr).
   apply (elim_var_mul _ _ _ HPqx HPq HIH) in Hq.
@@ -174,15 +160,15 @@ Definition build_subst (s : subst) (x : var) (q r : poly) : subst :=
   xs :: s.
 
 
-Lemma decomp_unif : forall x p q r s,
+Lemma div_build_unif : forall x p q r s,
   is_poly p ->
-  decomp p = Some (x, (q, r)) ->
+  div_by_var x p = (q, r) ->
   unifier s p ->
   unifier s (build_poly q r).
 Proof.
   unfold build_poly, unifier.
   intros x p q r s HPp HD Hsp0.
-  apply (decomp_eq _ _ _ _ HPp) in HD as Hp.
+  apply (div_eq _ _ _ _ HPp) in HD as Hp.
   (* multiply both sides of Hsp0 by s(q+1) *)
   assert (exists q1, q1 = addPP [[]] q) as [q1 Hq1]. eauto.
   assert (exists sp, sp = substP s p) as [sp Hsp]. eauto.
@@ -201,7 +187,7 @@ Proof.
 Qed.
 
 Lemma reprod_build_subst : forall x p q r s, 
-  decomp p = Some (x, (q,  r)) ->
+  div_by_var x p = (q, r) ->
   reprod_unif s (build_poly q r) ->
   inDom x s = false ->
   reprod_unif (build_subst s x q r) p.
@@ -209,73 +195,74 @@ Proof.
 Admitted.
 
 
-Fixpoint bunifyN (n : nat) : poly -> option subst := fun p =>
-  match n  with
-  | 0 => None
-  | S n' =>
-      match decomp p with
-      | None => match p with
-                | [] => Some []
-                | _  => None
-                end
-      | Some (x, (q, r)) =>
-          match bunifyN n' (build_poly q r) with
-          | None => None
-          | Some s => Some (build_subst s x q r)
-          end
+Fixpoint sveVars (vars : list var) (p : poly) : option subst :=
+  match vars with
+  | [] => 
+      match p with
+      | [] => Some []
+      | _  => None
+      end
+  | x :: xs =>
+      let (q, r) := div_by_var x p in
+      match sveVars xs (build_poly q r) with
+      | None => None
+      | Some s => Some (build_subst s x q r)
       end
   end.
 
 
-Definition bunify (p : poly) : option subst :=
-  bunifyN (1 + length (vars p)) p.
+Definition sve (p : poly) : option subst :=
+  sveVars (vars p) p.
 
 
-Lemma bunifyN_correct1 : forall (p : poly) (n : nat),
+Lemma sveVars_correct1 : forall (p : poly),
   is_poly p ->
-  length (vars p) < n ->
-  forall s, bunifyN n p = Some s ->
+  forall s, sveVars (vars p) p = Some s ->
             mgu s p.
 Proof.
+  intros.
+  induction (vars p) as [|x xs] eqn:HV.
+  - simpl in H0.
+    destruct p; inversion H0.
+    apply empty_mgu.
+  - apply IHxs.
+    
 Admitted.
 
 
-Lemma bunifyN_correct2 : forall (p : poly) (n : nat),
+Lemma sveVars_correct2 : forall (p : poly),
   is_poly p ->
-  length (vars p) < n ->
-  bunifyN n p = None ->
+  sveVars (vars p) p = None ->
   ~ unifiable p.
 Proof.
 Admitted.
 
 
-Lemma bunifyN_correct : forall (p : poly) (n : nat),
+Lemma sveVars_correct : forall (p : poly),
   is_poly p ->
-  length (vars p) < n ->
-  match bunifyN n p with
+  match sveVars (vars p) p with
   | Some s => mgu s p
   | None => ~ unifiable p
   end.
 Proof.
   intros.
-  remember (bunifyN n p).
+  remember (sveVars (vars p) p).
   destruct o.
-  - apply (bunifyN_correct1 p n H H0 s). auto.
-  - apply (bunifyN_correct2 p n H H0). auto.
+  - apply sveVars_correct1; auto.
+  - apply sveVars_correct2; auto.
 Qed.
 
 
-Theorem bunify_correct : forall (p : poly),
+Theorem sve_correct : forall (p : poly),
   is_poly p ->
-  match bunify p with
+  match sve p with
   | Some s => mgu s p
   | None => ~ unifiable p
   end.
 Proof.
   intros.
-  apply bunifyN_correct.
-  - apply H.
-  - auto.
+  apply sveVars_correct.
+  auto.
 Qed.
 
 
