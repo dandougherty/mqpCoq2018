@@ -214,6 +214,17 @@ rewrite sum_x_x. rewrite sum_comm. rewrite sum_id. rewrite sum_comm.
 rewrite sum_id. reflexivity.
 Qed.
 
+Axiom replace_compat :
+  forall x x', x == x' -> forall r, (replace x r) == (replace x' r).
+
+Parameter p_replace : replacement -> term.
+
+Add Parametric Morphism : replace with 
+  signature eqv ==> p_replace ==> eqv as replace_mor.
+Proof.
+exact replace_compat.
+Qed.
+
 (* A useful lemma for later proving the substitutions distribute across terms *)
 Lemma replace_distribution :
   forall x y r, (replace x r) + (replace y r) == (replace (x + y) r).
@@ -504,7 +515,7 @@ Lemma unifier_subset_imply_superset :
 Proof.
 intros. induction s.
 { 
-  unfold unifier in *. simpl in *.
+  unfold unifier in *. simpl in *. rewrite H.
 Admitted.
 
 Definition unifiable (t : term) : Prop :=
@@ -696,6 +707,10 @@ Notation "u1 <_ u2" := (more_general_subst u1 u2) (at level 51, left associativi
 *)
 Definition mgu (t : term) (s : subst) : Prop :=
   (unifier t s) /\ (forall (s' : subst), unifier t s' -> s <_ s').
+
+(* 
+  In report explain why we are using reproductive as opposed to mgu.
+*)
 
 (* reproductive unifier *)
 Definition reprod_unif (t : term) (s : subst) : Prop :=

@@ -118,6 +118,7 @@ Definition Lowenheim_Main (t : term) : subst :=
   (lowenheim_subst t (find_ground_solution t (term_unique_vars t) nil)). 
 
 Compute (Lowenheim_Main ((VAR 0) * (VAR 1))).
+Compute (Lowenheim_Main (T0)).
 Compute (Lowenheim_Main ((VAR 0) + (VAR 1)) ).
 Compute (Lowenheim_Main ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) * ( (VAR 2) + (VAR 0)) ) ).
 
