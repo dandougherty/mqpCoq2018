@@ -12,7 +12,6 @@ Require Export terms.
 
 Require Import List.
 Import ListNotations.
-
 (** LOWENHEIM'S FORMULA **)
 
 (* Generates a lowenheim replacement *)
@@ -84,88 +83,111 @@ Compute (simplify   ( (VAR 0)*((VAR 0) * (VAR 1) + (VAR 0) * (VAR 2))* T0 + T0 +
 Compute (Simplify_N   ( (VAR 0)*((VAR 0) * (VAR 1) + (VAR 0) * (VAR 2))* T0 + T0 + T1 + 
                     T1 * ((VAR 1) + (VAR 0) + (VAR 0)) ) 50  ).
 
-  
+
+
+
+(* auxillary functions and definitions *)
+
+Definition update_term (t : term) (s' : subst) : term :=
+  (simplify (apply_subst t s' ) ).
+
+Definition term_is_T0 (t : term) : bool :=
+  (identical t T0).
+
+Inductive subst_option: Type :=
+    | Some_subst : subst -> subst_option
+    | None_subst : subst_option. 
+
+
+
+
+
+(* function to find one potential unifier , recursively *)
 (* function to find a substitution with ground terms that makes a term equivalent to T0
-start with empty list of replacements as substs *)
-Fixpoint find_ground_solution (t : term) (vars : var_set) (s : subst) : subst :=
+start with empty list of replacements as s - subst *)
+Fixpoint rec_subst (t : term) (vars : var_set) (s : subst) : subst :=
   match vars with
     | nil => s
     | v' :: v => 
-      (*if (identical (simplify (apply_subst t (cons (v' , T0) s) )) T0) then
-          (cons (v' , T0) s)
-      else 
-          if (identical (simplify (apply_subst t (cons (v' , T1) s) )) T0) then
-            (cons (v' , T1) s)
-          else *)
-            if (identical (simplify (apply_subst  (simplify (apply_subst t (cons (v' , T0) s) ) )
-                  (find_ground_solution (simplify (apply_subst t (cons (v' , T0) s) ) )
-                                          v (cons (v' , T0) s)) ))
-                           T0) then
-                  (find_ground_solution (simplify (apply_subst t (cons (v' , T0) s) ) )
+        if (term_is_T0 
+              (update_term  (update_term t (cons (v' , T0) s) )  
+                            (rec_subst (update_term t (cons (v' , T0) s) )
+                                     v (cons (v' , T0) s)) ) 
+                           ) 
+            then
+                  (rec_subst (update_term t (cons (v' , T0) s) )
                                           v (cons (v' , T0) s))
+         else
+            if (term_is_T0 
+                (update_term  (update_term t (cons (v' , T1) s) )  
+                              (rec_subst (update_term t (cons (v' , T1) s) )
+                                       v (cons (v' , T1) s)) ) )
+            then
+                  (rec_subst (update_term t (cons (v' , T1) s) )
+                                          v (cons (v' , T1) s)) 
             else
-                  (find_ground_solution (simplify (apply_subst t (cons (v' , T1) s) ) )
-                                          v (cons (v' , T1) s ) )
-            end.
+                  (rec_subst (update_term t (cons (v' , T0) s) )
+                                          v (cons (v' , T0) s))
+     end.                  
 
-Compute (find_ground_solution  ((VAR 0) * (VAR 1)) (cons 0 (cons 1 nil)) nil) .
-Compute (find_ground_solution  ((VAR 0) + (VAR 1)) (cons 0 (cons 1 nil)) nil) .
-Compute (find_ground_solution  ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) * ( (VAR 2) + (VAR 0)) ) (cons 0 (cons 1 (cons 2 (cons 3 nil))))  nil) .
 
-(* MAIN lowenheim formula give it a term, produce an MGU that make it equivalent to T0 *)
+Compute (rec_subst  ((VAR 0) * (VAR 1)) (cons 0 (cons 1 nil)) nil) .
 
-Definition Lowenheim_Main (t : term) : subst :=
-  (lowenheim_subst t (find_ground_solution t (term_unique_vars t) nil)). 
+
+
+(* try to find one single unifier mgu, if any *)
+Fixpoint find_unifier (t : term) : subst_option :=
+  match (update_term t  (rec_subst t (term_unique_vars t) nil) ) with
+    | T0 => Some_subst (rec_subst t (term_unique_vars t) nil)
+    | _ => None_subst
+  end.
+
+Compute (find_unifier ((VAR 0) * (VAR 1))). 
+Compute (find_unifier  ((VAR 0) + (VAR 1))). 
+Compute (find_unifier  ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) * ( (VAR 2) + (VAR 0)) )). 
+
+
+
+
+
+
+(* MAIN lowenheim formula give it a term, produce an MGU that make it equivalent to T0,
+if there is one. Otherwise, returns None_substitution *)
+
+Definition Lowenheim_Main (t : term) : subst_option :=
+  (find_unifier t).  
+
+
+
+(*Some Lowenheim computations*)
 
 Compute (Lowenheim_Main ((VAR 0) * (VAR 1))).
 Compute (Lowenheim_Main (T0)).
 Compute (Lowenheim_Main ((VAR 0) + (VAR 1)) ).
 Compute (Lowenheim_Main ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) * ( (VAR 2) + (VAR 0)) ) ).
 
-(* 
-  An auxilliary lemma for proving that Lowenheim's generates unifiers if given one.
-*)
-Lemma subst_lowenheim_subst_equiv :
-  forall (sigma : subst) (t : term),
-  apply_subst t sigma == apply_subst t (lowenheim_subst t sigma).
-Proof.
-intro. induction sigma.
-{
-  intros. simpl. reflexivity.
-}
-{
-  intros. simpl. induction t.
-  {
-    simpl. apply IHsigma.
-  }
-  {
-    simpl. apply IHsigma.
-  }
-  {
-    simpl. 
-Admitted.
 
-(* 
-  Proof of correctness for Lowenheim's formula, namely, that for any unifier sigma, lowenheim's of sigma is
-  also a unifier
-*)
-Lemma lowenheim_subst_generates_unifiers :
-  forall (t : term) (sigma : subst), unifier t sigma <-> unifier t (lowenheim_subst t sigma).
-Proof.
-intros. split.
-{ 
-  intros. unfold unifier in *. rewrite <- subst_lowenheim_subst_equiv. apply H.
-}
-{
-  intros. unfold unifier in *. rewrite subst_lowenheim_subst_equiv. apply H.
-}
-Qed.
+Compute (Lowenheim_Main (T1)).
+Compute (Lowenheim_Main (( VAR 0) + (VAR 0) + T1)).
 
-(* 
-  Proof of correctness for Lowenheim's formula, namely, that for any unifier sigma, lowenheim's of sigma
-  will generate an mgu.  
-*)
-Lemma lowenheim_subst_generates_mgus :
-  forall (t : term) (sigma : subst), unifier t sigma -> mgu t (lowenheim_subst t sigma).
-Proof.
-Admitted.
+
+
+
+(* Lowenheim testing *)
+
+(*true means expected output was produced*)
+
+Definition Test_Lowenehim_Main (t : term) : bool :=
+  match (Lowenheim_Main t) with
+    | Some_subst s =>
+      (term_is_T0 (update_term t s))
+    | None_subst => true (*is this the correct output ? *)
+  end. 
+
+
+(* some tests *)
+
+Compute (Test_Lowenehim_Main (T1)).
+Compute (Test_Lowenehim_Main ((VAR 0) * (VAR 1))).
+Compute (Test_Lowenehim_Main ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) * ( (VAR 2) + (VAR 0)) )).
+
