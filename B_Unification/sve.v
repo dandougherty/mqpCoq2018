@@ -1,11 +1,43 @@
+(** * Intro *)
+
+(** Here we implement the algorithm for successive variable elimination. The
+    basic idea is to remove a variable from the problem, solve that simpler 
+    problem, and build a solution from the simpler solution. The algorithm is
+    recursive, so variables are removed and problems generated until we are left
+    with either of two problems; 1 =B 0 or 0 =B 0. In the former case, the whole
+    original problem is not unifiable. In the latter case, the problem is solved
+    without any need to substitute since there are no variables. From here, we
+    begin the process of building up substitutions until we reach the original
+    problem. *)
+
+(* begin hide *)
 Require Import List.
 Import ListNotations.
 Require Import Arith.
 
 Require Export poly_unif.
+(* end hide *)
 
 
-(* ===== Implementation of SVE ===== *)
+(** * Eliminating Variables *)
+
+(** This section deals with the problem of removing a variable [x] from a term
+    [t]. The first thing to notice is that [t] can be written in polynomial form
+    [p]. This polynomial is just a set of monomials, and each monomial a set of
+    variables. We can now seperate the polynomials into two sets [qx] and [r].
+    The term [qx] will be the set of monomials in [p] that contain the variable
+    [x]. The term [q], or the quotient, is [qx] with the [x] removed from each
+    monomial. The term [r], or the remainder, will be the monomials that do not
+    contain [x]. The original term can then be written as [x * q + r]. *)
+
+(** Implementing this procedure is pretty straightforward. We define a function
+    [div_by_var] that produces two polynomials given a polynomial [p] and a
+    variable [x] to eliminate from it. The first step is dividing [p] into [qx]
+    and [r] which is performed using a partition over [p] with the predicate
+    [has_var]. The second step is to remove [x] from [qx] using the helper 
+    [elim_var] which just maps over the given polynomial removing the given 
+    variable. *)
+
 Definition pair (U : Type) : Type := (U * U).
 
 Definition has_var (x : var) := existsb (beq_nat x).
@@ -16,6 +48,15 @@ Definition elim_var (x : var) (p : poly) : poly :=
 Definition div_by_var (x : var) (p : poly) : pair poly :=
   let (qx, r) := partition (has_var x) p in
   (elim_var x qx, r).
+
+
+(** We would also like to prove some lemmas about varaible elimination that
+    will be helpful in proving the full algorithm correct later. The main lemma
+    below is [decomp_eq], which just asserts that after eliminating [x] from [p]
+    into [q] and [r] the term can be put back together as in [p = x * q + r].
+    This fact turns out to be rather hard to prove and needs the help of 10 or
+    so other sudsidiary lemmas. *)
+
 
 Lemma fold_add_self : forall p,
   is_poly p ->
@@ -148,16 +189,14 @@ Proof.
   apply Hqr.
 Qed.
 
+(** The second main lemma about varaible elimination is below. Given that a term
+    [p] has been decomposed into the form [x * q + r], we can define [p' = (q +
+    1) * r]. The lemma [decomp_unif] states that any unifier of [p =B 0] is also
+    a unifier of [p' =B 0]. Much of this proof relies on the axioms of
+    polynomial arithmetic. *)
 
 Definition build_poly (q r : poly) : poly := 
   mulPP (addPP [[]] q) r.
-
-Definition build_subst (s : subst) (x : var) (q r : poly) : subst :=
-  let q1 := addPP [[]] q in
-  let q1s := substP s q1 in
-  let rs  := substP s r in
-  let xs  := (x, addPP (mulMP [x] q1s) rs) in
-  xs :: s.
 
 
 Lemma div_build_unif : forall x p q r s,
@@ -186,6 +225,15 @@ Proof.
   reflexivity.
 Qed.
 
+(** * Building Substitutions *)
+
+Definition build_subst (s : subst) (x : var) (q r : poly) : subst :=
+  let q1 := addPP [[]] q in
+  let q1s := substP s q1 in
+  let rs  := substP s r in
+  let xs  := (x, addPP (mulMP [x] q1s) rs) in
+  xs :: s.
+
 Lemma reprod_build_subst : forall x p q r s, 
   div_by_var x p = (q, r) ->
   reprod_unif s (build_poly q r) ->
@@ -194,6 +242,9 @@ Lemma reprod_build_subst : forall x p q r s,
 Proof.
 Admitted.
 
+
+
+(** * Recursive Algorithm *)
 
 Fixpoint sveVars (vars : list var) (p : poly) : option subst :=
   match vars with
@@ -213,6 +264,9 @@ Fixpoint sveVars (vars : list var) (p : poly) : option subst :=
 
 Definition sve (p : poly) : option subst :=
   sveVars (vars p) p.
+
+
+(** * Correctness *)
 
 
 Lemma sveVars_correct1 : forall (p : poly),
