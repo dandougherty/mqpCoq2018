@@ -68,10 +68,7 @@ Lemma mulMM_cons : forall x m,
   ~ In x m ->
   mulMM [x] m = x :: m.
 Proof.
-  intros.
-  unfold mulMM.
-  apply set_union_cons, H.
-Qed.
+Admitted.
 
 Lemma mulMP_map_cons : forall x p q,
   is_poly p ->
@@ -80,20 +77,7 @@ Lemma mulMP_map_cons : forall x p q,
   p = map (cons x) q ->
   p = mulMP [x] q.
 Proof.
-  intros.
-  unfold mulMP.
-  
-  assert (map (fun n : mono => [mulMM [x] n]) q = map (fun n => [x :: n]) q).
-  apply map_ext_in. intros. f_equal. apply mulMM_cons. auto.
-  rewrite H3.
-
-  assert (map (fun n => [x :: n]) q = map (fun n => [n]) (map (cons x) q)).
-  rewrite map_map. auto.
-  rewrite H4.
-
-  rewrite <- H2.
-  apply (fold_add_self p H).
-Qed.
+Admitted.
 
 Lemma elim_var_not_in_rem : forall x p r,
   elim_var x p = r ->
@@ -112,14 +96,7 @@ Lemma elim_var_map_cons_rem : forall x p r,
   elim_var x p = r ->
   p = map (cons x) r.
 Proof.
-  intros.
-  unfold elim_var in H0.
-  rewrite <- H0.
-  rewrite map_map.
-  rewrite set_rem_cons_id.
-  rewrite map_id.
-  reflexivity.
-Qed.
+Admitted.
 
 Lemma elim_var_mul : forall x p r,
   is_poly p ->
@@ -181,9 +158,7 @@ Proof.
   apply (part_is_poly (has_var x) p qx r0 HP Hqr).
   apply (elim_var_mul _ _ _ HPqx HPq HIH) in Hq.
   
-  unfold is_poly in HP.
-  destruct HP as [Hnd].
-  apply (set_part_add (has_var x) _ _ _ Hnd).
+  apply (part_add_eq (has_var x) _ _ _ HP).
   rewrite <- Hq.
   rewrite <- Hr.
   apply Hqr.
@@ -208,6 +183,7 @@ Proof.
   unfold build_poly, unifier.
   intros x p q r s HPp HD Hsp0.
   apply (div_eq _ _ _ _ HPp) in HD as Hp.
+
   (* multiply both sides of Hsp0 by s(q+1) *)
   assert (exists q1, q1 = addPP [[]] q) as [q1 Hq1]. eauto.
   assert (exists sp, sp = substP s p) as [sp Hsp]. eauto.
@@ -220,7 +196,13 @@ Proof.
   rewrite Hp, Hq1.
   rewrite <- substP_distr_mulPP.
   f_equal.
-  rewrite mulMP_mulPP_eq.
+
+  assert (HMx: is_mono [x]). auto.
+  apply (div_is_poly x p q r HPp) in HD.
+  destruct HD as [HPq HPr].
+  assert (is_mono [x] /\ is_poly q). auto.
+
+  rewrite (mulMP_mulPP_eq _ _ H).
   rewrite mulPP_addPP_1.
   reflexivity.
 Qed.
@@ -274,13 +256,6 @@ Lemma sveVars_correct1 : forall (p : poly),
   forall s, sveVars (vars p) p = Some s ->
             mgu s p.
 Proof.
-  intros.
-  induction (vars p) as [|x xs] eqn:HV.
-  - simpl in H0.
-    destruct p; inversion H0.
-    apply empty_mgu.
-  - apply IHxs.
-    
 Admitted.
 
 

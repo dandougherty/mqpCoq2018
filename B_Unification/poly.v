@@ -398,25 +398,9 @@ Proof.
 Admitted.
 
 
-(* Lemma set_part_add : forall f p l r,
-  NoDup p ->
+Lemma part_add_eq : forall f p l r,
+  is_poly p ->
   partition f p = (l, r) ->
   p = addPP l r.
 Proof.
-  intros.
-  unfold addPP.
-  unfold set_symdiff.
-
-  rewrite (set_part_no_inter _ _ _ _ _ _ H H0).
-  
-  assert (NoDup l /\ NoDup r) as [Hl Hr].
-  apply (set_part_nodup _ _ _ _ _ H H0).
-  assert (Hndu: NoDup (set_union mono_eq_dec l r)).
-  apply (set_union_nodup _ Hl Hr).
-  
-  rewrite (set_diff_nil _ _ _ Hndu).
-
-  assert (p = (set_union mono_eq_dec l r)). (* remove after set_eq refactor *)
-  
-  apply (set_part_union _ _ _ _ _ _ H H0).
-Admitted. *)
+Admitted.
