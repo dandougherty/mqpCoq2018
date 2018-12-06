@@ -13,9 +13,17 @@ Require Import List.
 Require Import Setoid.
 Import ListNotations.
 
-(*** BEGIN DEFINITIONS ***)
+(*** 1. DEFINITIONS ***)
 
-(** TERM DEFINITIONS AND AXIOMS **)
+(* 
+ In this section we make all the fundamental definitions around the B2 Boolean Ring,
+ including functions, lemmas , propositions and examples, about 
+  axioms, data types , substitutions and more 
+*) 
+
+
+(** 1.1 TERM DEFINITIONS AND AXIOMS **)
+
 (* Define a variable to be a natural number *)
 Definition var := nat.
 
@@ -34,7 +42,8 @@ Inductive term: Type :=
 Implicit Types x y z : term.
 Implicit Types n m : var.
 
-(* Shorthanded notation for readability *)
+(* Shorthanded notation for readability, 
+  representing addition and sum of terms*)
 Notation "x + y" := (SUM x y) (at level 50, left associativity).
 Notation "x * y" := (PRODUCT x y) (at level 40, left associativity).
 
@@ -130,7 +139,10 @@ Axiom term_product_symmetric :
   forall x y z, x == y <-> x * z == y * z.
 
 (** USEFUL LEMMAS **)
+(* These Lemmas are used in larger proofs where they are considered to be true *) 
 
+
+(* Lemma for a sub-case of term multiplication. *)
 Lemma mul_x_x_plus_T1 :
   forall x, x * (x + T1) == T0.
 Proof.
@@ -138,6 +150,8 @@ intros. rewrite distr. rewrite mul_x_x. rewrite mul_comm.
 rewrite mul_id. apply sum_x_x.
 Qed.
 
+(* Lemma to convert term equivalence to equivalence between their
+  addition and ground term T0, and vice-versa. *)
 Lemma x_equal_y_x_plus_y :
   forall x y, x == y <-> x + y == T0.
 Proof.
@@ -150,25 +164,32 @@ Qed.
 Hint Resolve mul_x_x_plus_T1.
 Hint Resolve x_equal_y_x_plus_y.
 
+
+(* Lemma for identity addition between term and ground term T0 *)
 Lemma sum_id_sym :
   forall x, x + T0 == x.
 Proof.
 intros. rewrite sum_comm. apply sum_id.
 Qed.
 
+(* Lemma for identity multiplication between term and ground term T1 *)
 Lemma mul_id_sym :
   forall x, x * T1 == x.
 Proof.
 intros. rewrite mul_comm. apply mul_id.
 Qed.
 
+(* Lemma for multiplication between term and ground term T0 *)
 Lemma mul_T0_x_sym :
   forall x, x * T0 == T0.
 Proof.
 intros. rewrite mul_comm. apply mul_T0_x.
 Qed.
 
-(** REPLACEMENT DEFINITIONS AND LEMMAS **)
+(** 1.2 REPLACEMENT DEFINITIONS AND LEMMAS **)
+
+(* In this subsection we declare definitions related to single replacements
+  on terms, namely new types, functions, propositions and examples *) 
 
 (* 
   A replacement is an ordered pair describing the relation, x -> term
@@ -176,6 +197,11 @@ Qed.
 *)
 Definition replacement := (prod var term).
 
+
+(*
+  We used an implicit type for replacement to facilitate declarations and definitions that
+use the replacement data type
+*)
 Implicit Type r : replacement.
 
 (*
@@ -191,6 +217,10 @@ Fixpoint replace (t : term) (r : replacement) : term :=
     | SUM x y => SUM (replace x r) (replace y r)
     | PRODUCT x y => PRODUCT (replace x r) (replace y r)
   end.
+
+(* 
+  Examples for the replace function where it is proved that the expected outcome of replace is the correct one 
+*)
 
 Example ex_replace1 : 
   replace (VAR 0 + VAR 1) ((0, VAR 2 * VAR 3)) == (VAR 2 * VAR 3) + VAR 1.
@@ -258,26 +288,31 @@ intros. induction x.
   apply IHx2 in H0. rewrite H. rewrite H0. reflexivity. }
 Qed.
 
-(** VARIABLE SETS **)
+(** 1.3 VARIABLE SETS **)
 
+(* In this subsection, we declare the definitions related to sets of variables, namely 
+ new data types, functions, propositions and examples *) 
+
+
+(* Definition of new type to represent a list (set) of variables (naturals) *) 
 Definition var_set := list var.
 Implicit Type vars: var_set.
 
-(* Checks to see if a variable is in a variable set *)
+(* Function to check to see if a variable is in a variable set *)
 Fixpoint var_set_includes_var (v : var) (vars : var_set) : bool :=
   match vars with
     | nil => false
     | n :: n' => if (beq_nat v n) then true else var_set_includes_var v n'
   end.
 
-(* Removes all instances of v from vars *)
+(* Function to remove all instances of v from vars *)
 Fixpoint var_set_remove_var (v : var) (vars : var_set) : var_set :=
   match vars with
     | nil => nil
     | n :: n' => if (beq_nat v n) then (var_set_remove_var v n') else n :: (var_set_remove_var v n')
   end.
 
-(* Returns a unique var_set without duplicates. Found_vars should be empty for correctness
+(* Function to return a unique var_set without duplicates. Found_vars should be empty for correctness
    guarantee *)
 Fixpoint var_set_create_unique (vars : var_set) (found_vars : var_set) : var_set :=
   match vars with
@@ -293,7 +328,7 @@ Proof.
 simpl. reflexivity.
 Qed.
 
-(* Checks if a given var_set is unique *)
+(* Function to check if a given var_set is unique *)
 Fixpoint var_set_is_unique (vars : var_set) (found_vars : var_set) : bool :=
   match vars with
     | nil => true
@@ -308,7 +343,7 @@ Proof.
 simpl. reflexivity.
 Qed.
 
-(* Get the variables of a term as a var_set *)
+(* Function to get the variables of a term as a var_set *)
 Fixpoint term_vars (t : term) : var_set :=
   match t with
     | T0 => nil
@@ -317,6 +352,8 @@ Fixpoint term_vars (t : term) : var_set :=
     | PRODUCT x y => (term_vars x) ++ (term_vars y)
     | SUM x y => (term_vars x) ++ (term_vars y)
   end.
+
+(* Examples to prove the correctness of the function term_vars on specific cases *)
 
 Example term_vars_ex1 :
   term_vars (VAR 0 + VAR 0 + VAR 1) = [0;0;1].
@@ -330,12 +367,17 @@ Proof.
 simpl. left. reflexivity.
 Qed.
 
+
+(* Function to generate a list of unique variables that make up a given term *)
 Definition term_unique_vars (t : term) : var_set :=
   (var_set_create_unique (term_vars t) []).
 
-(** GROUND TERM DEFINITIONS AND LEMMAS **)
+(** 1.4 GROUND TERM DEFINITIONS AND LEMMAS **)
 
-(* Check if a given term is a ground term (i.e. has no vars)*)
+(* In this subsection we declare definitions related to ground terms, inluding 
+  functions and lemmas *)
+
+(* Function to check if a given term is a ground term (i.e. has no vars)*)
 Fixpoint ground_term (t : term) : Prop :=
   match t with
     | VAR x => False
@@ -343,6 +385,9 @@ Fixpoint ground_term (t : term) : Prop :=
     | PRODUCT x y => (ground_term x) /\ (ground_term y)
     | _ => True
   end.
+
+
+(* Examples to prove the correctness of the ground_term function *)
 
 Example ex_gt1 :
   (ground_term (T0 + T1)).
@@ -358,6 +403,9 @@ Proof.
 simpl. intros. destruct H. apply H.
 Qed.
 
+
+(* Lemma that proves that if a term is a ground term, namely T0 or T1, then it cannot change 
+  after a replacement is applied on it *)
 Lemma ground_term_cannot_replace :
   forall x, (ground_term x) -> (forall r, replace x r = x).
 Proof.
@@ -371,6 +419,9 @@ rewrite H1. reflexivity.
 rewrite H1. reflexivity.
 Qed.
 
+
+(* Lemma (trivial, intuitively true) that proves that if the function ground_term returns
+   true then it is either T0 or T1 *) 
 Lemma ground_term_equiv_T0_T1 :
   forall x, (ground_term x) -> (x == T0 \/ x == T1).
 Proof.
@@ -389,12 +440,18 @@ rewrite H3. left. rewrite mul_comm. rewrite mul_T0_x. reflexivity.
 rewrite H2. rewrite H3. right. rewrite mul_id. reflexivity.
 Qed.
 
-(** SUBSTITUTION DEFINITIONS AND LEMMAS **)
+(** 1.5 SUBSTITUTION DEFINITIONS AND LEMMAS **)
 
+(* In this sub-section we make the fundamental definitions of substitutions, basic functions
+ for them, accompanying lemmas and some propsitions *)
+
+(* We define a new type susbt to represent a substitution as a list of replacements *)
 Definition subst := list replacement.
 
 Implicit Type s : subst.
 
+(* The basic function to apply a substitution on a term; it uses the function replace 
+  as a helper function *)
 Fixpoint apply_subst (t : term) (s : subst) : term :=
   match s with
     | nil => t
@@ -417,14 +474,19 @@ intro. induction s. simpl. intros. reflexivity. intros. simpl.
 apply IHs.
 Qed.
 
+(* A lemma to prove the associativity of the apply_subst function *)
 Lemma subst_associative :
   forall s x y, apply_subst x s * apply_subst y s == apply_subst (x * y) s.
 Proof.
 intro. induction s. intros. reflexivity. intros. apply IHs.
 Qed.
 
+(* Proposition that a given substitution unifies (namely, makes equivalent), two
+  given terms *)
 Definition unifies (a b : term) (s : subst) : Prop :=
   (apply_subst a s) == (apply_subst b s).
+
+(* Examples that prove the correctness of the unifies function on specific examples *)
 
 Example ex_unif1 :
   unifies (VAR 0) (VAR 1) ((0, T0) :: nil) -> False.
@@ -438,10 +500,13 @@ Proof.
 unfold unifies. simpl. reflexivity.
 Qed.
 
+
+(* Proposition that a given substitution makes equivalent the sum of two terms when the substitution 
+  is applied to each of them, and ground term T0 *) 
 Definition unifies_T0 (a b : term) (s : subst) : Prop :=
   (apply_subst a s) + (apply_subst b s) == T0.
 
-(* Show that finding a unifier for x = y is the same as finding a unifier for x + y = 0 *)
+(* Lemma that proves that finding a unifier for x = y is the same as finding a unifier for x + y = 0 *)
 Lemma unifies_T0_equiv :
   forall x y s, unifies x y s <-> unifies_T0 x y s.
 Proof.
@@ -464,9 +529,12 @@ intros. split.
 Qed.
 
 (* Is 's' a unifier for t? *)
+(* Proposition that a given substitution unifies a given term, namely it makes it
+ equivalent with T0. *)
 Definition unifier (t : term) (s : subst) : Prop :=
   (apply_subst t s) == T0.
 
+(* Examples that prove certain propositions that involve the unifier proposition *)
 Example unifier_ex1 :
   ~(unifier (VAR 0) ((1, T1) :: nil)).
 Proof.
@@ -485,6 +553,7 @@ Proof.
 unfold unifier. simpl. reflexivity.
 Qed.
 
+(* Lemma that proves that the unifier proposition can distributes over addition of terms *) 
 Lemma unifier_distribution : 
   forall x y s, (unifies_T0 x y s) <-> (unifier (x + y) s).
 Proof.
@@ -499,6 +568,8 @@ intros. split.
 }
 Qed.
 
+(* Lemma that proves that a when a substitution unifies a term , then
+  a superset of its susbtitutions also unifies the term *)
 Lemma unifier_subset_imply_superset :
   forall s t r, unifier t s -> unifier t (r :: s).
 Proof.
@@ -507,9 +578,12 @@ intros. induction s.
   unfold unifier in *. simpl in *.
 Admitted.
 
+(* Proposition that states when a term is unifiable *)
 Definition unifiable (t : term) : Prop :=
   exists s, unifier t s.
 
+
+(* Examples involving the unifiable proposition *)
 Example unifiable_ex1 :
   unifiable (T1) -> False.
 Proof.
@@ -532,7 +606,10 @@ exists (T1). unfold unifiable. unfold unifier.
 exists nil. simpl. rewrite sum_x_x. reflexivity.
 Qed.
 
-(** TERM OPERATIONS **)
+(** 1.6 TERM OPERATIONS **)
+
+(* In this subsection we define functions and examples related to operations between
+  terms *)
 
 (* Addition for ground terms *)
 Definition plus_trivial (a b : term) : term :=
@@ -554,7 +631,10 @@ Definition mult_trivial (a b : term) : term :=
     | _ , _  => T0 (* Not considered *)
   end.
 
-(** TERM EVALUATION **)
+(** 1.7 TERM EVALUATION **)
+
+(* In this subsection we define functions and examples related to evaluation and 
+  simplification of terms *)
 
 (* Evaluate a term, any uninstantiated vars assumed to be 0 *)
 Fixpoint evaluate (t : term) : term :=
@@ -605,7 +685,10 @@ simpl. reflexivity.
 Qed.
     
 
-(** MORE DEFINITIONS FOR TERM OPERATIONS / SIMPLIFICATIONS **)
+(** 1.7b MORE DEFINITIONS FOR TERM OPERATIONS / SIMPLIFICATIONS **)
+
+(* alternate defintion of functions related to term operations and evaluations
+   that take into consideration more sub-cases *)
 
 
 (* check if two terms are exaclty identical *)
@@ -658,7 +741,7 @@ Definition mult_one_step (a b : term) : term :=
     | SUM x y, _ => if identical a b then a else SUM a b(* Not considered *)
   end.
 
-(** TERM SIMPLIFICATION **)
+
 
 (* Simplifies a term in very apparent and basic ways *)
 Fixpoint simplify (t : term) : term :=
@@ -677,7 +760,10 @@ Fixpoint Simplify_N (t : term) (counter : nat): term :=
     | S n' => (Simplify_N (simplify t) n')
   end.
 
-(** MOST GENERAL UNIFIER **)
+(** 1.8 MOST GENERAL UNIFIER **)
+
+(* In this subsection we define propositions, lemmas and examples related 
+  to the most general unifier *)
 
 (* substitution composition *)
 Definition subst_compose (s s' delta : subst) : Prop :=
@@ -728,3 +814,4 @@ Admitted. (* rewrite distr. rewrite mul_comm. rewrite mul_id.
   { simpl. inversion H. }
   { simpl.  
 Admitted. *)
+
