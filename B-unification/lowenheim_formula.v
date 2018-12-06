@@ -12,7 +12,17 @@ Require Export terms.
 
 Require Import List.
 Import ListNotations.
-(** LOWENHEIM'S FORMULA **)
+
+(*** 2. LOWENHEIM'S ALGORITHM ***)
+
+(* In this section we formulate lowenheim's formula for syntactic unification
+ into an algorithm, that given a term, it generates one most general unifier,if 
+ there is one *)
+
+(** 2.1 Lowenheim's formula **)
+
+(* In this subsection we define Lowenheim's formula's basics, including 
+  functions and formulas  *) 
 
 (* Generates a lowenheim replacement *)
 Definition lowenheim_replace (t : term) (r : replacement) : replacement :=
@@ -84,26 +94,32 @@ Compute (Simplify_N   ( (VAR 0)*((VAR 0) * (VAR 1) + (VAR 0) * (VAR 2))* T0 + T0
                     T1 * ((VAR 1) + (VAR 0) + (VAR 0)) ) 50  ).
 
 
+(** 2.2 Lowenheim's formula  **)
 
+(* In this subsection we convert Lowenheim's formula
+   to an algorithm that is able to find ground substitutions 
+    before feeding them to the formula to generate a most general
+    unifier *)
 
-(* auxillary functions and definitions *)
+(* Auxillary functions and definitions *)
 
+(* function to update a term, after it applies to it a substitution and simplifies it *)
 Definition update_term (t : term) (s' : subst) : term :=
   (simplify (apply_subst t s' ) ).
 
+(* Function to determine if a term is ground term T0 *)
 Definition term_is_T0 (t : term) : bool :=
   (identical t T0).
 
+(* Definition of new data type to represent both a substitution and a no-substitution (which is
+  different than the empty substitution), as return types *)
 Inductive subst_option: Type :=
     | Some_subst : subst -> subst_option
     | None_subst : subst_option. 
 
 
-
-
-
-(* function to find one potential unifier , recursively *)
-(* function to find a substitution with ground terms that makes a term equivalent to T0
+(* function to find one potential unifier , recursively 
+It finds a substitution with ground terms that makes a term equivalent to T0
 start with empty list of replacements as s - subst *)
 Fixpoint rec_subst (t : term) (vars : var_set) (s : subst) : subst :=
   match vars with
@@ -135,7 +151,7 @@ Compute (rec_subst  ((VAR 0) * (VAR 1)) (cons 0 (cons 1 nil)) nil) .
 
 
 
-(* try to find one single unifier mgu, if any *)
+(* Function to find one unifier mgu, if any *)
 Fixpoint find_unifier (t : term) : subst_option :=
   match (update_term t  (rec_subst t (term_unique_vars t) nil) ) with
     | T0 => Some_subst (rec_subst t (term_unique_vars t) nil)
@@ -172,10 +188,13 @@ Compute (Lowenheim_Main (( VAR 0) + (VAR 0) + T1)).
 
 
 
-(* Lowenheim testing *)
+(** 2.3 Lowenheim testing **)
 
-(*true means expected output was produced*)
+(* In this subsection we define a testing function for Lowenheim's main formula
+*) 
 
+(* Function to test the correctness of the output of Lownheim's algorithm. 
+  True means expected output was produced*)
 Definition Test_Lowenehim_Main (t : term) : bool :=
   match (Lowenheim_Main t) with
     | Some_subst s =>
@@ -184,7 +203,7 @@ Definition Test_Lowenehim_Main (t : term) : bool :=
   end. 
 
 
-(* some tests *)
+(* some tests of Lowenheim's algorithm *)
 
 Compute (Test_Lowenehim_Main (T1)).
 Compute (Test_Lowenehim_Main ((VAR 0) * (VAR 1))).
