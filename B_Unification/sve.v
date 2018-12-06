@@ -220,6 +220,33 @@ Lemma sveVars_correct1 : forall (p : poly),
   forall s, sveVars (vars p) p = Some s ->
             mgu s p.
 Proof.
+
+  
+Variable ok : poly -> Prop.  
+Lemma dd_try : forall (k: nat) (p : poly),
+    (length (vars p) ) = k ->
+                        (ok p).
+Proof.  
+  induction k.
+  -admit.
+  - intros p Hlen.
+Admitted.
+
+
+Lemma dd_try' : forall (l: list nat) (p : poly),
+    (vars p) = l ->
+    (ok p).
+Proof.
+  induction l.
+  -admit.
+  - intros p Hl.
+Admitted.
+
+    Lemma sveVars_correct1 : forall (p : poly),
+  is_poly p ->
+  forall s, sveVars (vars p) p = Some s ->
+            mgu s p.
+Proof.
   intros.
   induction (vars p) as [|x xs] eqn:HV.
   - simpl in H0.
