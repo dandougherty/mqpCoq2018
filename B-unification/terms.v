@@ -214,17 +214,6 @@ rewrite sum_x_x. rewrite sum_comm. rewrite sum_id. rewrite sum_comm.
 rewrite sum_id. reflexivity.
 Qed.
 
-Axiom replace_compat :
-  forall x x', x == x' -> forall r, (replace x r) == (replace x' r).
-
-Parameter p_replace : replacement -> term.
-
-Add Parametric Morphism : replace with 
-  signature eqv ==> p_replace ==> eqv as replace_mor.
-Proof.
-exact replace_compat.
-Qed.
-
 (* A useful lemma for later proving the substitutions distribute across terms *)
 Lemma replace_distribution :
   forall x y r, (replace x r) + (replace y r) == (replace (x + y) r).
@@ -434,6 +423,9 @@ Proof.
 intro. induction s. intros. reflexivity. intros. apply IHs.
 Qed.
 
+Definition subst_idempotent (s : subst) : Prop :=
+  forall t, apply_subst t s == apply_subst (apply_subst t s) s.
+
 Definition unifies (a b : term) (s : subst) : Prop :=
   (apply_subst a s) == (apply_subst b s).
 
@@ -515,7 +507,7 @@ Lemma unifier_subset_imply_superset :
 Proof.
 intros. induction s.
 { 
-  unfold unifier in *. simpl in *. rewrite H.
+  unfold unifier in *. simpl in *.
 Admitted.
 
 Definition unifiable (t : term) : Prop :=
@@ -614,10 +606,8 @@ Example solve_ex2 :
 Proof.
 simpl. reflexivity.
 Qed.
-    
 
 (** MORE DEFINITIONS FOR TERM OPERATIONS / SIMPLIFICATIONS **)
-
 
 (* check if two terms are exaclty identical *)
 Fixpoint identical (a b: term) : bool :=
