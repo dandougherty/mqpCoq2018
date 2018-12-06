@@ -126,3 +126,8 @@ Proof.
     rewrite (empty_substP _ H0).
     reflexivity.
 Qed.
+
+Lemma empty_reprod_unif : reprod_unif [] [].
+Proof.
+Admitted.
+

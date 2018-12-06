@@ -215,9 +215,36 @@ Definition sve (p : poly) : option subst :=
   sveVars (vars p) p.
 
 
-Lemma sveVars_correct1 : forall (p : poly),
+Lemma div_vars : forall x xs p q r,
+  x :: xs = vars p ->
+  div_by_var x p = (q, r) ->
+  xs = vars (build_poly q r).
+Proof.
+Admitted.
+
+Lemma build_poly_is_poly : forall q r,
+  is_poly q /\ is_poly r ->
+  is_poly (build_poly q r).
+Proof.
+Admitted.
+
+Lemma sve_in_vars_in_unif : forall x xs p s,
+  ~ In x xs ->
+  sveVars xs p = Some s ->
+  inDom x s = false.
+Proof.
+Admitted.
+
+Lemma vars_nodup : forall x xs p,
+  x :: xs = vars p ->
+  ~ In x xs.
+Proof.
+Admitted.
+
+Lemma sveVars_correct1 : forall (xs : list var) (p : poly),
+  xs = vars p ->
   is_poly p ->
-  forall s, sveVars (vars p) p = Some s ->
+  forall s, sveVars xs p = Some s ->
             mgu s p.
 Proof.
 
@@ -248,13 +275,32 @@ Admitted.
             mgu s p.
 Proof.
   intros.
-  induction (vars p) as [|x xs] eqn:HV.
-  - simpl in H0.
-    destruct p; inversion H0.
-    apply empty_mgu.
-  - apply IHxs.
-    
-Admitted.
+  apply reprod_is_mgu.
+  revert xs p H H0 s H1.
+
+  induction xs as [|x xs].
+  - intros. simpl in H1. destruct p; inversion H1.
+    apply empty_reprod_unif.
+  - intros.
+    assert (exists qr, div_by_var x p = qr) as [[q r] Hqr]. eauto.
+    simpl in H1.
+    rewrite Hqr in H1.
+    destruct (sveVars xs (build_poly q r)) eqn:Hs0; inversion H1.
+
+    assert (Hvars: xs = vars (build_poly q r)).
+      apply (div_vars x xs p q r H Hqr).
+
+    assert (Hpoly: is_poly (build_poly q r)).
+      apply build_poly_is_poly.
+      apply div_is_poly in Hqr; auto.
+
+    assert (Hin: inDom x s0 = false).
+      apply vars_nodup in H.
+      apply (sve_in_vars_in_unif _ _ _ _ H Hs0).
+
+    apply (IHxs _ Hvars Hpoly) in Hs0.
+    apply (reprod_build_subst _ _ _ _ _ Hqr Hs0 Hin).
+Qed.
 
 
 Lemma sveVars_correct2 : forall (p : poly),
@@ -275,7 +321,7 @@ Proof.
   intros.
   remember (sveVars (vars p) p).
   destruct o.
-  - apply sveVars_correct1; auto.
+  - apply (sveVars_correct1 (vars p)); auto.
   - apply sveVars_correct2; auto.
 Qed.
 
