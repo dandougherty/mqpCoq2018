@@ -38,25 +38,22 @@ Require Export poly_unif.
     [elim_var] which just maps over the given polynomial removing the given 
     variable. *)
 
-Definition pair (U : Type) : Type := (U * U).
-
 Definition has_var (x : var) := existsb (beq_nat x).
 
 Definition elim_var (x : var) (p : poly) : poly :=
   map (remove var_eq_dec x) p.
 
-Definition div_by_var (x : var) (p : poly) : pair poly :=
+Definition div_by_var (x : var) (p : poly) : prod poly poly :=
   let (qx, r) := partition (has_var x) p in
   (elim_var x qx, r).
 
 
 (** We would also like to prove some lemmas about varaible elimination that
     will be helpful in proving the full algorithm correct later. The main lemma
-    below is [decomp_eq], which just asserts that after eliminating [x] from [p]
+    below is [div_eq], which just asserts that after eliminating [x] from [p]
     into [q] and [r] the term can be put back together as in [p = x * q + r].
     This fact turns out to be rather hard to prove and needs the help of 10 or
     so other sudsidiary lemmas. *)
-
 
 Lemma fold_add_self : forall p,
   is_poly p ->
@@ -136,6 +133,10 @@ Lemma part_is_poly : forall f p l r,
 Proof.
 Admitted.
 
+(** As explained earlier, given a polynomial [p] decomposed into a variable [x],
+    a quotient [q], and a remainder [r], [div_eq] asserts that [p = x * q + r].
+    *)
+
 Lemma div_eq : forall x p q r,
   is_poly p ->
   div_by_var x p = (q, r) ->
@@ -166,13 +167,15 @@ Qed.
 
 (** The second main lemma about varaible elimination is below. Given that a term
     [p] has been decomposed into the form [x * q + r], we can define [p' = (q +
-    1) * r]. The lemma [decomp_unif] states that any unifier of [p =B 0] is also
-    a unifier of [p' =B 0]. Much of this proof relies on the axioms of
+    1) * r]. The lemma [div_build_unif] states that any unifier of [p =B 0] is
+    also a unifier of [p' =B 0]. Much of this proof relies on the axioms of
     polynomial arithmetic. *)
+
+(** This helper function [build_poly] is used to construct [p' = (q + 1) * r]
+    given the quotient and remainder as inputs. *)
 
 Definition build_poly (q r : poly) : poly := 
   mulPP (addPP [[]] q) r.
-
 
 Lemma div_build_unif : forall x p q r s,
   is_poly p ->
@@ -209,6 +212,15 @@ Qed.
 
 (** * Building Substitutions *)
 
+(** This section handles how a solution is built from subproblem solutions.
+    Given that a term [p] has been decomposed into the form [x * q + r], we can
+    define [p' = (q + 1) * r]. The lemma [reprod_build_subst] states that if
+    some substitution [s] is a reproductive unifier of [p' =B 0], then we can
+    build a substitution [s'] which is a reproductive unifier of [p =B 0]. The
+    way [s'] is built from [s] is defined in [build_subst]. Another replacement
+    is added to [s] of the form [x -> x * (s(q) + 1) + s(r)] to construct [s'].
+    *)
+
 Definition build_subst (s : subst) (x : var) (q r : poly) : subst :=
   let q1 := addPP [[]] q in
   let q1s := substP s q1 in
@@ -228,12 +240,32 @@ Admitted.
 
 (** * Recursive Algorithm *)
 
+(** Now we define the actual algorithm of successive variable elimination.
+    Built using five helper functions, the definition is not too difficult to
+    construct or understand. The general idea, as mentioned before, is to remove
+    one variable at a time, creating simpler problems. Once the simplest problem
+    has been reached, to which the solution is already known, every solution to
+    each subproblem can be built from the solution to the successive subproblem.
+    Formally, given the polynomials [p = x * q + r] and [p' = (q + 1) * r], the
+    solution to [p =B 0] is built from the solution to [p' =B 0]. If [s] solves
+    [p' =B 0], then [s' = s U (x -> x * (s(q) + 1) + s(r))] solves [p =B 0]. *)
+
+(** The function [sve] is the final result, but it is [sveVars] which actually
+    has all of the meat. Due to Coq's rigid type system, every recursive
+    function must be obviously terminating. This means that one of the arguments
+    must decrease with each nested call. It turns out that Coq's type checker
+    is unable to deduce that continually building polynomials from the quotient
+    and remainder of previous ones will eventually result in 0 or 1. So instead
+    we add a fuel argument that explicitly decreases per recursive call. We use
+    the set of variables in the polynomial for this purpose, since each
+    subsequent call has one less variable. *)
+
 Fixpoint sveVars (vars : list var) (p : poly) : option subst :=
   match vars with
   | [] => 
       match p with
-      | [] => Some []
-      | _  => None
+      | [] => Some [] (* p = 1, Identity substitution *)
+      | _  => None    (* p = 0, No solution *)
       end
   | x :: xs =>
       let (q, r) := div_by_var x p in
@@ -244,14 +276,22 @@ Fixpoint sveVars (vars : list var) (p : poly) : option subst :=
   end.
 
 
-Definition sve (p : poly) : option subst :=
-  sveVars (vars p) p.
+Definition sve (p : poly) : option subst := sveVars (vars p) p.
 
 
 (** * Correctness *)
 
+(** Finally, we must show that this algorithm is correct. As discussed in the
+    beginning, the correctness of a unification algorithm is proven for two
+    cases. If the algorithm produces a solution for a problem, then the solution
+    must be most general. If the algorithm produces no solution, then the
+    problem must not be unifiable. These statements have been formalized in the
+    theorem [sve_correct] with the help of the predicates [mgu] and [unifiable]
+    as defined in the library [poly_unif.v]. The two cases of the proof are
+    handled seperately by the lemmas [sveVars_some] and [sveVars_none].
+*)
 
-Lemma sveVars_correct1 : forall (p : poly),
+Lemma sveVars_some : forall (p : poly),
   is_poly p ->
   forall s, sveVars (vars p) p = Some s ->
             mgu s p.
@@ -259,7 +299,7 @@ Proof.
 Admitted.
 
 
-Lemma sveVars_correct2 : forall (p : poly),
+Lemma sveVars_none : forall (p : poly),
   is_poly p ->
   sveVars (vars p) p = None ->
   ~ unifiable p.
@@ -277,8 +317,8 @@ Proof.
   intros.
   remember (sveVars (vars p) p).
   destruct o.
-  - apply sveVars_correct1; auto.
-  - apply sveVars_correct2; auto.
+  - apply sveVars_some; auto.
+  - apply sveVars_none; auto.
 Qed.
 
 
