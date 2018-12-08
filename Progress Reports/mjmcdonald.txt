@@ -1,4 +1,17 @@
-Since 12/03/18:
+For 12/06/18:
+	Done:
+		- Branched off from master and began working on ordered_polys. Redid polynomials and monomial definitions and
+		  functions to be ordered instead, and reproved most lemmas. Began working on a few new ones.
+		- Began adding documentation to the poly.v file in the sve_comments branch.
+		- Finally got my computer set up - I can compile and run the IDE both from linux, so make works again.	
+	Problems:
+		- Some formatting questions in documentation
+	To-Do:
+		- A lot more documentation 
+
+
+
+For 12/03/18:
 	Done:
 		- Rewrote the entire set_eq definition, relations/morphisms, and all related proofs in sets.v to use a custom 
 		  equality function, so that equivalence on polynomials could compare the monomials orderlessly.
@@ -13,7 +26,7 @@ Since 12/03/18:
 
 	
 	
-Since 11/27/18:
+For 11/29/18:
 	Done:
 		- Made a new branch (set_eq) to work on developing a new set equivalence function for use with poly/mono
 		- Proved necessary theorems about reflexivity, symmetry, transitivity, and compatibility with various functions
@@ -33,7 +46,7 @@ Since 11/27/18:
         
 
 
-Since 11/20/18:
+For 11/27/18:
 	Done:
 		- Reorganized project structure with Dylan. More information in his changelog.
 		- Worked on replacing lemmas involving polynomials to use my listset as opposed to dylan's ordered lists
