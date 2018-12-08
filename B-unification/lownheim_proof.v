@@ -16,74 +16,70 @@ Import ListNotations.
 
 
 
-(* 
-  An auxilliary lemma for proving that Lowenheim's generates unifiers if given one.
-*)
-Lemma subst_lowenheim_subst_equiv :
-  forall (sigma : subst) (t : term),
-  apply_subst t sigma == apply_subst t (lowenheim_subst t sigma).
-Proof.
-intro. induction sigma.
-{
-  intros. simpl. reflexivity.
-}
-{
-  intros. simpl. induction t.
-  {
-    simpl. apply IHsigma.
-  }
-  {
-    simpl. apply IHsigma.
-  }
-  {
-    simpl. 
-Admitted.
-
-(* 
-  Proof of correctness for Lowenheim's formula, namely, that for any unifier sigma, lowenheim's of sigma is
-  also a unifier
-*)
-Lemma lowenheim_subst_generates_unifiers :
-  forall (t : term) (sigma : subst), unifier t sigma <-> unifier t (lowenheim_subst t sigma).
-Proof.
-intros. split.
-{ 
-  intros. unfold unifier in *. rewrite <- subst_lowenheim_subst_equiv. apply H.
-}
-{
-  intros. unfold unifier in *. rewrite subst_lowenheim_subst_equiv. apply H.
-}
-Qed.
-
-(* 
-  Proof of correctness for Lowenheim's formula, namely, that for any unifier sigma, lowenheim's of sigma
-  will generate an mgu.  
-*)
-Lemma lowenheim_subst_generates_mgus :
-  forall (t : term) (sigma : subst), unifier t sigma -> mgu t (lowenheim_subst t sigma).
-Proof.
-Admitted.
-
-
 
 (** 3.1 Declarations useful for the proof **)
 
 
-Definition var_in_term_vars (v: var) (t : term): Prop :=
-  match (var_set_includes_var v (term_unique_vars t)) with
-    | true => True
-    | false => False
-  end.
-  
+Axiom refl_comm :
+  forall t1 t2, t1 == t2 -> t2 == t1.
 
-Lemma subst_distr_vars :
-  forall (t : term) (s : term), forall (x : var), forall (sig sig1 sig2: subst), 
-  (var_in_term_vars x t) ->
-  (apply_subst (VAR x) sig) == (s + T1) * (apply_subst (VAR x) sig1) + s * (apply_subst (VAR x) sig2)
-    ->
+Lemma subst_distr_opp :
+  forall s x y, apply_subst (x + y) s == apply_subst x s + apply_subst y s.
+Proof.
+  intros.
+  apply refl_comm.
+  apply subst_distribution.
+Qed. 
+
+
+Lemma subst_mul_distr_opp :
+  forall s x y, apply_subst (x * y) s == apply_subst x s * apply_subst y s.
+Proof.
+  intros.
+  apply refl_comm.
+  apply subst_associative.
+Qed. 
+
+
+
+Definition general_form (sig sig1 sig2 : subst) (t : term) (s : term) : Prop :=
   (apply_subst t sig) == (s + T1) * (apply_subst t sig1) + s * (apply_subst t sig2).
+
+
+Lemma obvious_helper_1 : forall x v : var,
+  (v = x) = (v = x \/ False).
 Proof.
 Admitted.
+
+
+
+Lemma subst_distr_vars :
+  forall (t : term) (s : term) (sig sig1 sig2: subst) (x : var), 
+   (In x (term_unique_vars t) /\ (general_form sig sig1 sig2 t s ) ) ->
+  (apply_subst t sig) == (s + T1) * (apply_subst t sig1) + s * (apply_subst t sig2).
+Proof.
+ intros t s sig sig1 sig2 . 
+ induction t.
+  - intros x. repeat rewrite ground_term_cannot_subst. 
+    + repeat rewrite mul_T0_x_sym. rewrite sum_id. reflexivity.
+    + unfold ground_term. reflexivity.
+    + unfold ground_term. reflexivity. 
+    + unfold ground_term. reflexivity. 
+  - intros x. repeat rewrite ground_term_cannot_subst.
+    + rewrite mul_comm. rewrite distr. rewrite mul_x_x. rewrite mul_comm. rewrite sum_comm with (x := s * T1).
+      rewrite sum_assoc. rewrite sum_x_x with (x := s * T1). rewrite sum_comm. rewrite sum_id. reflexivity.
+    + unfold ground_term. reflexivity.
+    + unfold ground_term. reflexivity.
+    + unfold ground_term. reflexivity.
+  - intros x H. unfold general_form in H. unfold term_unique_vars in H. unfold term_vars in H. unfold var_set_create_unique in H.
+    unfold var_set_includes_var in H. unfold In in H. replace (v = x \/ False) with (v = x) in H.
+      + apply H.
+      + apply obvious_helper_1.
+  - intros x H. unfold general_form in *. apply H.
+  - intros x H. unfold general_form in * . apply H.
+Qed.
+
+  
 
 
 Lemma lownheim_subst_mgu :
@@ -92,8 +88,6 @@ Lemma lownheim_subst_mgu :
   (reprod_unif (VAR x) 
     (lowenheim_subst (VAR x) ta)).
 Proof.
+intros. 
 Admitted.
-
-
-
 
