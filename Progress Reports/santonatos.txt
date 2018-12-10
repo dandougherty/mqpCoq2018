@@ -1,3 +1,20 @@
+For Monday 12 / 9 :
+
+Things I worked on:
+- added a correction on Lowenheim main formula. Added testing for find_ground_unifier function.
+- imporved a lot the proof. Multiple attempts to prove 10.4.5, proved that lowenheim unifies based on admitted 10.4.5
+- added some documentation
+
+Problems /plans:
+
+- no universal way to check the correctness of the output of Lownheim's function, have to prove the equivalence with axioms manually, after the sunstitution
+- stuck on an induction step for the proof of 10.4.5
+- 1 proof left : lowenheim is a reproductive unifier.
+
+
+---------------------------------------
+
+
 For Thursday 12 / 6:
 
 Things I worked on:
