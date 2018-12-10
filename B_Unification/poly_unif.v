@@ -1,4 +1,3 @@
-Require Import ListSet.
 Require Import List.
 Import ListNotations.
 Require Import Arith.
@@ -109,17 +108,17 @@ Proof.
     apply NoDup_cons_iff in H as [Ha Hp]. apply Ha.
 Qed. *)
 
+Lemma empty_unifier : unifier [] [].
+Proof.
+Admitted.
+
 Lemma empty_mgu : mgu [] [].
 Proof.
   unfold mgu, more_general, subst_comp.
   intros.
   simpl.
   split.
-  - unfold unifier. apply empty_substP.
-    unfold is_poly.
-    split.
-    + apply NoDup_nil.
-    + intros. inversion H.
+  - apply empty_unifier.
   - intros.
     exists t.
     intros.
