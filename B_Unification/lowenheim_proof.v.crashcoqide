@@ -20,7 +20,7 @@ Import ListNotations.
 
 
 Axiom refl_comm :
-  forall t1 t2, t1 == t2 -> t2 == t1.
+  forall t1 t2, t1 == t2 <-> t2 == t1.
 
 Lemma subst_distr_opp :
   forall s x y, apply_subst (x + y) s == apply_subst x s + apply_subst y s.
@@ -28,8 +28,7 @@ Proof.
   intros.
   apply refl_comm.
   apply subst_distribution.
-Qed. 
-
+Qed.
 
 Lemma subst_mul_distr_opp :
   forall s x y, apply_subst (x * y) s == apply_subst x s * apply_subst y s.
@@ -37,20 +36,16 @@ Proof.
   intros.
   apply refl_comm.
   apply subst_associative.
-Qed. 
-
-
+Qed.
 
 Definition general_form (sig sig1 sig2 : subst) (t : term) (s : term) : Prop :=
   (apply_subst t sig) == (s + T1) * (apply_subst t sig1) + s * (apply_subst t sig2).
 
-
 Lemma obvious_helper_1 : forall x v : var,
   (v = x) = (v = x \/ False).
 Proof.
+intros. 
 Admitted.
-
-
 
 Lemma subst_distr_vars :
   forall (t : term) (s : term) (sig sig1 sig2: subst) (x : var), 
