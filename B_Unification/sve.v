@@ -41,9 +41,9 @@ Lemma mulMM_cons : forall x m,
   mulMM [x] m = x :: m.
 Proof.
   intros.
-  unfold mulMM.
+  unfold mulMM. Admitted. (*
   apply set_union_cons, H.
-Qed.
+Qed. *)
 
 Lemma mulMP_map_cons : forall x p q,
   is_poly p ->

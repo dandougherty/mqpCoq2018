@@ -7,12 +7,44 @@ Import Nat.
 
 Require Export terms.
 
+(** * Introduction *)
+
+(** Another way of representing the terms of a unification problem is as polynomials 
+    and monomials. A monomial is a set of variables multiplied together, and a polynomial 
+    is a set of monomials added together. By following the ten axioms set forth in 
+    B-unification, we can transform any term to this form. 
+
+    Since one of the rules is x * x = x, we can guarantee that there are no repeated 
+    variables in any given monomial. Similarly, because x + x = 0, we can guarantee 
+    that there are no repeated monomials in a polynomial. Because of these properties, as 
+    well as the commutativity of addition and multiplication, we can represent both 
+    monomials and polynomials as unordered sets of variables and monomials, respectively. 
+    This file serves to implement such a representation.  
+  *)
+
+
 
 (* ===== Polynomial Representation - Data Types ===== *)
+(** * Monomials and Polynomials *)
+(** ** Data Type Definitions *)
+(** A monomial is simply a list of variables, with variables as defined in terms.v. *)
 
 Definition mono := list var.
 
+(** A polynomial, then, is a list of monomials. *)
+
 Definition poly := list mono.
+
+(** ** Comparisons of monomials and polynomials *)
+(** 
+    For the sake of simplicity when comparing monomials and polynomials, we have opted
+    for a solution that maintains the lists as sorted. This allows us to simultaneously
+    ensure that there are no duplicates, as well as easily comparing the sets with the 
+    standard Coq equals operator over lists.
+
+    Ensuring that a list of nats is sorted is easy enough. In order to compare lists of
+    sorted lists, we'll need the help of another function: 
+  *)
 
 Fixpoint lex {T : Type} (cmp : T -> T -> comparison) (l1 l2 : list T)
               : comparison :=
@@ -27,6 +59,11 @@ Fixpoint lex {T : Type} (cmp : T -> T -> comparison) (l1 l2 : list T)
       end
   end.
 
+(** 
+    There are some important but relatively straightforward properties of this function
+    that are useful to prove. First, reflexivity: 
+  *)
+
 Theorem lex_nat_refl : forall (l : list nat), lex compare l l = Eq.
 Proof.
   intros.
@@ -34,6 +71,11 @@ Proof.
   - simpl. reflexivity.
   - simpl. rewrite compare_refl. apply IHl.
 Qed.
+
+(** 
+    Next, antisymmetry. This allows us to take a predicate or hypothesis about the 
+    comparison of two polynomials and reverse it. For example, a < b implies b > a.
+  *)
 
 Theorem lex_nat_antisym : forall (l1 l2 : list nat),
   lex compare l1 l2 = CompOpp (lex compare l2 l1).
@@ -52,6 +94,29 @@ Proof.
       * reflexivity.
 Qed.
 
+Lemma lex_eq : forall n m,
+  lex compare n m = Eq <-> lex compare m n = Eq.
+Proof.
+  intros n m. split; intro; rewrite lex_nat_antisym in H; unfold CompOpp in H.
+  - destruct (lex compare m n) eqn:H0; inversion H. reflexivity.
+  - destruct (lex compare n m) eqn:H0; inversion H. reflexivity.
+Qed.
+
+Lemma lex_lt_gt : forall n m,
+  lex compare n m = Lt <-> lex compare m n = Gt.
+Proof.
+  intros n m. split; intro; rewrite lex_nat_antisym in H; unfold CompOpp in H.
+  - destruct (lex compare m n) eqn:H0; inversion H. reflexivity.
+  - destruct (lex compare n m) eqn:H0; inversion H. reflexivity.
+Qed.
+
+(** 
+    Lastly is a property over lists. The comparison of two lists stays the same
+    if the same new element is added onto the front of each list. Similarly, if
+    the item at the front of two lists is equal, removing it from both does not
+    chance the lists' comparison. 
+  *)
+
 Theorem lex_nat_cons : forall (l1 l2 : list nat) n,
   lex compare l1 l2 = lex compare (n::l1) (n::l2).
 Proof.
@@ -60,7 +125,20 @@ Qed.
 
 Hint Resolve lex_nat_refl lex_nat_antisym lex_nat_cons.
 
+(** ** Stronger Definitions *)
+(** 
+    Because as far as Coq is concerned any list of natural numbers is a monomial, 
+    it is necessary to define a few more predicates about monomials and polynomials
+    to ensure our desired properties hold. Using these in proofs will prevent any
+    random list from being used as a monomial or polynomial.
+  *)
+
+(** Monomials are simply sorted lists of natural numbers. *)
+
 Definition is_mono (m : mono) : Prop := Sorted lt m.
+
+(** Polynomials are sorted lists of lists, where all of the lists in the polynomail
+    are monomials. *)
 
 Definition is_poly (p : poly) : Prop :=
   Sorted (fun m n => lex compare m n = Lt) p /\ forall m, In m p -> is_mono m.
@@ -69,6 +147,9 @@ Hint Unfold is_mono is_poly.
 
 Definition vars (p : poly) : list var :=
   nodup var_eq_dec (concat p).
+
+(** There are a few userful things we can prove about these definitions too. First, 
+    every element in a monomial is guaranteed to be less than the elements after it. *)
 
 Lemma mono_order : forall x y m,
   is_mono (x :: y :: m) ->
@@ -81,6 +162,8 @@ Proof.
   apply H0. 
 Qed.
 
+(** Similarly, if x :: m is a monomial, then m is also a monomial. *)
+
 Lemma mono_cons : forall x m,
   is_mono (x :: m) ->
   is_mono m.
@@ -90,6 +173,9 @@ Proof.
   apply Sorted_inv in H as [].
   apply H.
 Qed.
+
+(** The same properties hold for is_poly as well; any list in a polynomial is
+    guaranteed to be less than the lists after it. *)
 
 Lemma poly_order : forall m n p,
   is_poly (m :: n :: p) ->
@@ -102,6 +188,9 @@ Proof.
   apply HdRel_inv in H1.
   apply H1.
 Qed.
+
+(** And if m :: p is a polynomial, we know both that p is a polynomial and that 
+    m is a monomial. *)
 
 Lemma poly_cons : forall m p,
   is_poly (m :: p) ->
@@ -117,6 +206,8 @@ Proof.
     + intros. apply H0, in_cons, H2.
   - apply H0, in_eq.
 Qed.
+
+(** Lastly, for completeness, nil is both a polynomial and monomial. *)
 
 Lemma nil_is_mono :
   is_mono [].
@@ -136,7 +227,8 @@ Hint Resolve mono_order mono_cons poly_order poly_cons nil_is_mono nil_is_poly.
 
 
 
-(* ===== Functions over Monomials and Polynomials ===== *)
+(* ===== Functions over Monomials and Polynomials ===== *) 
+(** * Functions over Monomials and Polynomials *)
 
 Fixpoint addPPn (p q : poly) (n : nat) : poly :=
   match n with
@@ -231,22 +323,6 @@ Proof.
     + apply poly_cons in Hp. apply Hp.
 Qed.
 
-Lemma lex_eq : forall n m,
-  lex compare n m = Eq <-> lex compare m n = Eq.
-Proof.
-  intros n m. split; intro; rewrite lex_nat_antisym in H; unfold CompOpp in H.
-  - destruct (lex compare m n) eqn:H0; inversion H. reflexivity.
-  - destruct (lex compare n m) eqn:H0; inversion H. reflexivity.
-Qed.
-
-Lemma lex_lt_gt : forall n m,
-  lex compare n m = Lt <-> lex compare m n = Gt.
-Proof.
-  intros n m. split; intro; rewrite lex_nat_antisym in H; unfold CompOpp in H.
-  - destruct (lex compare m n) eqn:H0; inversion H. reflexivity.
-  - destruct (lex compare n m) eqn:H0; inversion H. reflexivity.
-Qed.
-
 Lemma addPP_comm : forall p q,
   is_poly p /\ is_poly q -> addPP p q = addPP q p.
 Proof.
@@ -322,25 +398,9 @@ Proof.
 Admitted.
 
 
-(* Lemma set_part_add : forall f p l r,
-  NoDup p ->
+Lemma part_add_eq : forall f p l r,
+  is_poly p ->
   partition f p = (l, r) ->
   p = addPP l r.
 Proof.
-  intros.
-  unfold addPP.
-  unfold set_symdiff.
-
-  rewrite (set_part_no_inter _ _ _ _ _ _ H H0).
-  
-  assert (NoDup l /\ NoDup r) as [Hl Hr].
-  apply (set_part_nodup _ _ _ _ _ H H0).
-  assert (Hndu: NoDup (set_union mono_eq_dec l r)).
-  apply (set_union_nodup _ Hl Hr).
-  
-  rewrite (set_diff_nil _ _ _ Hndu).
-
-  assert (p = (set_union mono_eq_dec l r)). (* remove after set_eq refactor *)
-  
-  apply (set_part_union _ _ _ _ _ _ H H0).
-Admitted. *)
+Admitted.

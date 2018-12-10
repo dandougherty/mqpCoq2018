@@ -118,7 +118,7 @@ Proof.
   - unfold unifier. apply empty_substP.
     unfold is_poly.
     split.
-    + apply NoDup_nil.
+    + apply Sorted.Sorted_nil.
     + intros. inversion H.
   - intros.
     exists t.
