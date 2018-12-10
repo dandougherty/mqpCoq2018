@@ -411,3 +411,30 @@ Lemma part_add_eq : forall f p l r,
   p = addPP l r.
 Proof.
 Admitted.
+
+Lemma addPP_cons : forall (m:mono) (p:poly),
+  HdRel (fun m n => lex compare m n = Lt) m p ->
+  addPP [m] p = m :: p.
+Proof. Admitted.
+
+Lemma mulMx_HdRel : forall x m p,
+  HdRel (fun m n => lex compare m n = Lt) m p ->
+  HdRel (fun m n => lex compare m n = Lt) (mulMM [x] m) (mulMP [x] p).
+Proof.
+  intros. Admitted.
+
+Lemma mulMP_map_mulMM : forall x q,
+  is_poly q ->
+  (forall m, In m q -> ~ In x m) ->
+  map (mulMM [x]) q = mulMP [x] q.
+Proof.
+  intros.
+  induction q.
+  - auto.
+  - simpl. rewrite (addPP_cons (mulMM [x] a) (mulMP [x] q)).
+    + f_equal. apply IHq.
+      * apply poly_cons in H as []; auto.
+      * intros m Hm. apply H0. simpl. right. apply Hm.
+    + unfold is_poly in H. destruct H. apply Sorted.Sorted_inv in H as [].
+      apply mulMx_HdRel. apply H2.
+Qed.

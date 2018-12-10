@@ -15,6 +15,7 @@
 Require Import List.
 Import ListNotations.
 Require Import Arith.
+Require Import FunctionalExtensionality.
 
 Require Export poly_unif.
 (* end hide *)
@@ -57,20 +58,7 @@ Definition div_by_var (x : var) (p : poly) : prod poly poly :=
     This fact turns out to be rather hard to prove and needs the help of 10 or
     so other sudsidiary lemmas. *)
 
-Lemma mulMP_map_mulMM : forall x p q,
-  is_poly p ->
-  is_poly q ->
-  (forall m, In m q -> ~ In x m) ->
-  p = map (mulMM [x]) q ->
-  p = mulMP [x] q.
-Proof.
-  intros.
 
-  destruct q eqn:Hq.
-  - auto.
-  - simpl. simpl in H2.
-
-Admitted.
 
 Lemma elim_var_not_in_rem : forall x p r,
   elim_var x p = r ->
@@ -85,10 +73,18 @@ Proof.
 Qed.
 
 Lemma elim_var_map_mulMM_rem : forall x p r,
+  is_poly p ->
   (forall m, In m p -> In x m) ->
   elim_var x p = r ->
   p = map (mulMM [x]) r.
 Proof.
+  intros x p r Hpoly H H0. unfold elim_var in H0. rewrite <- H0. rewrite map_map.
+  assert (map (fun x0 : (list nat) => mulMM [x] (remove var_eq_dec x x0)) p = map id p).
+  - apply map_ext_in. intros m Hm. unfold id. apply (In_split x m) in H as [l1 [l2 Hsplit]]; auto.
+    rewrite Hsplit. replace (remove var_eq_dec x (l1 ++ x :: l2)) with (l1 ++ l2).
+    + admit.
+    + admit.
+  - rewrite H1. symmetry. apply map_id.
 Admitted.
 
 Lemma elim_var_mul : forall x p r,
@@ -99,9 +95,9 @@ Lemma elim_var_mul : forall x p r,
   p = mulMP [x] r.
 Proof.
   intros.
-  apply (mulMP_map_mulMM _ _ _ H H0).
+  rewrite <- (mulMP_map_mulMM _ _ H0).
+  apply (elim_var_map_mulMM_rem _ _ _ H H1 H2).
   apply (elim_var_not_in_rem _ _ _ H2).
-  apply (elim_var_map_mulMM_rem _ _ _ H1 H2).
 Qed.
 
 Lemma part_fst_true : forall X p (x t f : list X),
