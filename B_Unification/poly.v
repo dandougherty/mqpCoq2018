@@ -412,6 +412,27 @@ Lemma part_add_eq : forall f p l r,
 Proof.
 Admitted.
 
+Lemma part_fst_true : forall X p (x t f : list X),
+  partition p x = (t, f) ->
+  (forall a, In a t -> p a = true).
+Proof.
+Admitted.
+
+Lemma part_snd_false : forall X p (x t f : list X),
+  partition p x = (t, f) ->
+  (forall a, In a f -> p a = false).
+Proof.
+Admitted.
+
+Lemma part_is_poly : forall f p l r,
+  is_poly p ->
+  partition f p = (l, r) ->
+  is_poly l /\ is_poly r.
+Proof.
+Admitted.
+
+
+
 Lemma addPP_cons : forall (m:mono) (p:poly),
   HdRel (fun m n => lex compare m n = Lt) m p ->
   addPP [m] p = m :: p.
@@ -438,3 +459,10 @@ Proof.
     + unfold is_poly in H. destruct H. apply Sorted.Sorted_inv in H as [].
       apply mulMx_HdRel. apply H2.
 Qed.
+
+Lemma mulMM_rem_eq : forall x m,
+  is_mono m ->
+  In x m ->
+  mulMM [x] (remove var_eq_dec x m) = m.
+Proof.
+Admitted.

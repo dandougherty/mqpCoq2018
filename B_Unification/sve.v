@@ -59,7 +59,6 @@ Definition div_by_var (x : var) (p : poly) : prod poly poly :=
     so other sudsidiary lemmas. *)
 
 
-
 Lemma elim_var_not_in_rem : forall x p r,
   elim_var x p = r ->
   (forall m, In m r -> ~ In x m).
@@ -78,14 +77,17 @@ Lemma elim_var_map_mulMM_rem : forall x p r,
   elim_var x p = r ->
   p = map (mulMM [x]) r.
 Proof.
-  intros x p r Hpoly H H0. unfold elim_var in H0. rewrite <- H0. rewrite map_map.
-  assert (map (fun x0 : (list nat) => mulMM [x] (remove var_eq_dec x x0)) p = map id p).
-  - apply map_ext_in. intros m Hm. unfold id. apply (In_split x m) in H as [l1 [l2 Hsplit]]; auto.
-    rewrite Hsplit. replace (remove var_eq_dec x (l1 ++ x :: l2)) with (l1 ++ l2).
-    + admit.
-    + admit.
+  intros x p r Hpoly H H0. unfold elim_var in H0.
+  rewrite <- H0. rewrite map_map.
+  assert (map (fun x0 => mulMM [x] (remove var_eq_dec x x0)) p = map id p).
+  - apply map_ext_in. intros m Hm. unfold id.
+    unfold is_poly in Hpoly. destruct Hpoly.
+    assert (Hx := Hm).
+    apply H2 in Hm.
+    apply H in Hx.
+    apply (mulMM_rem_eq _ _ Hm Hx).
   - rewrite H1. symmetry. apply map_id.
-Admitted.
+Qed.
 
 Lemma elim_var_mul : forall x p r,
   is_poly p ->
@@ -100,30 +102,59 @@ Proof.
   apply (elim_var_not_in_rem _ _ _ H2).
 Qed.
 
-Lemma part_fst_true : forall X p (x t f : list X),
-  partition p x = (t, f) ->
-  (forall a, In a t -> p a = true).
-Proof.
-Admitted.
-
 Lemma has_var_eq_in : forall x m,
   has_var x m = true <-> In x m.
 Proof.
+  intros.
+  unfold has_var.
+  rewrite existsb_exists.
+  split; intros.
+  - destruct H as [x0 []].
+    apply Nat.eqb_eq in H0.
+    rewrite H0. apply H.
+  - exists x. rewrite Nat.eqb_eq. auto.
+Qed.
+
+Lemma elim_var_poly : forall x p r,
+  is_poly p ->
+  (forall m, In m p -> In x m) ->
+  elim_var x p = r ->
+  is_poly r.
+Proof.
 Admitted.
+
+Lemma part_var_eq_in : forall x p i o,
+  partition (has_var x) p = (i, o) ->
+  ((forall m, In m i -> In x m) /\
+   (forall m, In m o -> ~ In x m)).
+Proof.
+  intros.
+  split; intros.
+  - apply part_fst_true with (a:=m) in H.
+    + apply has_var_eq_in. apply H.
+    + apply H0.
+  - apply part_snd_false with (a:=m) in H.
+    + rewrite <- has_var_eq_in. rewrite H. auto.
+    + apply H0.
+Qed.
 
 Lemma div_is_poly : forall x p q r,
   is_poly p ->
   div_by_var x p = (q, r) ->
   is_poly q /\ is_poly r.
 Proof.
-Admitted.
-
-Lemma part_is_poly : forall f p l r,
-  is_poly p ->
-  partition f p = (l, r) ->
-  is_poly l /\ is_poly r.
-Proof.
-Admitted.
+  intros.
+  unfold div_by_var in H0.
+  destruct (partition (has_var x) p) eqn:Hpart.
+  apply (part_is_poly _ _ _ _ H) in Hpart as Hp.
+  destruct Hp as [Hpl Hpr].
+  injection H0. intros Hr Hq.
+  rewrite Hr in Hpr.
+  apply part_var_eq_in in Hpart as [Hin Hout].
+  split.
+  - apply (elim_var_poly x l q Hpl Hin Hq).
+  - apply Hpr.
+Qed.
 
 (** As explained earlier, given a polynomial [p] decomposed into a variable [x],
     a quotient [q], and a remainder [r], [div_eq] asserts that [p = x * q + r].
@@ -146,9 +177,9 @@ Proof.
   apply (part_fst_true _ _ _ _ _ Hqr _ H).
 
   assert (is_poly q /\ is_poly r) as [HPq HPr].
-  apply (div_is_poly x p q r HP HD).
+  apply (div_is_poly _ _ _ _ HP HD).
   assert (is_poly qx /\ is_poly r0) as [HPqx HPr0].
-  apply (part_is_poly (has_var x) p qx r0 HP Hqr).
+  apply (part_is_poly _ _ _ _ HP Hqr).
   apply (elim_var_mul _ _ _ HPqx HPq HIH) in Hq.
   
   apply (part_add_eq (has_var x) _ _ _ HP).
