@@ -24,6 +24,7 @@ Import ListNotations.
 (* In this subsection we define Lowenheim's formula's basics, including 
   functions and formulas  *) 
 
+
 (* Generates a lowenheim replacement *)
 Definition lowenheim_replace (t : term) (r : replacement) : replacement :=
   if term_contains_var t (fst r) then 
@@ -40,7 +41,7 @@ Fixpoint lowenheim_subst (t : term) (sigma : subst) : subst :=
 
 (* A simple example from the book for lowenheim's formula generating a unifier *)
 Example lowenheim_subst_ex1 :
-  (unifier (VAR 0 * VAR 1) (lowenheim_subst (VAR 0 * VAR 1) ((0, T1) :: (1, T0) :: nil))).
+  (unifier (VAR 0 * VAR 1) (lowenheim_subst (VAR 0 * VAR 1) ((0, T1) :: (1, T0) :: nil)) ).
 Proof.
 unfold unifier. unfold lowenheim_subst. simpl. 
 rewrite mul_comm with (y := T0). rewrite mul_T0_x.
@@ -171,7 +172,10 @@ Compute (find_unifier  ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) * ( (VAR 2) +
 if there is one. Otherwise, returns None_substitution *)
 
 Definition Lowenheim_Main (t : term) : subst_option :=
-  (find_unifier t).  
+  match (find_unifier t) with
+    | Some_subst s => Some_subst (lowenheim_subst t s)
+    | None_subst => None_subst
+  end.  
 
 
 
@@ -189,24 +193,45 @@ Compute (Lowenheim_Main (( VAR 0) + (VAR 0) + T1)).
 
 
 
+
+
 (** 2.3 Lowenheim testing **)
 
 (* In this subsection we define a testing function for Lowenheim's main formula
 *) 
 
-(* Function to test the correctness of the output of Lownheim's algorithm. 
+(* Function to test the correctness of the output of the find_unifier helper function defined above. 
   True means expected output was produced*)
-Definition Test_Lowenehim_Main (t : term) : bool :=
-  match (Lowenheim_Main t) with
+Definition Test_find_unifier (t : term) : bool :=
+  match (find_unifier t) with
     | Some_subst s =>
       (term_is_T0 (update_term t s))
     | None_subst => true (*is this the correct output ? *)
   end. 
 
 
-(* some tests of Lowenheim's algorithm *)
+(* some tests of the find unifier function *)
 
-Compute (Test_Lowenehim_Main (T1)).
-Compute (Test_Lowenehim_Main ((VAR 0) * (VAR 1))).
-Compute (Test_Lowenehim_Main ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) * ( (VAR 2) + (VAR 0)) )).
+Compute (Test_find_unifier (T1)).
+Compute (Test_find_unifier ((VAR 0) * (VAR 1))).
+Compute (Test_find_unifier ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) * ( (VAR 2) + (VAR 0)) )).
 
+
+(* Examples that prove Lowenheim's correctness *)
+
+Definition Unifier (t : term) (so : subst_option) : Prop :=
+  match so with
+    | Some_subst s => (unifier t s)
+    | None_subst => False (* should not be considered*)
+  end. 
+
+
+Example _xy_:
+(Unifier (VAR 0 * VAR 1) (Lowenheim_Main (VAR 0 * VAR 1) ) ).
+Proof.
+ unfold Lowenheim_Main.
+ unfold find_unifier.
+  repeat unfold term_unique_vars.
+  repeat unfold term_vars.
+  unfold var_set_create_unique. unfold var_set_includes_var.
+Admitted.
