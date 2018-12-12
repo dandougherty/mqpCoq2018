@@ -42,10 +42,9 @@ Definition general_form (sig sig1 sig2 : subst) (t : term) (s : term) : Prop :=
   (apply_subst t sig) == (s + T1) * (apply_subst t sig1) + s * (apply_subst t sig2).
 
 Lemma obvious_helper_1 : forall x v : var,
-  (v = x) -> (v = x \/ False).
+  (v = x) = (v = x \/ False).
 Proof.
-intros. left.
-
+intros.
 Admitted.
 
 Lemma subst_distr_vars :

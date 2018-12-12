@@ -3,4 +3,5 @@
 terms.v
 sve.v
 sve_listset.v
-lowenheim.v
+lowenheim_formula.v
+lowenheim_proof.v

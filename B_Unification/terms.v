@@ -481,14 +481,11 @@ Proof.
 intro. induction s. intros. reflexivity. intros. apply IHs.
 Qed.
 
-<<<<<<< HEAD
 Definition subst_idempotent (s : subst) : Prop :=
   forall t, apply_subst t s == apply_subst (apply_subst t s) s.
 
-=======
 (* Proposition that a given substitution unifies (namely, makes equivalent), two
   given terms *)
->>>>>>> f3e2830fe218c56a4913d18bdcb2e77b32d05e08
 Definition unifies (a b : term) (s : subst) : Prop :=
   (apply_subst a s) == (apply_subst b s).
 
