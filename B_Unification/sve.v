@@ -334,4 +334,3 @@ Proof.
   auto.
 Qed.
 
-

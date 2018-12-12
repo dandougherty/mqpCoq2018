@@ -45,7 +45,7 @@
     produce one that is most general. A substitution is a _most general unifier_ 
     or _mgu_ of a problem if it is more general than every other solution to the 
     problem. A substitution [s] is more general than [s'] if there exists a third
-    substitution [t] such that [s'(u) = t(s(u)] for any term [u].
+    substitution [t] such that [s'(u) = t(s(u))] for any term [u].
 *)
 
 
