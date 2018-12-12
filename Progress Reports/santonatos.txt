@@ -1,0 +1,82 @@
+For Monday 12 / 9 :
+
+Things I worked on:
+- added a correction on Lowenheim main formula. Added testing for find_ground_unifier function.
+- imporved a lot the proof. Multiple attempts to prove 10.4.5, proved that lowenheim unifies based on admitted 10.4.5
+- added some documentation
+
+Problems /plans:
+
+- no universal way to check the correctness of the output of Lownheim's function, have to prove the equivalence with axioms manually, after the sunstitution
+- stuck on an induction step for the proof of 10.4.5
+- 1 proof left : lowenheim is a reproductive unifier.
+
+
+---------------------------------------
+
+
+For Thursday 12 / 6:
+
+Things I worked on:
+- Completed and cleaned Lowenheim's algorithms, by improving existing main function, creating more helper functions
+ and introducing new data type subst_option
+- Added small sentences / paragraphs as part of the report withing the source files. All functions/definitions are documented/commented
+and all subsections are created.
+- Created without proving 2 Lemmas from the book, necessary for proving Lowenheim's formula
+
+Problems / Plans:
+- verify correctness of Lemmas and start on the proof
+- more on the report commenting && pdf generation
+
+
+
+
+-------------------------------------------------------------
+
+
+For Monday 12 / 3 :
+
+Things I worked on :
+- completed Lowenheims main formula / function
+- worked with Joseph to slightly tweak definitions of more general unifiers and most general unifiers, added reproductive unifier definition.
+- added new versions of term evaluation / simplification functions that helped to define the main Lowenheim formula
+
+Problems / plans :
+- still a bit unclear path about the proof. Perhaps the use of reproductive unifier would help? further focus / consultation on the proof now that most/all of Lowenheim formulation is complete
+- some issues with rewrites with the "==" equivalence symbol, cannot rewrite within context of other function, to use ub the proofs if simple examples.
+
+
+--------------------------------------------------------------
+
+
+for Thursday 11/29:
+
+things I am working on and will be working on this week:
+- developing the feauture that lowenheim finds the ground solutions on its own.
+Having some trouble finding a way to produce all the possible combinations (subsets )
+of a list of vars, perhaps using the permutation coq library?
+
+- refactoring the code to eqv from equal. After replacing the definitions with eqv and using prof's Dougherty
+helper definitions / additions, there are issues with some of the proofs. Complex examples do not work as before, they require special 
+changes , as well as some of the proofs. The usual error that comes up is that "eqv" is not "Proper" inside the error message. Joseph said he fixed the above by adding two
+more axioms and he will talk with the professor about them; awaiting further counseling on this.
+
+
+------------------------------------------------------------------
+
+for Tuesday 11/27:
+
+things I worked on last week:
+- the evaluation function for simplifying terms made of 0's and 1's, 
+e.g. the multipliation and the addition function
+- adding feautres to Lowenheim's base formula, the check_correct input function
+and the ability of the function to take multiple ground solutions and produce multiple unifiers
+
+Problems and things to work on:
+- github problem, I am kind of stuck on a branch I pulled and I have tried several ways to undo it, but it's hard
+- add more example with lowenheim's new formula
+- potential feauture, lowenheim finds its ground solutions by itself
+- look more into the proof, the definition of mgu and "more general unfier"
+
+
+

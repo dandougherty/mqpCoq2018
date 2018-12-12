@@ -1,0 +1,22 @@
+Adapted from a help document posted by WPI's IGSD program:
+
+www.wpi.edu/Academics/Depts/IGSD/IQP/Docs/proposalwritingtips.doc
+
+The Five Rhetorical Moves
+-------------------------
+
+A good strategy for an introduction to a paper is to address the
+following 5 points:
+
+1) establish the broad general research area or problem;
+
+2) introduce the specific problem at hand;
+
+3) provide context by summarizing previous work, what is already known,
+and/or what has already been done;
+
+4) create a research space by identifying a gap in previous work or
+opportunities for extension or new work;
+
+5) establish the place of the current paper by stating what
+contribution(s) it makes in light of (4) above.

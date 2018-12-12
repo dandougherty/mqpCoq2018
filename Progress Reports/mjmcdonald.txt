@@ -1,0 +1,67 @@
+For 12/06/18:
+	Done:
+		- Branched off from master and began working on ordered_polys. Redid polynomials and monomial definitions and
+		  functions to be ordered instead, and reproved most lemmas. Began working on a few new ones.
+		- Began adding documentation to the poly.v file in the sve_comments branch.
+		- Finally got my computer set up - I can compile and run the IDE both from linux, so make works again.	
+	Problems:
+		- Some formatting questions in documentation
+	To-Do:
+		- A lot more documentation 
+
+
+
+For 12/03/18:
+	Done:
+		- Rewrote the entire set_eq definition, relations/morphisms, and all related proofs in sets.v to use a custom 
+		  equality function, so that equivalence on polynomials could compare the monomials orderlessly.
+	Problems:
+		- Discovered that the entire file I rewrote won't work, since the listset library uses Aeq_dec plusbools as
+		  the equality function, which uses normal equals under the hood. Reached a lemma where I needed to show that 
+		  a =* b -> a = b, which just isn't true.
+	To-Do:
+		- The only way to solve this is probably to use one of the sorted solutions, so that the lists are actually 
+		  equal as far as Coq is concerned. Pretty frustrating as I feel like the set solution is more "pure" in a
+		  way, since they are really sets of variables/monomials, but I guess it will have to do.
+
+	
+	
+For 11/29/18:
+	Done:
+		- Made a new branch (set_eq) to work on developing a new set equivalence function for use with poly/mono
+		- Proved necessary theorems about reflexivity, symmetry, transitivity, and compatibility with various functions
+		  to enable rewriting as used before
+		- Updated all existing lemmas in poly.v to use the new operator, adding new lemmas as needed
+	Problems:
+		- My computer still won't behave, so I just coded without using the _CoqProject file all day.
+		- Have run into another issue with the set_eq operator, namely that since it uses incl in its definition,
+		  when comparing sets-of-sets (ie polynomials), it still uses the normal = (and not mine) to compare the
+		  inner layer of sets (ie the monomials). Not sure how to fix this one without redefining incl and In and 
+		  reproving all of the useful standard library lemmas myself!
+		- poly_unif.v and sve.v still use the old equal operator in places, and make fails at the moment
+	To-Do:
+		- Fix my computer (or just give up and keep working like this)\
+		- Fix the issue with set_eq and polynomials
+		- Finish proving the remaining admitted lemmas needed to prove 10.4.10
+        
+
+
+For 11/27/18:
+	Done:
+		- Reorganized project structure with Dylan. More information in his changelog.
+		- Worked on replacing lemmas involving polynomials to use my listset as opposed to dylan's ordered lists
+		- Worked on lemmas about properties of polynomial math in poly.v (effectively working to prove the 10 axioms hold)
+		- Worked on other admitted lemmas used for Dylan's proof of 10.4.10 part 1.
+	Problems:
+		- Huge technical issue on my end. I'm unable to work with the project structure in it's current state, and
+		  after three hours of troubleshooting, the only way I have been able to develop at all is by copy-pasting 
+		  all previous required exports into the top of the same file. This needs to be fixed ASAP but I've hit a
+		  road block at every turn.
+		- Have run into some issues when proving things involving polynomials and monomials. Specifically, I need
+		  the equals operator to treat sets that are ordered differently the same (ie, NoDup (a :: x) should mean
+		  that a :: x = x ++ [a] in set terms). Maybe the listset representation is the wrong way to go?
+	To-Do:
+		- Fix my computer so that I'm actually able to work on the project!
+		- Further examine representation of polynomials, and find a way to resolve the order problem.
+		- Begin working on part 2 of theorem 10.4.10 (sigma' built with the SVE rules is a reprod unifier)
+		- Prove more of the underlying admitted lemmas to make sure we aren't moving forward on an incorrect foundation

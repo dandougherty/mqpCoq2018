@@ -1,0 +1,45 @@
+Since 12/06/18:
+  Done:
+    - Wrote introductions to each section of sve.v. I couldn't say much about the individual proofs since most of them had to do with sets and not ordered lists.
+    - Finished changing polynomials to ordered lists. Some lemmas have been left admitted.
+    - Proved sveVars_some using 5 new provable admitted lemmas in a branch.
+  Goals:
+    - Start documenting poly_unif.v and more lemmas in sve.v.
+    - Add intro.v for introduction chapter of report.
+    - Prove facts about mulMP and mulMM useful in proving Theorem 10.4.10 part 1.
+
+Since 12/03/18:
+  Done:
+    - Renamed bunify to sve.
+    - Changed the fuel for sve from the vars length to the list of vars. This removed the need for the decomp function, simplifying some of the code.
+    - Changed some lemmas to use div_by_var instead of decomp since it is now removed.
+    - Started documentation on sve.v by adding sections and explaining the code in those sections.
+  Goals:
+    - Continue documenting sve.v and start on poly_unif.v.
+    - Continue to transform polynomial representation to sorted lists.
+
+Since 11/29/18:
+  Done:
+    - Proved most of the admitted lemmas used in the proof for the first fact of Theorem 10.4.10 in the book.
+  Goals:
+    - Prove fold_add_self which is used by a helper lemma.
+    - Transform polynomial representation to sorted lists. This includes rewriting all lemmas and proofs depending on the data structure.
+
+Since 11/27/18:
+  Done:
+  	- Proved decomp_eq with admitted lemmas.
+  	- Proved set_part_add assuming we make a change to how set equality is determined.
+  	- Fixed decomp function. Before it did not remove the variable from the quotient.
+  Goals:
+  	- Prove elim_var_mul and other simpler subsisdiary lemmas.
+  	- Change set equality to disregard order.
+
+Since 11/20/18:
+  Done:
+  	- Reorganized project structure with Matt. There are now 6 files. Two are for the data structures; terms and polynomials. Two are for definitions and lemmas about unification in each representation. One file for both of the algorithms.
+ 	  - Decided on representing polynomials as list sets instead of ascending lists. Order only played a role in the decomp function which has been redefined to use partition.
+ 	  - Prove the first fact of Theorem 10.4.10 from the book. It uses admitted lemmas that Matt is proving.
+ 	  - Fix the definition of mgu and reproductive unifier, by changing an implication to an and.
+  Goals:
+    - Incorporate two facts of Theorem 10.4.10 into correctness theorem. I am unsure how to assert that eventually after decomposing terms into quotients and remainders that there is either the identity substitution or no solution. This is implicit in the theorem from the book.
+ 

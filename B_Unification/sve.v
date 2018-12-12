@@ -1,403 +1,336 @@
+(** * Intro *)
 
+(** Here we implement the algorithm for successive variable elimination. The
+    basic idea is to remove a variable from the problem, solve that simpler 
+    problem, and build a solution from the simpler solution. The algorithm is
+    recursive, so variables are removed and problems generated until we are left
+    with either of two problems; 1 =B 0 or 0 =B 0. In the former case, the whole
+    original problem is not unifiable. In the latter case, the problem is solved
+    without any need to substitute since there are no variables. From here, we
+    begin the process of building up substitutions until we reach the original
+    problem. *)
+
+(* begin hide *)
 Require Import List.
 Import ListNotations.
-Require Import PeanoNat.
-Import Nat.
-Require Import Sorting.
-
-
-
-Definition var := nat.
-
-Definition monomial := list var.
-
-Definition polynomial := list monomial.
-
-Definition subst := list (prod var polynomial).
-
-
-(* Apply a comparator to lists lexicographically *)
-Fixpoint lex {T : Type} (cmp : T -> T -> comparison) (l1 l2 : list T)
-              : comparison :=
-  match l1, l2 with
-  | [], [] => Eq
-  | [], _ => Lt
-  | _, [] => Gt
-  | h1 :: t1, h2 :: t2 =>
-      match cmp h1 h2 with
-      | Eq => lex cmp t1 t2
-      | c => c
-      end
-  end.
-
-Theorem lex_nat_refl : forall (l : list nat), lex compare l l = Eq.
-Proof.
-  intros.
-  induction l.
-  - simpl. reflexivity.
-  - simpl. rewrite compare_refl. apply IHl.
-Qed.
-
-Theorem lex_nat_antisym : forall (l1 l2 : list nat),
-  lex compare l1 l2 = CompOpp (lex compare l2 l1).
-Proof.
-  intros l1.
-  induction l1.
-  - intros. simpl. destruct l2; reflexivity.
-  - intros. simpl. destruct l2.
-    + simpl. reflexivity.
-    + simpl. destruct (a ?= n) eqn:H;
-      rewrite compare_antisym in H;
-      rewrite CompOpp_iff in H; simpl in H;
-      rewrite H; simpl.
-      * apply IHl1.
-      * reflexivity.
-      * reflexivity.
-Qed.
-
-Theorem lex_nat_cons : forall (l1 l2 : list nat) n,
-  lex compare l1 l2 = lex compare (n::l1) (n::l2).
-Proof.
-  intros. simpl. rewrite compare_refl. reflexivity.
-Qed.
-
-(* Polynomial Arithmetic *)
-
-Fixpoint addPP (p : polynomial) : polynomial -> polynomial 
-                := fix addPPq (q : polynomial) :=
-  match p, q with
-  | [], _ => q
-  | _, [] => p
-  | m :: p', n :: q' =>
-      match lex compare m n with
-      | Eq => addPP p' q'
-      | Lt => m :: addPP p' q
-      | Gt => n :: addPPq q'
-      end
-  end.
-
-
-Fixpoint mulMM (m : monomial) : monomial -> monomial 
-                := fix mulMMn (n : monomial) :=
-  match m, n with
-  | [], _ => n
-  | _, [] => m
-  | a :: m', b :: n' =>
-      match compare a b with
-      | Eq => a :: mulMM m' n'
-      | Lt => a :: mulMM m' n
-      | Gt => b :: mulMMn n'
-      end
-  end.
-
-
-Fixpoint mulMP (m : monomial) (p : polynomial) : polynomial :=
-  match p with
-  | [] => []
-  | n :: p' => addPP [mulMM m n] (mulMP m p')
-  end.
-
-
-Fixpoint mulPP (p : polynomial) (q : polynomial) : polynomial :=
-  match p with
-  | [] => []
-  | m :: p' => addPP (mulMP m q) (mulPP p' q)
-  end.
-
-
-
-
-(* Unification helpers *)
-
-Definition indom (x : var) (s : subst) : bool :=
-  existsb (eqb x) (map fst s).
-
-
-Fixpoint app (s : subst) (x : var) : polynomial :=
-  match s with
-  | [] => [[x]]
-  | (y, p) :: s' => if x =? y then p else app s' x
-  end.
-
-
-Fixpoint substM (s : subst) (m : monomial) : polynomial :=
-  match m with
-  | [] => [[]]
-  | x :: m' => if indom x s then mulPP (app s x) (substM s m')
-               else mulMP [x] (substM s m')
-  end.
-
-
-Fixpoint substP (s : subst) (p : polynomial) : polynomial :=
-  match p with
-  | [] => []
-  | m :: p' => addPP (substM s m) (substP s p')
-  end.
-
-
-(* Successive Variable Elimination *)
-
-Fixpoint decomp2 (x : var) (p r s : polynomial)
-                 : prod polynomial polynomial :=
-  match p with
-  | [] => (r, s)
-  | [] :: p' => (r, s ++ p)
-  | (y :: m) :: p' => if x =? y then decomp2 x p' (r ++ [m]) s
-                      else (r, s ++ (y :: m) :: p')
-  end.
-
-
-Definition decomp' (p : polynomial)
-                  : option (prod var (prod polynomial polynomial)) :=
-  match p with
-  | [] => None
-  | [[]] => None
-  | [] :: [] :: p' => None
-  | [] :: (x :: m) :: p' => Some (x, decomp2 x p' [m] [[]])
-  | (x :: m) :: p' => Some (x, decomp2 x p' [m] [])
-  end.
-
-Fixpoint get_var (p : polynomial) : option var :=
-  match p with
-  | [] => None
-  | [] :: p' => get_var p'
-  | (x :: m) :: p' => Some x
-  end.
-
-Definition has_var (x : var) := existsb (eqb x).
-
-Definition elim_var (x : var) (p : polynomial)
-                    : prod polynomial polynomial :=
-  partition (has_var x) p.
-
-Definition decomp (p : polynomial)
-                  : option (prod var (prod polynomial polynomial)) :=
-  match get_var p with
-  | None => None
-  | Some x => Some (x, (elim_var x p))
-  end.
-
-
-Fixpoint bunifyN (n : nat) : polynomial -> option subst := fun p =>
-  match n  with
-  | 0 => None
-  | S n' =>
-      match decomp p with
-      | None => match p with
-                | [] => Some []
-                | _  => None
-                end
-      | Some (x, (q, r)) =>
-          let q1 := addPP [[]] q in
-          let p' := mulPP q1 r in
-          match bunifyN n' p' with
-          | None => None
-          | Some u =>
-              let q1u := substP u q1 in
-              let ru  := substP u r in
-              let xu  := (x, addPP (mulMP [x] q1u) ru) in
-              Some (xu :: u)
-          end
-      end
-  end.
-
-
-Definition var_dec := eq_dec.
-
-
-Definition vars (p : polynomial) : list var :=
-  nodup var_dec (concat p).
-
-
-Definition bunify (p : polynomial) : option subst :=
-  bunifyN (1 + length (vars p)) p.
-
-
-Definition unifier (s : subst) (p : polynomial) : Prop :=
-  substP s p = [].
-
-
-Definition is_monomial (m : monomial) : Prop :=
-  Sorted lt m.
-
-
-Definition is_polynomial (p : polynomial) : Prop :=
-  Sorted (fun m n => lex compare m n = Lt) p
-  /\ forall m, In m p -> is_monomial m.
-
-
-Definition more_general (s t : subst) : Prop :=
-  forall p, 
-  is_polynomial p ->
-  substP t (substP s p) = substP t p.
-
-
-Definition mgu (s : subst) (p : polynomial) : Prop :=
-  unifier s p ->
-  forall t,
-  unifier t p -> more_general s t.
-
-
-Definition unifiable (p : polynomial) : Prop :=
-  exists s, unifier s p.
-
-
-Lemma mono_order : forall x y m,
-  is_monomial (x :: y :: m) ->
-  x < y.
-Proof.
-  unfold is_monomial.
-  intros.
-  apply Sorted_inv in H as [].
-  apply HdRel_inv in H0.
-  apply H0. 
-Qed.
-
-Lemma mono_cons : forall x m,
-  is_monomial (x :: m) ->
-  is_monomial m.
-Proof.
-  unfold is_monomial.
-  intros.
-  apply Sorted_inv in H as [].
-  apply H.
-Qed.
-
-Lemma poly_order : forall m n p,
-  is_polynomial (m :: n :: p) ->
-  lex compare m n = Lt.
-Proof.
-  unfold is_polynomial.
-  intros.
-  destruct H.
-  apply Sorted_inv in H as [].
-  apply HdRel_inv in H1.
-  apply H1.
-Qed.
-
-Lemma poly_cons : forall m p,
-  is_polynomial (m :: p) ->
-  is_polynomial p /\ is_monomial m.
-Proof.
-  unfold is_polynomial.
-  intros.
-  destruct H.
-  apply Sorted_inv in H as [].
-  split.
-  - split.
-    + apply H.
-    + intros. apply H0, in_cons, H2.
-  - apply H0, in_eq.
-Qed.
-
-Lemma empty_substM : forall (m : monomial),
-  is_monomial m ->
-  substM [] m = [m].
-Proof.
-  intros.
-  induction m.
-  - simpl. reflexivity.
-  - simpl.
-    apply mono_cons in H as HMM.
-    apply IHm in HMM as HS.
-    rewrite HS.
-    destruct m.
-    + simpl. reflexivity.
-    + apply mono_order in H as HLT.
-      rewrite <- compare_lt_iff in HLT.
-      simpl.
-      rewrite HLT.
-      reflexivity.
-Qed.
-
-Lemma empty_substP : forall (p : polynomial),
-  is_polynomial p ->
-  substP [] p = p.
-Proof.
-  intros.
-  induction p.
-  - simpl. reflexivity.
-  - simpl.
-    apply poly_cons in H as H1.
-    destruct H1 as [HPP HMA].
-    apply IHp in HPP as HS.
-    rewrite HS.
-    rewrite (empty_substM _ HMA).
-    destruct p.
-    + simpl. reflexivity.
-    + apply poly_order in H as HLT.
-      simpl.
-      rewrite HLT.
-      reflexivity.
-Qed.
-
-Lemma empty_mgu : mgu [] [].
-Proof.
-  unfold mgu.
-  unfold more_general.
-  intros.
-  simpl.
-  rewrite (empty_substP _ H1).
-  reflexivity.
-Qed.
-
-Lemma builds_mgu : forall x p q r u,
-  decomp p = Some (x, (q, r)) ->
-  let q1  := addPP [[]] q in
-  let p'  := mulPP q1 r in
-  let q1u := substP u q1 in
-  let ru  := substP u r in
-  let xu  := (x, addPP (mulMP [x] q1u) ru) in
-  mgu u p' ->
-  mgu (xu :: u) p.
+Require Import Arith.
+
+Require Export poly_unif.
+(* end hide *)
+
+
+(** * Eliminating Variables *)
+
+(** This section deals with the problem of removing a variable [x] from a term
+    [t]. The first thing to notice is that [t] can be written in polynomial form
+    [p]. This polynomial is just a set of monomials, and each monomial a set of
+    variables. We can now seperate the polynomials into two sets [qx] and [r].
+    The term [qx] will be the set of monomials in [p] that contain the variable
+    [x]. The term [q], or the quotient, is [qx] with the [x] removed from each
+    monomial. The term [r], or the remainder, will be the monomials that do not
+    contain [x]. The original term can then be written as [x * q + r]. *)
+
+(** Implementing this procedure is pretty straightforward. We define a function
+    [div_by_var] that produces two polynomials given a polynomial [p] and a
+    variable [x] to eliminate from it. The first step is dividing [p] into [qx]
+    and [r] which is performed using a partition over [p] with the predicate
+    [has_var]. The second step is to remove [x] from [qx] using the helper 
+    [elim_var] which just maps over the given polynomial removing the given 
+    variable. *)
+
+Definition has_var (x : var) := existsb (beq_nat x).
+
+Definition elim_var (x : var) (p : poly) : poly :=
+  map (remove var_eq_dec x) p.
+
+Definition div_by_var (x : var) (p : poly) : prod poly poly :=
+  let (qx, r) := partition (has_var x) p in
+  (elim_var x qx, r).
+
+
+(** We would also like to prove some lemmas about varaible elimination that
+    will be helpful in proving the full algorithm correct later. The main lemma
+    below is [div_eq], which just asserts that after eliminating [x] from [p]
+    into [q] and [r] the term can be put back together as in [p = x * q + r].
+    This fact turns out to be rather hard to prove and needs the help of 10 or
+    so other sudsidiary lemmas. *)
+
+Lemma fold_add_self : forall p,
+  is_poly p ->
+  p = fold_left addPP (map (fun x => [x]) p) [].
 Proof.
 Admitted.
 
-Lemma bunifyN_correct1 : forall (p : polynomial) (n : nat),
-  is_polynomial p ->
-  length (vars p) < n ->
-  forall s, bunifyN n p = Some s ->
+Lemma mulMM_cons : forall x m,
+  ~ In x m ->
+  mulMM [x] m = x :: m.
+Proof.
+Admitted.
+
+Lemma mulMP_map_cons : forall x p q,
+  is_poly p ->
+  is_poly q ->
+  (forall m, In m q -> ~ In x m) ->
+  p = map (cons x) q ->
+  p = mulMP [x] q.
+Proof.
+Admitted.
+
+Lemma elim_var_not_in_rem : forall x p r,
+  elim_var x p = r ->
+  (forall m, In m r -> ~ In x m).
+Proof.
+  intros.
+  unfold elim_var in H.
+  rewrite <- H in H0.
+  apply in_map_iff in H0 as [n []].
+  rewrite <- H0.
+  apply remove_In.
+Qed.
+
+Lemma elim_var_map_cons_rem : forall x p r,
+  (forall m, In m p -> In x m) ->
+  elim_var x p = r ->
+  p = map (cons x) r.
+Proof.
+Admitted.
+
+Lemma elim_var_mul : forall x p r,
+  is_poly p ->
+  is_poly r ->
+  (forall m, In m p -> In x m) ->
+  elim_var x p = r ->
+  p = mulMP [x] r.
+Proof.
+  intros.
+  apply mulMP_map_cons; auto.
+  apply (elim_var_not_in_rem _ _ _ H2).
+  apply (elim_var_map_cons_rem _ _ _ H1 H2).
+Qed.
+
+Lemma part_fst_true : forall X p (x t f : list X),
+  partition p x = (t, f) ->
+  (forall a, In a t -> p a = true).
+Proof.
+Admitted.
+
+Lemma has_var_eq_in : forall x m,
+  has_var x m = true <-> In x m.
+Proof.
+Admitted.
+
+Lemma div_is_poly : forall x p q r,
+  is_poly p ->
+  div_by_var x p = (q, r) ->
+  is_poly q /\ is_poly r.
+Proof.
+Admitted.
+
+Lemma part_is_poly : forall f p l r,
+  is_poly p ->
+  partition f p = (l, r) ->
+  is_poly l /\ is_poly r.
+Proof.
+Admitted.
+
+(** As explained earlier, given a polynomial [p] decomposed into a variable [x],
+    a quotient [q], and a remainder [r], [div_eq] asserts that [p = x * q + r].
+    *)
+
+Lemma div_eq : forall x p q r,
+  is_poly p ->
+  div_by_var x p = (q, r) ->
+  p = addPP (mulMP [x] q) r.
+Proof.
+  intros x p q r HP HD.
+  
+  assert (HE := HD).
+  unfold div_by_var in HE.
+  destruct ((partition (has_var x) p)) as [qx r0] eqn:Hqr.
+  injection HE. intros Hr Hq.
+
+  assert (HIH: forall m, In m qx -> In x m). intros.
+  apply has_var_eq_in.
+  apply (part_fst_true _ _ _ _ _ Hqr _ H).
+
+  assert (is_poly q /\ is_poly r) as [HPq HPr].
+  apply (div_is_poly x p q r HP HD).
+  assert (is_poly qx /\ is_poly r0) as [HPqx HPr0].
+  apply (part_is_poly (has_var x) p qx r0 HP Hqr).
+  apply (elim_var_mul _ _ _ HPqx HPq HIH) in Hq.
+  
+  apply (part_add_eq (has_var x) _ _ _ HP).
+  rewrite <- Hq.
+  rewrite <- Hr.
+  apply Hqr.
+Qed.
+
+(** The second main lemma about varaible elimination is below. Given that a term
+    [p] has been decomposed into the form [x * q + r], we can define [p' = (q +
+    1) * r]. The lemma [div_build_unif] states that any unifier of [p =B 0] is
+    also a unifier of [p' =B 0]. Much of this proof relies on the axioms of
+    polynomial arithmetic. *)
+
+(** This helper function [build_poly] is used to construct [p' = (q + 1) * r]
+    given the quotient and remainder as inputs. *)
+
+Definition build_poly (q r : poly) : poly := 
+  mulPP (addPP [[]] q) r.
+
+Lemma div_build_unif : forall x p q r s,
+  is_poly p ->
+  div_by_var x p = (q, r) ->
+  unifier s p ->
+  unifier s (build_poly q r).
+Proof.
+  unfold build_poly, unifier.
+  intros x p q r s HPp HD Hsp0.
+  apply (div_eq _ _ _ _ HPp) in HD as Hp.
+
+  (* multiply both sides of Hsp0 by s(q+1) *)
+  assert (exists q1, q1 = addPP [[]] q) as [q1 Hq1]. eauto.
+  assert (exists sp, sp = substP s p) as [sp Hsp]. eauto.
+  assert (exists sq1, sq1 = substP s q1) as [sq1 Hsq1]. eauto.
+  rewrite <- Hsp in Hsp0.
+  apply (mulPP_l_r sp [] sq1) in Hsp0.
+  rewrite mulPP_0 in Hsp0.
+  rewrite <- Hsp0.
+  rewrite Hsp, Hsq1.
+  rewrite Hp, Hq1.
+  rewrite <- substP_distr_mulPP.
+  f_equal.
+
+  assert (HMx: is_mono [x]). auto.
+  apply (div_is_poly x p q r HPp) in HD.
+  destruct HD as [HPq HPr].
+  assert (is_mono [x] /\ is_poly q). auto.
+
+  rewrite (mulMP_mulPP_eq _ _ H).
+  rewrite mulPP_addPP_1.
+  reflexivity.
+Qed.
+
+(** * Building Substitutions *)
+
+(** This section handles how a solution is built from subproblem solutions.
+    Given that a term [p] has been decomposed into the form [x * q + r], we can
+    define [p' = (q + 1) * r]. The lemma [reprod_build_subst] states that if
+    some substitution [s] is a reproductive unifier of [p' =B 0], then we can
+    build a substitution [s'] which is a reproductive unifier of [p =B 0]. The
+    way [s'] is built from [s] is defined in [build_subst]. Another replacement
+    is added to [s] of the form [x -> x * (s(q) + 1) + s(r)] to construct [s'].
+    *)
+
+Definition build_subst (s : subst) (x : var) (q r : poly) : subst :=
+  let q1 := addPP [[]] q in
+  let q1s := substP s q1 in
+  let rs  := substP s r in
+  let xs  := (x, addPP (mulMP [x] q1s) rs) in
+  xs :: s.
+
+Lemma reprod_build_subst : forall x p q r s, 
+  div_by_var x p = (q, r) ->
+  reprod_unif s (build_poly q r) ->
+  inDom x s = false ->
+  reprod_unif (build_subst s x q r) p.
+Proof.
+Admitted.
+
+
+
+(** * Recursive Algorithm *)
+
+(** Now we define the actual algorithm of successive variable elimination.
+    Built using five helper functions, the definition is not too difficult to
+    construct or understand. The general idea, as mentioned before, is to remove
+    one variable at a time, creating simpler problems. Once the simplest problem
+    has been reached, to which the solution is already known, every solution to
+    each subproblem can be built from the solution to the successive subproblem.
+    Formally, given the polynomials [p = x * q + r] and [p' = (q + 1) * r], the
+    solution to [p =B 0] is built from the solution to [p' =B 0]. If [s] solves
+    [p' =B 0], then [s' = s U (x -> x * (s(q) + 1) + s(r))] solves [p =B 0]. *)
+
+(** The function [sve] is the final result, but it is [sveVars] which actually
+    has all of the meat. Due to Coq's rigid type system, every recursive
+    function must be obviously terminating. This means that one of the arguments
+    must decrease with each nested call. It turns out that Coq's type checker
+    is unable to deduce that continually building polynomials from the quotient
+    and remainder of previous ones will eventually result in 0 or 1. So instead
+    we add a fuel argument that explicitly decreases per recursive call. We use
+    the set of variables in the polynomial for this purpose, since each
+    subsequent call has one less variable. *)
+
+Fixpoint sveVars (vars : list var) (p : poly) : option subst :=
+  match vars with
+  | [] => 
+      match p with
+      | [] => Some [] (* p = 1, Identity substitution *)
+      | _  => None    (* p = 0, No solution *)
+      end
+  | x :: xs =>
+      let (q, r) := div_by_var x p in
+      match sveVars xs (build_poly q r) with
+      | None => None
+      | Some s => Some (build_subst s x q r)
+      end
+  end.
+
+
+Definition sve (p : poly) : option subst := sveVars (vars p) p.
+
+
+(** * Correctness *)
+
+(** Finally, we must show that this algorithm is correct. As discussed in the
+    beginning, the correctness of a unification algorithm is proven for two
+    cases. If the algorithm produces a solution for a problem, then the solution
+    must be most general. If the algorithm produces no solution, then the
+    problem must not be unifiable. These statements have been formalized in the
+    theorem [sve_correct] with the help of the predicates [mgu] and [unifiable]
+    as defined in the library [poly_unif.v]. The two cases of the proof are
+    handled seperately by the lemmas [sveVars_some] and [sveVars_none].
+*)
+
+Lemma sveVars_some : forall (p : poly),
+  is_poly p ->
+  forall s, sveVars (vars p) p = Some s ->
             mgu s p.
 Proof.
 Admitted.
 
 
-Lemma bunifyN_correct2 : forall (p : polynomial) (n : nat),
-  is_polynomial p ->
-  length (vars p) < n ->
-  bunifyN n p = None ->
+Lemma sveVars_none : forall (p : poly),
+  is_poly p ->
+  sveVars (vars p) p = None ->
   ~ unifiable p.
 Proof.
 Admitted.
 
 
-Lemma bunifyN_correct : forall (p : polynomial) (n : nat),
-  is_polynomial p ->
-  length (vars p) < n ->
-  match bunifyN n p with
+Lemma sveVars_correct : forall (p : poly),
+  is_poly p ->
+  match sveVars (vars p) p with
   | Some s => mgu s p
   | None => ~ unifiable p
   end.
 Proof.
   intros.
-  remember (bunifyN n p).
+  remember (sveVars (vars p) p).
   destruct o.
-  - apply (bunifyN_correct1 p n H H0 s). auto.
-  - apply (bunifyN_correct2 p n H H0). auto.
+  - apply sveVars_some; auto.
+  - apply sveVars_none; auto.
 Qed.
 
 
-Theorem bunify_correct : forall (p : polynomial),
-  is_polynomial p ->
-  match bunify p with
+Theorem sve_correct : forall (p : poly),
+  is_poly p ->
+  match sve p with
   | Some s => mgu s p
   | None => ~ unifiable p
   end.
 Proof.
   intros.
-  apply bunifyN_correct.
-  - apply H.
-  - auto.
+  apply sveVars_correct.
+  auto.
 Qed.
-
 
