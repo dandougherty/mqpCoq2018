@@ -27,6 +27,8 @@ Import ListNotations.
 (* Define a variable to be a natural number *)
 Definition var := nat.
 
+Definition var_eq_dec := Nat.eq_dec.
+
 (* 
    Inductively define a term to be of the form, {0, 1, x_n, t1 + t2, t1 * t2} where
    x_n is a variable and t1, t2 are terms 
@@ -819,4 +821,3 @@ Admitted. (* rewrite distr. rewrite mul_comm. rewrite mul_id.
   { simpl. inversion H. }
   { simpl.  
 Admitted. *)
-
