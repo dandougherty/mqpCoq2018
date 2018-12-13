@@ -93,21 +93,29 @@
 (** * Formal Verification *)
 
 (** Formal verification is the term used to describe the act of verifying (or disproving) the correctness
-of software and hardware systems or theories. Formal verification consists of a set of technques 
+of software and hardware systems or theories. Formal verification consists of a set of techinques 
 that perform static analysis on the behavior of a system, or the correctness of a theory. It 
 differs to dynamic analysis that uses simulation to evaluate the correctness of a system.
 *)
 
 (** Formal verification is used because it does not have to evaluate 
 every possible case or state to determine if a system or theory meets all the preset logical 
-conditions and rerquirements. Moreover, as design sizes and software systems have increased 
-(along with their simulation times) verification teams have been looking 
+conditions and rerquirements. Moreover, as design and software systems sizes have increased 
+(along with their simulation times), verification teams have been looking 
 for alternative methods of proving or disproving the correctness of a system
-in order to reduce the required time.
+in order to reduce the required time to perform a correctness check or evaluation.
 *)
 
 
 (** ** Proof Assistance *)
+
+(** A proof assistant is a software tool that is used to formulate and prove or disprove
+theorems in computer science or mathematical logic. They are also be called interactive
+theorem provers and they may also involve some type of proof and text editor that the user can
+use to form and prove and define theorems, lemmas , functions , etc. They facilitate that process
+by allowing the user to search definitions, terms and even provide some kind of guidance during
+the formulation or proof of a theorem.
+ *)
 
 
 
