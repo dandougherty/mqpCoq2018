@@ -1,3 +1,12 @@
+Since 12/10/18:
+  Done:
+    - Wrote about unification in the intro file. This includes unification in general, syntactic, semantic, and Boolean unification.
+    - Helped merge lowenheim_dev branch into master.
+  Goals:
+    - Write more about unification.
+    - Add to other intro sections.
+    - Prove sveVars_none.
+
 Since 12/06/18:
   Done:
     - Wrote introductions to each section of sve.v. I couldn't say much about the individual proofs since most of them had to do with sets and not ordered lists.
