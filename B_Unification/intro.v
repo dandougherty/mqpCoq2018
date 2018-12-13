@@ -92,6 +92,20 @@
 
 (** * Formal Verification *)
 
+(** Formal verification is the term used to describe the act of verifying (or disproving) the correctness
+of software and hardware systems or theories. Formal verification consists of a set of technques 
+that perform static analysis on the behavior of a system, or the correctness of a theory. It 
+differs to dynamic analysis that uses simulation to evaluate the correctness of a system.
+*)
+
+(** Formal verification is used because it does not have to evaluate 
+every possible case or state to determine if a system or theory meets all the preset logical 
+conditions and rerquirements. Moreover, as design sizes and software systems have increased 
+(along with their simulation times) verification teams have been looking 
+for alternative methods of proving or disproving the correctness of a system
+in order to reduce the required time.
+*)
+
 
 (** ** Proof Assistance *)
 
