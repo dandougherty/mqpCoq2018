@@ -1,3 +1,21 @@
+For Thursday 12/13 :
+
+Things I worked on:
+
+- added introductory subsections to the intro chapter of the report
+- worked on 10.4.5 , but after failing to keep the current format and solve the existing problem
+by adding the extra l, decided to try a new apporach by changing how the lemma is formed, but that still in the works 
+(adding a list of vars and changing the proposition equivalence to a list of replacements) - more like professor's version
+. Still admitted though and working on it.
+-finally merged lowenheim_dev with the rest of the team.
+
+Plans/ problems
+- finish 10.4.5 !!!
+- finish the other two proofs based on 10.4.5 (one of them is done but if 10.4.5 's format changes, it needs to change too)
+
+
+------------------------------------------------------------------------------------------------------
+
 For Monday 12 / 9 :
 
 Things I worked on:
