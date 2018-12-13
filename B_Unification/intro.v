@@ -115,11 +115,108 @@
 
 (** * Development *)
 
+(** There are many different approaches that one could take to go about formalizing 
+    a proof of Boolean Unification algorithms, each with their own challenges. For 
+    this development, we have opted to base our work largely off chapter 10, 
+    _Equational Unification_, in _Term Rewriting and All That_ by Franz Baader and 
+    Tobias Nipkow. Specifically, section 10.4, titled _Boolean Unification_, details 
+    Boolean rings, data structures to represent them, and two algorithms to perform 
+    unification in Boolean rings. 
+*)
+
+(** We chose to implement two data structures for representing the terms of a Boolean 
+    unification problem, and two algorithms for performing unification. The two data 
+    structures chosen are an inductive Term type and lists of lists representing 
+    polynomial-form terms. The two algorithms are Lowenheim’s formula and successive 
+    variable elimination.
+*)
 
 (** ** Data Structures *)
 
+(** The data structure used to represent a Boolean unification problem completely 
+    changes the shape of both the unification algorithm and the proof of correctness, 
+    and is therefore a very important decision. For this development, we have selected 
+    two different representations of Boolean rings – first as a “Term” inductive type, 
+    and then as lists of lists representing terms in polynomial form.
+*)
+
+(** The Term inductive type, used in the proof of Lowenheim’s algorithm, is very simple 
+    and rather intuitive – a term in a Boolean ring is one of 5 things:
+    -	The number 0
+    -	The number 1
+    -	A variable
+    -	Two terms added together
+    -	Two terms multiplied together
+*)
+
+(** In our development, variables are represented as natural numbers. 
+*)
+
+(** After defining terms like this, it is necessary to define a new equality relation, 
+    referred to as term equivalence, for comparing terms. With the term equivalence 
+    relation defined, it is easy to define ten axioms enabling the ten identities that 
+    hold true over terms in Boolean rings. 
+*)
+
+(** The inductive representation of terms in a Boolean ring is defined in the file 
+    [terms.v]. Unification over these terms is defined in [term_unif.v].
+*)
+
+(** The second representation, used in the proof of successive variable elimination, 
+    uses lists of lists of variables to represent terms in polynomial form. A monomial 
+    is a list of distinct variables multiplied together. A polynomial, then, is a list 
+    of distinct monomials added together. Variables are represented the same way, as 
+    natural numbers. The terms 0 and 1 are represented as the empty polynomial and the 
+    polynomial containing only the empty monomial, respectively. 
+*)
+
+(** The interesting part of the polynomial representation is how the ten identities are 
+    implemented. Rather than writing axioms enabling these transformations, we chose to 
+    implement the addition and multiplication operations in such a way to ensure these 
+    rules hold true, as described in _Term Rewriting_. 
+*)
+
+(** Addition is performed by cancelling out all repeated occurrences of monomials in the 
+    result of appending the two lists together (ie, x+x=0). This is equivalent to the 
+    symmetric difference in set theory, keeping only the terms that are in either one 
+    list or the other (but not both). Multiplication is slightly more complicated. The 
+    product of two polynomials is the result of multiplying all combinations of monomials 
+    in the two polynomials and removing all repeated monomials. The product of two 
+    monomials is the result of keeping only one copy of each repeated variable after 
+    appending the two together.
+*)
+
+(** By defining the functions like this, and maintaining that the lists are sorted with 
+    no duplicates, we ensure that all 10 rules hold over the standard coq equivalence 
+    function. This of course has its own benefits and drawbacks, but lent itself better 
+    to the nature of successive variable elimination.
+*)
+
+(** The polynomial representation is defined in the file [poly.v]. Unification over these 
+    polynomials is defined in [poly_unif.v].
+*)
 
 (** ** Algorithms *)
 
+(** For unification algorithms, we once again followed the work laid out in _Term 
+    Rewriting and All That_ and implemented both Lowenheim’s algorithm and successive 
+    variable elimination.
+*)
 
+(** The first solution, Lowenheim’s algorithm, is built on top of the term inductive 
+    type. Lowenheim’s is based on the idea that the Lowenheim formula can take a ground 
+    unifier of a Boolean unification problem and turn it into a most general unifier. 
+    The algorithm then of course first requires finding a ground solution, accomplished 
+    through brute force, which is then passed through the formula to create a most 
+    general unifier. Lowenheim’s algorithm is implemented in the file [lowenheim.v], 
+    and the proof of correctness is in [lowenheim_proof.v].
+*)
 
+(** The second algorithm, successive variable elimination, is built on top of the 
+    list-of-list polynomial approach. Successive variable elimination is built on the 
+    idea that by factoring variables out of the equation one-by-one, we can eventually 
+    reach a ground unifier. This unifier can then be built up with the variables that 
+    were previously eliminated until a most general unifier for the original unification 
+    problem is achieved. Successive variable elimination and its proof of correctness 
+    are both in [sve.v].
+*)
