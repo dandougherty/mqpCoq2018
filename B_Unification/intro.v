@@ -51,16 +51,42 @@
 
 (** ** Syntatic Unification *)
 
-(** This is the simpler version of unification
+(** This is the simpler version of unification. For two terms to be considered
+    equal they must be identical. For example, the terms [x * y] and [y * x] are
+    not syntactically equal, but would be equal modulo commutativity of
+    multiplication. (more about solving these problems / why simpler...)
 *)
 
 (** ** Semantic Unification *)
 
 
+(** This kind of unification involves an equational theory. Given a set of
+    identities E, we write that two terms [u] and [v] are equal with regards to
+    E as [u =E v]. This means that identities of E can be applied to [u] as [u']
+    and [v] as [v'] in some way to make them syntactically equal, [u' = v']. As 
+    an example, let C be the set [{f(x, y) = f(y, x)}]. This theory C axiomatizes
+    the commutativity of the function [f]. It would then make sense to write
+    [f(a, x) =C f(x, a)]. In general, for an arbitrary E, the problem of
+    E-unification is undecidable.
+*)
 
 (** ** Boolean Unification *)
 
+(** In this paper, we focus on unfication modulo Boolean ring theory, also
+    referred to as B-unification. The allowed terms in this theory are the
+    constants [0] and [1] and binary functions [+] and [*]. The set of identities
+    [B] is defined as the set [{x + y = y + x, (x + y) + z = x + (y  + z), x + x
+    = 0, 0 + x = x, x * (y + z) = (x * y) + (x * z), x * y = y * x, (x * y) * z
+    = x * (y * z), x * x = x, 0 * x = 0, 1 * x = x}]. This set is equivalent to
+    the theory of real numbers with the addition of [x + x = 0] and [x * x = x].
+*)
 
+(** Although a unification problem is a set of equations between two terms, we
+    will now show informally that a B-unification problem can be viewed as a
+    single equation [t = 0]. (proof of single equation...). The equation [s = t]
+    is equivalent to [s + t = 0] since adding [t] to both sides of the equation
+    turns the right hand side into [t + t] which simplifies to [0].
+*)
 
 
 
