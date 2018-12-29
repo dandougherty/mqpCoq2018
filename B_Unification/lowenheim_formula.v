@@ -18,84 +18,31 @@ Import ListNotations.
 (* In this section we formulate lowenheim's formula for syntactic unification
  into an algorithm, that given a term, it generates one most general unifier,if 
  there is one *)
-
-(** 2.1 Lowenheim's formula **)
-
-(* In this subsection we define Lowenheim's formula's basics, including 
-  functions and formulas  *) 
-
-
-(* Generates a lowenheim replacement *)
-Definition lowenheim_replace (t : term) (r : replacement) : replacement :=
-  if term_contains_var t (fst r) then 
-    (fst r, (t + T1) * VAR (fst r) + t * (snd r))
-  else
-    (fst r, VAR (fst r)).
-
-(* Builds a lowenheim substitution for a given term from a substitution *)
-Fixpoint lowenheim_subst (t : term) (sigma : subst) : subst :=
-  match sigma with
-    | nil => nil
-    | r :: s' => (lowenheim_replace t r) :: (lowenheim_subst t s')
-  end.
-
-(* A simple example from the book for lowenheim's formula generating a unifier *)
-Example lowenheim_subst_ex1 :
-  (unifier (VAR 0 * VAR 1) (lowenheim_subst (VAR 0 * VAR 1) ((0, T1) :: (1, T0) :: nil)) ).
-Proof.
-unfold unifier. unfold lowenheim_subst. simpl. 
-rewrite mul_comm with (y := T0). rewrite mul_T0_x.
-rewrite sum_comm with (y := T0). rewrite sum_id.
-rewrite mul_comm with (y := T1). rewrite mul_id.
-rewrite mul_comm with (y := VAR 0). 
-rewrite mul_comm with (y := VAR 1).
-rewrite distr with (x := VAR 1). rewrite mul_comm with (y := T1).
-rewrite mul_id. rewrite mul_comm with (y := VAR 1).
-rewrite <- mul_assoc with (y := VAR 1) (z := VAR 0).
-rewrite mul_x_x. rewrite distr with (x := VAR 0) (y := VAR 1 * VAR 0).
-rewrite mul_comm with (y := VAR 0). rewrite <- mul_assoc with (y := VAR 0).
-rewrite mul_x_x. rewrite sum_x_x. rewrite sum_id. rewrite sum_comm.
-rewrite sum_id. rewrite mul_comm with (y := T1). rewrite mul_id.
-rewrite distr. rewrite <- mul_assoc with (y := VAR 0).
-rewrite mul_x_x. rewrite sum_x_x. reflexivity.
-Qed.
-
-(* A more complicated example of lowenheim's formula generating a unifier *)
-Example lowenheim_subst_ex2 :
-  (unifier 
-    (VAR 0 + VAR 1) 
-    (lowenheim_subst (VAR 0 + VAR 1) ((0, VAR 0) :: (1, VAR 0) :: nil))).
-Proof.
-unfold unifier. unfold lowenheim_subst. simpl.
-rewrite mul_comm. rewrite distr. rewrite distr. rewrite distr.
-rewrite mul_x_x. rewrite mul_comm with (y := VAR 1). rewrite distr.
-rewrite distr. rewrite distr. rewrite distr. rewrite mul_x_x. 
-rewrite mul_id_sym. rewrite mul_comm with (y := VAR 0). 
-rewrite <- mul_assoc with (x := VAR 0). rewrite mul_x_x. rewrite sum_x_x.
-rewrite sum_id. rewrite mul_comm with (y := VAR 0). rewrite distr.
-rewrite mul_x_x. rewrite distr. rewrite mul_x_x. rewrite <- mul_assoc with (x := VAR 0).
-rewrite mul_x_x. rewrite sum_comm with (y := VAR 0 * VAR 1).
-rewrite <- sum_assoc with (x := VAR 0 * VAR 1). rewrite sum_x_x. rewrite sum_id.
-rewrite sum_x_x. rewrite sum_id. rewrite sum_comm with (x := VAR 0 * VAR 1).
-rewrite sum_comm with (y := VAR 1). rewrite <- sum_assoc with (x := VAR 1).
-rewrite sum_x_x. rewrite sum_id. rewrite mul_id_sym.
-rewrite mul_comm with (y := VAR 0). rewrite distr. rewrite mul_x_x.
-rewrite distr. rewrite <- mul_assoc with (x := VAR 0). rewrite mul_x_x.
-rewrite distr. rewrite <- mul_assoc with (x := VAR 0). rewrite mul_x_x.
-rewrite <- sum_assoc with (x := VAR 0 * VAR 1). rewrite sum_x_x. rewrite sum_id.
-rewrite sum_x_x. rewrite sum_id_sym. rewrite sum_x_x. 
-reflexivity.
-Qed.
  
-(* Simple tests on Spiros' simplification routines *)
-Compute (simplify   ( (VAR 0)*((VAR 0) * (VAR 1) + (VAR 0) * (VAR 2))* T0 + T0 + T1 + 
-                    T1 * ((VAR 1) + (VAR 0) + (VAR 0))      ) ).
+(* 2.1 Lownheim's formula *)
 
-Compute (Simplify_N   ( (VAR 0)*((VAR 0) * (VAR 1) + (VAR 0) * (VAR 2))* T0 + T0 + T1 + 
-                    T1 * ((VAR 1) + (VAR 0) + (VAR 0)) ) 50  ).
+(* skeleton function for building a substition on the format 
+ sigma(x) = (s + 1) * sig1(x) + s * sig2(x) , x variable
+  for a given list of variables , term s and subtitutions sig1 and sig2 *)
+
+Fixpoint build_on_list_of_vars (list_var : var_set) (s : term) (sig1 : subst) (sig2 : subst) : subst :=
+  match list_var with 
+   | nil => nil 
+   | v' :: v =>
+      (cons (v' , (s + T1) * (apply_subst (VAR v') sig1 )  + s * (apply_subst (VAR v' ) sig2 )  )    
+            (build_on_list_of_vars v s sig1 sig2) )
+  end. 
 
 
-(** 2.2 Lowenheim's formula  **)
+(* function to build a lowenheim subsitution for a term t , given the term t and a unifer of t, using the previously
+  defined skeleton function. The list of variables is the variables within t and the substitions are the identical
+  subtitution and the unifer of the term *)
+Definition build_lowenheim_subst (t : term) (tau : subst) : subst :=
+  build_on_list_of_vars (term_unique_vars t) t (build_id_subst (term_unique_vars t)) tau.
+
+
+
+(** 2.2 Lowenheim's algorithm  **)
 
 (* In this subsection we convert Lowenheim's formula
    to an algorithm that is able to find ground substitutions 
@@ -165,24 +112,21 @@ Compute (find_unifier  ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) * ( (VAR 2) +
 
 
 
-
-
-
 (* MAIN lowenheim formula give it a term, produce an MGU that make it equivalent to T0,
 if there is one. Otherwise, returns None_substitution *)
 
 Definition Lowenheim_Main (t : term) : subst_option :=
   match (find_unifier t) with
-    | Some_subst s => Some_subst (lowenheim_subst t s)
+    | Some_subst s => Some_subst (build_lowenheim_subst t s)
     | None_subst => None_subst
   end.  
 
 
 
-(*Some Lowenheim computations*)
+(*Some Lowenheim computations. Examples where we find an mgu of a given term
+  using our main lownheim function *)
 
 Compute (Lowenheim_Main ((VAR 0) * (VAR 1))).
-Compute (Lowenheim_Main (T0)).
 Compute (Lowenheim_Main ((VAR 0) + (VAR 1)) ).
 Compute (Lowenheim_Main ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) * ( (VAR 2) + (VAR 0)) ) ).
 
@@ -197,7 +141,7 @@ Compute (Lowenheim_Main (( VAR 0) + (VAR 0) + T1)).
 
 (** 2.3 Lowenheim testing **)
 
-(* In this subsection we define a testing function for Lowenheim's main formula
+(* In this subsection we define a testing function for the function that finds a ground unifier
 *) 
 
 (* Function to test the correctness of the output of the find_unifier helper function defined above. 
@@ -210,28 +154,11 @@ Definition Test_find_unifier (t : term) : bool :=
   end. 
 
 
-(* some tests of the find unifier function *)
+(* some tests on the find_unifier function *)
 
 Compute (Test_find_unifier (T1)).
 Compute (Test_find_unifier ((VAR 0) * (VAR 1))).
 Compute (Test_find_unifier ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) * ( (VAR 2) + (VAR 0)) )).
 
 
-(* Examples that prove Lowenheim's correctness *)
 
-Definition Unifier (t : term) (so : subst_option) : Prop :=
-  match so with
-    | Some_subst s => (unifier t s)
-    | None_subst => False (* should not be considered*)
-  end. 
-
-
-Example _xy_:
-(Unifier (VAR 0 * VAR 1) (Lowenheim_Main (VAR 0 * VAR 1) ) ).
-Proof.
- unfold Lowenheim_Main.
- unfold find_unifier.
-  repeat unfold term_unique_vars.
-  repeat unfold term_vars.
-  unfold var_set_create_unique. unfold var_set_includes_var.
-Admitted.
