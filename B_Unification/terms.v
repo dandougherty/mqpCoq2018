@@ -13,6 +13,8 @@ Require Import List.
 Require Import Setoid.
 Import ListNotations.
 
+
+
 (*** 1. DEFINITIONS ***)
 
 (* 
@@ -89,6 +91,14 @@ Axiom distr : forall x y z, x * (y + z) == (x * y) + (x * z).
 Hint Resolve sum_comm sum_assoc sum_x_x sum_id distr
              mul_comm mul_assoc mul_x_x mul_T0_x mul_id.
 
+Axiom refl_comm :
+  forall t1 t2, t1 == t2 -> t2 == t1.
+
+
+
+
+
+
 (* Mundane coq magic for custom equivalence relation *)
 Axiom eqv_ref : Reflexive eqv.
 Axiom eqv_sym : Symmetric eqv.
@@ -142,6 +152,18 @@ Axiom term_product_symmetric :
 
 (** USEFUL LEMMAS **)
 (* These Lemmas are used in larger proofs where they are considered to be true *) 
+
+
+Lemma sum_assoc_opp :
+ forall x y z, x + (y + z) == (x + y) + z.
+Proof.
+Admitted.
+
+Lemma mul_assoc_opp :
+ forall x y z, x * (y * z) == (x * y) * z.
+Proof.
+Admitted.
+
 
 
 (* Lemma for a sub-case of term multiplication. *)
@@ -460,6 +482,29 @@ Fixpoint apply_subst (t : term) (s : subst) : term :=
     | x :: y => apply_subst (replace t x) y
   end.
 
+Lemma apply_subst_compat : forall  (t t' : term),
+     t == t' -> forall (sigma: subst), (apply_subst t sigma) == (apply_subst t' sigma).
+Proof.
+Admitted.
+
+
+
+Add Parametric Morphism : apply_subst with
+      signature eqv ==> eq ==> eqv as apply_subst_mor.
+Proof.
+  exact apply_subst_compat.
+Qed.
+
+(* function that given a list of variables, it build a list of identical substitutions - one for each variable *)
+Fixpoint build_id_subst (lvar : list var) : subst :=
+  match lvar with
+  | nil => nil
+  | v :: v' => (cons (v , (VAR v))  
+                      (build_id_subst v'))
+  end.  
+
+
+
 (* Helpful lemma for showing substitutions do not affect ground terms *)
 Lemma ground_term_cannot_subst :
   forall x, (ground_term x) -> (forall s, apply_subst x s == x).
@@ -482,6 +527,41 @@ Lemma subst_associative :
 Proof.
 intro. induction s. intros. reflexivity. intros. apply IHs.
 Qed.
+
+
+Lemma subst_sum_distr_opp :
+  forall s x y, apply_subst (x + y) s == apply_subst x s + apply_subst y s.
+Proof.
+  intros.
+  apply refl_comm.
+  apply subst_distribution.
+Qed. 
+
+
+Lemma subst_mul_distr_opp :
+  forall s x y, apply_subst (x * y) s == apply_subst x s * apply_subst y s.
+Proof.
+  intros.
+  apply refl_comm.
+  apply subst_associative.
+Qed. 
+
+
+Lemma var_subst:
+  forall (v : var) (ts : term) ,
+  (apply_subst (VAR v) (cons (v , ts) nil) ) == ts.
+Proof.
+Admitted.
+
+Lemma id_subst:
+  forall (t : term),
+  apply_subst t (build_id_subst (term_unique_vars t)) == t.
+Proof.
+Admitted.
+
+
+
+
 
 Definition subst_idempotent (s : subst) : Prop :=
   forall t, apply_subst t s == apply_subst (apply_subst t s) s.
@@ -703,12 +783,10 @@ Fixpoint identical (a b: term) : bool :=
     | T1 , _ => false
     | VAR x , VAR y => if beq_nat x y then true else false
     | VAR x, _ => false
-    | PRODUCT x y, PRODUCT x1 y1 => if ((identical x x1) && (identical y y1)) ||
-                                       ((identical x y1) && (identical y x1)) then true
+    | PRODUCT x y, PRODUCT x1 y1 => if ((identical x x1) && (identical y y1)) then true
                                     else false
     | PRODUCT x y, _ => false
-    | SUM x y, SUM x1 y1 => if ((identical x x1) && (identical y y1)) ||
-                                       ((identical x y1) && (identical y x1)) then true
+    | SUM x y, SUM x1 y1 => if ((identical x x1) && (identical y y1)) then true
                                     else false
     | SUM x y, _ => false
   end.
@@ -821,3 +899,10 @@ Admitted. (* rewrite distr. rewrite mul_comm. rewrite mul_id.
   { simpl. inversion H. }
   { simpl.  
 Admitted. *)
+
+
+
+
+
+
+
