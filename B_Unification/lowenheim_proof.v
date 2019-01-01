@@ -157,7 +157,7 @@ Qed.
 
 
 
-(** 3.4 Proof that Lownheim's algorithm produces a reproductive unifier (mgu) **)
+(** 3.4 Proof that Lownheim's algorithm produces a reproductive unifier **)
 
 
 (* definition of a reproductive unifier. We have a small modification than the book's, we are
@@ -166,7 +166,7 @@ Qed.
 Definition reproductive_unifier (t : term) (sig : subst) : Prop :=
   unifier t sig ->
   forall (tau : subst) (x : var),
-  unifier t tau /\ (In x (term_unique_vars t))->
+  unifier t tau -> (In x (term_unique_vars t))->
   (apply_subst (apply_subst (VAR x) sig ) tau) == (apply_subst (VAR x) tau).
 
 
@@ -211,7 +211,7 @@ Admitted.
 
 
 
-(* lowenheim's algorithm gives a reproductive unifier, hence an mgu; because a reproductuve unifier is an mgu *)
+(* lowenheim's algorithm gives a reproductive unifier *)
 Lemma lowenheim_reproductive:
   forall (t : term) (tau : subst),
   (unifier t tau) -> 
@@ -219,10 +219,48 @@ Lemma lowenheim_reproductive:
 Proof.
  intros. unfold reproductive_unifier. intros.   rewrite lowenheim_rephrase.
   - rewrite subst_sum_distr_opp. rewrite subst_mul_distr_opp. rewrite subst_mul_distr_opp.
-    destruct H1. unfold unifier in H1. rewrite H1. rewrite mul_T0_x. rewrite subst_sum_distr_opp.
+    unfold unifier in H1. rewrite H1. rewrite mul_T0_x. rewrite subst_sum_distr_opp.
     rewrite H1. rewrite ground_term_cannot_subst.
     + rewrite sum_id. rewrite mul_id. rewrite sum_comm. rewrite sum_id. reflexivity.
     + unfold ground_term. intuition.
   - apply H.  
-  - destruct H1. apply H2.
+  - apply H2.
+Qed.
+
+
+
+
+
+(** 3.5 Proof that lowenheim builder is a most general unifier  **)
+
+(* substitution composition *)
+Definition substitution_composition (s s' delta : subst) (t : term) : Prop :=
+  forall (x : var), (In x (term_unique_vars t)) -> apply_subst (apply_subst (VAR x) s) delta == apply_subst (VAR x) s' .
+
+(* more general unifier *)
+Definition more_general_substitution (s s': subst) (t : term) : Prop :=
+  exists delta, substitution_composition s s' delta t.
+
+
+
+Definition most_general_unifier (t : term) (s : subst) : Prop :=
+  (unifier t s) -> (forall (s' : subst), unifier t s' -> more_general_substitution s s' t ).
+
+
+Lemma reproductive_is_mgu : forall (t : term) (u : subst),
+  reproductive_unifier t u ->
+  most_general_unifier t u.
+Proof.
+ intros. unfold most_general_unifier.  unfold reproductive_unifier in H.
+  unfold more_general_substitution . unfold substitution_composition.
+  intros. specialize (H H0). exists s' . intros.  specialize (H s' x).  specialize (H H1 H2). apply H.
+Qed.
+
+
+Lemma lowenheim_most_general_unifier:
+  forall (t : term) (tau : subst),
+  (unifier t tau) -> 
+  most_general_unifier t (build_lowenheim_subst t tau) .
+Proof.
+intros. apply reproductive_is_mgu. apply lowenheim_reproductive.  apply H.
 Qed.
