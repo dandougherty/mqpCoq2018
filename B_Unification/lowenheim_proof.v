@@ -157,6 +157,7 @@ Qed.
 
 
 
+
 (** 3.4 Proof that Lownheim's algorithm produces a reproductive unifier **)
 
 
@@ -166,7 +167,7 @@ Qed.
 Definition reproductive_unifier (t : term) (sig : subst) : Prop :=
   unifier t sig ->
   forall (tau : subst) (x : var),
-  unifier t tau -> (In x (term_unique_vars t))->
+  unifier t tau ->
   (apply_subst (apply_subst (VAR x) sig ) tau) == (apply_subst (VAR x) tau).
 
 
@@ -181,10 +182,15 @@ Lemma term_ident_prop :
 Admitted.
 
 
+Lemma distr_opp :
+ forall x y z, x * y  +  x * z == x * ( y + z).
+Proof.
+Admitted.
 
-(* lemma: applying lowenheim's subtitution on the variable of a term gives us the initial format 
+
+(* lemma: applying lowenheim's subtitution on any variable of a term gives us the initial format 
   of the replacement for that variable (lowenheim's reverse application ) *)
-Lemma lowenheim_rephrase :
+Lemma lowenheim_rephrase1 :
   forall (t : term) (tau : subst) (x : var),
   (unifier t tau) -> 
   (In x (term_unique_vars t)) -> 
@@ -192,6 +198,7 @@ Lemma lowenheim_rephrase :
   (t + T1) * (VAR x) + t * (apply_subst (VAR x) tau).
   Proof.
 intros. 
+
 induction t.
   - unfold build_lowenheim_subst. unfold term_unique_vars. unfold term_vars. unfold var_set_create_unique.
     unfold build_id_subst. unfold build_on_list_of_vars. rewrite mul_comm with (y := VAR x). rewrite distr.
@@ -206,9 +213,27 @@ induction t.
         rewrite H0 in H. unfold unifier in H. rewrite H. rewrite mul_T0_x_sym. pose proof term_ident_prop  as H1. specialize (H1 (VAR x) T0).
         simpl in H1. destruct H1. }
     +  destruct H0.
-  - 
+  - unfold unifier in H. rewrite subst_sum_distr_opp in H. pose proof unifies_T0_equiv as H5 . specialize (H5 t1 t2 tau).
+    unfold unifies in H5. unfold unifies_T0 in H5. rewrite <- H5 in H. 
 Admitted.
 
+(* lemma: applying lowenheim's subtitution on any variable not in the term gives us the same term
+  (no replacement is applied/ found since the variable is not in the term) *)
+Lemma lowenheim_rephrase2 :
+  forall (t : term) (tau : subst) (x : var),
+  (unifier t tau) -> 
+  ~ (In x (term_unique_vars t)) -> 
+  (apply_subst (VAR x) (build_lowenheim_subst t tau)) == 
+  (VAR x).
+  Proof.
+Admitted.
+
+
+Lemma var_in_out_list:
+  forall (x : var) (lvar : list var),
+  (In x lvar) \/ ~ (In x lvar).
+Proof.
+Admitted.
 
 
 (* lowenheim's algorithm gives a reproductive unifier *)
@@ -217,25 +242,34 @@ Lemma lowenheim_reproductive:
   (unifier t tau) -> 
   reproductive_unifier t (build_lowenheim_subst t tau) .
 Proof.
- intros. unfold reproductive_unifier. intros.   rewrite lowenheim_rephrase.
+ intros. unfold reproductive_unifier. intros. 
+  pose proof var_in_out_list. specialize (H2 x (term_unique_vars t)). destruct H2.
+  {
+  rewrite lowenheim_rephrase1.
   - rewrite subst_sum_distr_opp. rewrite subst_mul_distr_opp. rewrite subst_mul_distr_opp.
     unfold unifier in H1. rewrite H1. rewrite mul_T0_x. rewrite subst_sum_distr_opp.
     rewrite H1. rewrite ground_term_cannot_subst.
     + rewrite sum_id. rewrite mul_id. rewrite sum_comm. rewrite sum_id. reflexivity.
     + unfold ground_term. intuition.
   - apply H.  
-  - apply H2.
+  - apply H2. 
+  }
+  { rewrite lowenheim_rephrase2.
+    - reflexivity.
+    - apply H.
+    -  apply H2.
+  }
 Qed.
 
 
 
 
 
-(** 3.5 Proof that lowenheim builder is a most general unifier  **)
+(** 3.5 lowenheim builder is a most general unifier  **)
 
 (* substitution composition *)
 Definition substitution_composition (s s' delta : subst) (t : term) : Prop :=
-  forall (x : var), (In x (term_unique_vars t)) -> apply_subst (apply_subst (VAR x) s) delta == apply_subst (VAR x) s' .
+  forall (x : var), apply_subst (apply_subst (VAR x) s) delta == apply_subst (VAR x) s' .
 
 (* more general unifier *)
 Definition more_general_substitution (s s': subst) (t : term) : Prop :=
@@ -253,7 +287,7 @@ Lemma reproductive_is_mgu : forall (t : term) (u : subst),
 Proof.
  intros. unfold most_general_unifier.  unfold reproductive_unifier in H.
   unfold more_general_substitution . unfold substitution_composition.
-  intros. specialize (H H0). exists s' . intros.  specialize (H s' x).  specialize (H H1 H2). apply H.
+  intros. specialize (H H0). exists s' . intros.  specialize (H s' x).  specialize (H H1). apply H.
 Qed.
 
 
@@ -264,3 +298,4 @@ Lemma lowenheim_most_general_unifier:
 Proof.
 intros. apply reproductive_is_mgu. apply lowenheim_reproductive.  apply H.
 Qed.
+  
