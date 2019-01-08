@@ -22,15 +22,12 @@ Import ListNotations.
       -> is a reproductive unifier, hence an mgu *)
 
 
-(** 3.1 Declarations useful for the proof **)
+(** 3.1 Declarations and their lemmas useful for the proof **)
 
 
 Definition sub_term (t : term) (t' : term) : Prop :=
   forall (x : var ),
   (In x (term_unique_vars t) ) -> (In x (term_unique_vars t')) .
-
-
-(** 3.2 Lemmas useful for the proof  **)
 
 
 Lemma sub_term_id :
@@ -39,6 +36,10 @@ Lemma sub_term_id :
  Proof.
 Admitted.
 
+
+
+
+(** 3.2 Proof that Lownheim's algorithm unifes a given term **)
 
 
 (* helper lemma: applying two different substitutions on the same variable give the same result. 
@@ -73,7 +74,7 @@ Admitted.
 
 
 
-(** 3.3 Proof that Lownheim's algorithm unifes a given term **)
+
 
 (* Lemma 10.4.5*)
 
@@ -155,10 +156,10 @@ Qed.
 
 
 
+(** 3.3 Proof that Lownheim's algorithm produces a most general unifier **)
 
 
-
-(** 3.4 Proof that Lownheim's algorithm produces a reproductive unifier **)
+(** 3.3.a Proof that Lownheim's algorithm produces a reproductive unifier **)
 
 
 (* definition of a reproductive unifier. We have a small modification than the book's, we are
@@ -198,7 +199,6 @@ Lemma lowenheim_rephrase1 :
   (t + T1) * (VAR x) + t * (apply_subst (VAR x) tau).
   Proof.
 intros. 
-
 induction t.
   - unfold build_lowenheim_subst. unfold term_unique_vars. unfold term_vars. unfold var_set_create_unique.
     unfold build_id_subst. unfold build_on_list_of_vars. rewrite mul_comm with (y := VAR x). rewrite distr.
@@ -219,6 +219,7 @@ Admitted.
 
 (* lemma: applying lowenheim's subtitution on any variable not in the term gives us the same term
   (no replacement is applied/ found since the variable is not in the term) *)
+
 Lemma lowenheim_rephrase2 :
   forall (t : term) (tau : subst) (x : var),
   (unifier t tau) -> 
@@ -228,13 +229,11 @@ Lemma lowenheim_rephrase2 :
   Proof.
 Admitted.
 
-
 Lemma var_in_out_list:
   forall (x : var) (lvar : list var),
   (In x lvar) \/ ~ (In x lvar).
 Proof.
 Admitted.
-
 
 (* lowenheim's algorithm gives a reproductive unifier *)
 Lemma lowenheim_reproductive:
@@ -265,7 +264,7 @@ Qed.
 
 
 
-(** 3.5 lowenheim builder is a most general unifier  **)
+(** 3.3.b lowenheim builder gives  a most general unifier  **)
 
 (* substitution composition *)
 Definition substitution_composition (s s' delta : subst) (t : term) : Prop :=
@@ -298,4 +297,7 @@ Lemma lowenheim_most_general_unifier:
 Proof.
 intros. apply reproductive_is_mgu. apply lowenheim_reproductive.  apply H.
 Qed.
+  
+
+
   
