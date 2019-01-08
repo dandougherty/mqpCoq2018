@@ -19,6 +19,7 @@ Import ListNotations.
  into an algorithm, that given a term, it generates one most general unifier,if 
  there is one *)
  
+
 (* 2.1 Lownheim's formula *)
 
 (* skeleton function for building a substition on the format 
@@ -126,6 +127,8 @@ Definition Lowenheim_Main (t : term) : subst_option :=
 (*Some Lowenheim computations. Examples where we find an mgu of a given term
   using our main lownheim function *)
 
+Compute (find_unifier ((VAR 0) * (VAR 1)) )  .
+
 Compute (Lowenheim_Main ((VAR 0) * (VAR 1))).
 Compute (Lowenheim_Main ((VAR 0) + (VAR 1)) ).
 Compute (Lowenheim_Main ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) * ( (VAR 2) + (VAR 0)) ) ).
@@ -159,6 +162,22 @@ Definition Test_find_unifier (t : term) : bool :=
 Compute (Test_find_unifier (T1)).
 Compute (Test_find_unifier ((VAR 0) * (VAR 1))).
 Compute (Test_find_unifier ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) * ( (VAR 2) + (VAR 0)) )).
+
+
+(* function to apply Lowenheim's substitution on the term - the substitution produced
+   by the lowenheim builder *)
+Definition apply_lowenheim_main (t : term) : term :=
+  match (Lowenheim_Main t) with
+  | Some_subst s => (apply_subst t s)
+  | None_subst => T1
+  end.
+
+Compute (Lowenheim_Main ((VAR 0) * (VAR 1) )).
+Compute  (apply_lowenheim_main ((VAR 0) * (VAR 1) ) ).
+
+
+Compute (Lowenheim_Main ((VAR 0) + (VAR 1) )).
+Compute  (apply_lowenheim_main ((VAR 0) + (VAR 1) ) ).
 
 
 
