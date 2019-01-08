@@ -5,6 +5,8 @@
     Spyridon Antonatos
 ***)
 
+
+
 (*** Required Libraries ***)
 Require Import Bool.
 Require Import Omega.
@@ -12,8 +14,6 @@ Require Import EqNat.
 Require Import List.
 Require Import Setoid.
 Import ListNotations.
-
-
 
 (*** 1. DEFINITIONS ***)
 
@@ -474,13 +474,26 @@ Definition subst := list replacement.
 
 Implicit Type s : subst.
 
-(* The basic function to apply a substitution on a term; it uses the function replace 
-  as a helper function *)
-Fixpoint apply_subst (t : term) (s : subst) : term :=
-  match s with
-    | nil => t
-    | x :: y => apply_subst (replace t x) y
+
+Fixpoint replace_v (x : var) (s : subst) : term :=
+  match s with 
+  | nil => VAR x
+  | r :: r' =>
+      if beq_nat (fst r) x then (snd r)
+      else
+        (replace_v x r')
   end.
+
+
+Fixpoint apply_subst (t : term) (s : subst) : term :=
+  match t with 
+  | T0 => T0
+  | T1 => T1 
+  | VAR x => (replace_v x s)
+  | PRODUCT x y => PRODUCT (apply_subst x s) (apply_subst y s)
+  | SUM x y => SUM (apply_subst x s) (apply_subst y s)
+  end.
+
 
 Lemma apply_subst_compat : forall  (t t' : term),
      t == t' -> forall (sigma: subst), (apply_subst t sigma) == (apply_subst t' sigma).
@@ -494,6 +507,9 @@ Add Parametric Morphism : apply_subst with
 Proof.
   exact apply_subst_compat.
 Qed.
+
+
+
 
 (* function that given a list of variables, it build a list of identical substitutions - one for each variable *)
 Fixpoint build_id_subst (lvar : list var) : subst :=
@@ -509,23 +525,27 @@ Fixpoint build_id_subst (lvar : list var) : subst :=
 Lemma ground_term_cannot_subst :
   forall x, (ground_term x) -> (forall s, apply_subst x s == x).
 Proof.
-intros. induction s. simpl. reflexivity. simpl. apply ground_term_cannot_replace with (r := a) in H.
-rewrite H. apply IHs.
+intros. induction s. 
+  - apply ground_term_equiv_T0_T1 in H. destruct H.
+  + rewrite H. simpl. reflexivity.
+  + rewrite H. simpl. reflexivity.
+  - apply ground_term_equiv_T0_T1 in H. destruct H. rewrite H.
+    +  simpl. reflexivity.
+    + rewrite H. simpl. reflexivity.
 Qed.
 
 (* A useful lemma for showing the distributivity of substitutions across terms *)
 Lemma subst_distribution :
   forall s x y, apply_subst x s + apply_subst y s == apply_subst (x + y) s.
 Proof.
-intro. induction s. simpl. intros. reflexivity. intros. simpl. 
-apply IHs.
+intro. induction s. simpl. intros. reflexivity. intros. simpl. reflexivity. 
 Qed.
 
 (* A lemma to prove the associativity of the apply_subst function *)
 Lemma subst_associative :
   forall s x y, apply_subst x s * apply_subst y s == apply_subst (x * y) s.
 Proof.
-intro. induction s. intros. reflexivity. intros. apply IHs.
+intro. induction s. intros. reflexivity. intros. simpl. reflexivity. 
 Qed.
 
 
@@ -562,10 +582,10 @@ Admitted.
 
 
 
-
+(*
 Definition subst_idempotent (s : subst) : Prop :=
   forall t, apply_subst t s == apply_subst (apply_subst t s) s.
-
+*)
 (* Proposition that a given substitution unifies (namely, makes equivalent), two
   given terms *)
 Definition unifies (a b : term) (s : subst) : Prop :=
@@ -847,22 +867,22 @@ Fixpoint Simplify_N (t : term) (counter : nat): term :=
   to the most general unifier *)
 
 (* substitution composition *)
-Definition subst_compose (s s' delta : subst) : Prop :=
-  forall t, apply_subst t s' == apply_subst (apply_subst t s) delta.
+Definition subst_compose (s s' delta : subst) (t : term) : Prop :=
+   apply_subst t s' == apply_subst (apply_subst t s) delta.
 
 (* more general unifier *)
-Definition more_general_subst (s s': subst) : Prop :=
-  exists delta, subst_compose s s' delta.
+Definition more_general_subst (s s': subst) (t : term) : Prop :=
+  exists delta, subst_compose s s' delta t.
 
 (* Simplified notation for saying if a subst is more general than another *)
-Notation "u1 <_ u2" := (more_general_subst u1 u2) (at level 51, left associativity).
+Notation "u1 <_ u2 { t }" := (more_general_subst u1 u2 t) (at level 51, left associativity).
 
 (* 
   A Most General Unifier (MGU) takes in a term and a substitution and tells whether or not said substitution
   is an mgu for the given term.
 *)
 Definition mgu (t : term) (s : subst) : Prop :=
-  (unifier t s) /\ (forall (s' : subst), unifier t s' -> s <_ s').
+  (unifier t s) /\ (forall (s' : subst), unifier t s' -> (more_general_subst s s' t) ).
 
 (* 
   In report explain why we are using reproductive as opposed to mgu.
@@ -873,7 +893,7 @@ Definition reprod_unif (t : term) (s : subst) : Prop :=
   unifier t s /\
   forall u,
   unifier t u ->
-  subst_compose s u u.
+  subst_compose s u u t.
 
 (* might be useful for the proof *)
 Lemma reprod_is_mgu : forall (t : term) (u : subst),
@@ -899,7 +919,6 @@ Admitted. (* rewrite distr. rewrite mul_comm. rewrite mul_id.
   { simpl. inversion H. }
   { simpl.  
 Admitted. *)
-
 
 
 
