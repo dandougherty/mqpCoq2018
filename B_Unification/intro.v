@@ -83,9 +83,15 @@
 
 (** Although a unification problem is a set of equations between two terms, we
     will now show informally that a B-unification problem can be viewed as a
-    single equation [t = 0]. (proof of single equation...). The equation [s = t]
-    is equivalent to [s + t = 0] since adding [t] to both sides of the equation
-    turns the right hand side into [t + t] which simplifies to [0].
+    single equation [t = 0]. Given a problem in its normal form [{s1 = t1, ...,
+    sn = t2}], we can transform it into [{s1 + t1 = 0, ..., sn + tn = 0}] using
+    a simple fact. The equation [s = t] is equivalent to [s + t = 0] since
+    adding [t] to both sides of the equation turns the right hand side into
+    [t + t] which simplifies to [0]. Then, given a problem [{t1 = 0, ...,
+    tn = 0}], we can transform it into [{(t1 + 1) * ... * (tn + 1) = 1}].
+    Unifying both of these sets is equivalent because if any t1, ..., tn is 1
+    the problem is not unifiable. Otherwise, if every t1, ..., tn can be made to
+    equal 0, then both problems will be solved.
 *)
 
 
