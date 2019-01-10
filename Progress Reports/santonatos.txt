@@ -1,3 +1,30 @@
+During Christmas break :
+
+Things I worked on:
+
+- changed the format of our lowenheim builder to math the format of lemma 10.4.5
+- proved lemma 10.4.5 and then that our lowenheim builder unifies , having added 3 admitted helper lemmas
+- added property for rewrites within apply_subst, having added 1 admitted helper lemma
+- proved that our lowenheim builder gives a substitution that is reproductive, having added 2 admitted helper lemmas
+- proved that any reproductive unifier is also a most general unifier
+- proved that our lowenheim builder gives a most general unifier
+- fixed our apply_subst function to account for replacements that refer to each other (so that they do not get mixed up)
+and modifierd (reproved) all the lemmas that were already proved and involved apply_subst
+
+
+Plans:
+
+- reorganize the files by splitting our terms.v files
+- clean up our existing files by removing unused coq code and developement
+- add more writing
+- start filling in helper admitted leamms
+
+
+
+
+----------------------------------------------------------------------------------------------------------------
+
+
 For Thursday 12/13 :
 
 Things I worked on:
