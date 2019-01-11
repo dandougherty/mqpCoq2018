@@ -109,20 +109,30 @@ Proof.
     apply NoDup_cons_iff in H as [Ha Hp]. apply Ha.
 Qed. *)
 
+Lemma empty_unifier : unifier [] [].
+Proof.
+	unfold unifier. apply empty_substP.
+  unfold is_poly.
+  split.
+  + apply Sorted.Sorted_nil.
+  + intros. inversion H.
+Qed.
+
 Lemma empty_mgu : mgu [] [].
 Proof.
   unfold mgu, more_general, subst_comp.
   intros.
   simpl.
   split.
-  - unfold unifier. apply empty_substP.
-    unfold is_poly.
-    split.
-    + apply Sorted.Sorted_nil.
-    + intros. inversion H.
+  - apply empty_unifier.
   - intros.
     exists t.
     intros.
     rewrite (empty_substP _ H0).
     reflexivity.
 Qed.
+
+Lemma empty_reprod_unif : reprod_unif [] [].
+Proof.
+Admitted.
+

@@ -1,3 +1,13 @@
+Since 12/03/18:
+  Done:
+    - Renamed bunify to sve.
+    - Changed the fuel for sve from the vars length to the list of vars. This removed the need for the decomp function, simplifying some of the code.
+    - Changed some lemmas to use div_by_var instead of decomp since it is now removed.
+    - Started documentation on sve.v by adding sections and explaining the code in those sections.
+  Goals:
+    - Continue documenting sve.v and start on poly_unif.v.
+    - Continue to transform polynomial representation to sorted lists.
+
 Since 11/29/18:
   Done:
     - Proved most of the admitted lemmas used in the proof for the first fact of Theorem 10.4.10 in the book.

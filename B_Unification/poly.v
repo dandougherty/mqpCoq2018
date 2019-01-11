@@ -148,6 +148,12 @@ Hint Unfold is_mono is_poly.
 Definition vars (p : poly) : list var :=
   nodup var_eq_dec (concat p).
 
+Lemma vars_nodup : forall x xs p,
+  x :: xs = vars p ->
+  ~ In x xs.
+Proof.
+Admitted.
+
 (** There are a few userful things we can prove about these definitions too. First, 
     every element in a monomial is guaranteed to be less than the elements after it. *)
 
@@ -402,5 +408,58 @@ Lemma part_add_eq : forall f p l r,
   is_poly p ->
   partition f p = (l, r) ->
   p = addPP l r.
+Proof.
+Admitted.
+
+Lemma part_fst_true : forall X p (x t f : list X),
+  partition p x = (t, f) ->
+  (forall a, In a t -> p a = true).
+Proof.
+Admitted.
+
+Lemma part_snd_false : forall X p (x t f : list X),
+  partition p x = (t, f) ->
+  (forall a, In a f -> p a = false).
+Proof.
+Admitted.
+
+Lemma part_is_poly : forall f p l r,
+  is_poly p ->
+  partition f p = (l, r) ->
+  is_poly l /\ is_poly r.
+Proof.
+Admitted.
+
+Lemma addPP_cons : forall (m:mono) (p:poly),
+  HdRel (fun m n => lex compare m n = Lt) m p ->
+  addPP [m] p = m :: p.
+Proof. Admitted.
+
+Lemma mulMx_HdRel : forall x m p,
+  HdRel (fun m n => lex compare m n = Lt) m p ->
+  HdRel (fun m n => lex compare m n = Lt) (mulMM [x] m) (mulMP [x] p).
+Proof.
+  intros. Admitted.
+
+Lemma mulMP_map_mulMM : forall x q,
+  is_poly q ->
+  (forall m, In m q -> ~ In x m) ->
+  map (mulMM [x]) q = mulMP [x] q.
+Proof.
+  intros.
+  induction q.
+  - auto.
+  - simpl. rewrite (addPP_cons (mulMM [x] a) (mulMP [x] q)).
+    + f_equal. apply IHq.
+      * apply poly_cons in H as []; auto.
+      * intros m Hm. apply H0. simpl. right. apply Hm.
+    + unfold is_poly in H. destruct H. apply Sorted.Sorted_inv in H as [].
+      apply mulMx_HdRel. apply H2.
+Qed.
+
+Lemma mulMM_rem_eq : forall x m,
+  is_mono m ->
+  In x m ->
+  mulMM [x] (remove var_eq_dec x m) = m.
 Proof.
 Admitted.
