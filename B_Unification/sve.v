@@ -331,12 +331,39 @@ Definition sve (p : poly) : option subst := sveVars (vars p) p.
 *)
 
 
-Lemma sve_in_vars_in_unif : forall x xs p s,
-  ~ In x xs ->
-  sveVars xs p = Some s ->
-  inDom x s = false.
+Lemma sve_in_vars_in_unif : forall xs y p,
+  xs = vars p ->
+  is_poly p ->
+  ~ In y xs ->
+  forall s, sveVars xs p = Some s ->
+            inDom y s = false.
 Proof.
-Admitted.
+  induction xs as [|x xs].
+  - intros. simpl in H2. destruct p; inversion H2. auto.
+  - intros.
+    assert (exists qr, div_by_var x p = qr) as [[q r] Hqr]. eauto.
+    simpl in H2.
+    rewrite Hqr in H2.
+    destruct (sveVars xs (build_poly q r)) eqn:Hs0; inversion H2.
+
+    assert (Hvars: xs = vars (build_poly q r)).
+      apply (div_vars x xs p q r H Hqr).
+
+    assert (Hpoly: is_poly (build_poly q r)).
+      apply build_poly_is_poly.
+      apply div_is_poly in Hqr; auto.
+
+    assert (Hny: ~ In y xs).
+      simpl in H1. intro. auto.
+
+    apply (IHxs _ _ Hvars Hpoly Hny) in Hs0.
+
+    unfold inDom. unfold build_subst.
+    simpl.
+    apply Bool.orb_false_intro.
+    + apply Nat.eqb_neq. simpl in H1. intro. auto.
+    + unfold inDom in Hs0. apply Hs0.
+Qed.
 
 
 Lemma sveVars_some :  forall (xs : list var) (p : poly),
@@ -367,7 +394,7 @@ Proof.
 
     assert (Hin: inDom x s0 = false).
       apply vars_nodup in H.
-      apply (sve_in_vars_in_unif _ _ _ _ H Hs0).
+      apply (sve_in_vars_in_unif _ _ _ Hvars Hpoly H _ Hs0).
 
     apply (IHxs _ Hvars Hpoly) in Hs0.
     apply (reprod_build_subst _ _ _ _ _ Hqr Hs0 Hin).
