@@ -1,3 +1,4 @@
+Require Import ListSet.
 Require Import List.
 Import ListNotations.
 Require Import Arith.
@@ -110,7 +111,12 @@ Qed. *)
 
 Lemma empty_unifier : unifier [] [].
 Proof.
-Admitted.
+	unfold unifier. apply empty_substP.
+  unfold is_poly.
+  split.
+  + apply Sorted.Sorted_nil.
+  + intros. inversion H.
+Qed.
 
 Lemma empty_mgu : mgu [] [].
 Proof.
