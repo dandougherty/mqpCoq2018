@@ -267,13 +267,144 @@ Definition build_subst (s : subst) (x : var) (q r : poly) : subst :=
   let xs  := (x, addPP (mulMP [x] q1s) rs) in
   xs :: s.
 
-Lemma reprod_build_subst : forall x p q r s, 
+Lemma div_var_not_in_qr : forall x p q r,
+  div_by_var x p = (q, r) ->
+  ((forall m, In m q -> ~ In x m) /\
+   (forall m, In m r -> ~ In x m)).
+Proof.
+Admitted.
+
+(* Lemma substP_not_in_dom : forall s *)
+
+Lemma build_subst_is_unif : forall x p q r s,
+  is_poly p ->
+  div_by_var x p = (q, r) ->
+  reprod_unif s (build_poly q r) ->
+  unifier (build_subst s x q r) p.
+Proof.
+  intros x p q r s Hpoly Hdiv Hreprod.
+  unfold unifier. unfold reprod_unif in Hreprod.
+  destruct Hreprod as [Hunif Hreprod].
+  unfold unifier in Hunif.
+  unfold build_poly in Hunif.
+  assert (Hnqr := Hdiv).
+  apply (div_eq _ _ _ _ Hpoly) in Hdiv.
+  rewrite Hdiv.
+  rewrite substP_distr_addPP.
+  rewrite substP_distr_mulMP.
+  unfold build_subst.
+  apply div_var_not_in_qr in Hnqr.
+  destruct Hnqr as [Hnq Hnr].
+  assert (Hsq: (substP
+      ((x,
+       addPP
+         (mulMP [x]
+            (substP s (addPP [[]] q)))
+         (substP s r)) :: s) q) = substP s q).
+    apply substP_cons. apply Hnq.
+  assert (Hsr: (substP
+   ((x,
+    addPP
+      (mulMP [x]
+         (substP s (addPP [[]] q)))
+      (substP s r)) :: s) r) = substP s r).
+    apply substP_cons. apply Hnr.
+  rewrite Hsq. rewrite Hsr.
+  assert (Hsx: (substP
+      ((x,
+       addPP
+         (mulMP [x]
+            (substP s (addPP [[]] q)))
+         (substP s r)) :: s) 
+      (@cons mono
+            [x]
+            (@nil mono))) = (addPP
+         (mulMP [x]
+            (substP s (addPP [[]] q)))
+         (substP s r))).
+    simpl. unfold inDom. simpl.
+    rewrite <- beq_nat_refl. simpl.
+    rewrite addPP_0r.
+    rewrite mulPP_1r.
+    reflexivity.
+  rewrite Hsx.
+  assert (Hsrq: (mulPP
+   (addPP
+      (mulMP [x]
+         (substP s (addPP [[]] q)))
+      (substP s r)) (substP s q)) = (mulPP 
+        (substP s r) (substP s q))).
+    rewrite substP_distr_addPP.
+    rewrite mulMP_distr_addPP.
+    rewrite substP_1.
+    rewrite mulMP_1r.
+    rewrite mulPP_distr_addPP.
+    rewrite mulPP_distr_addPP.
+    rewrite mulMP_mulPP.
+    rewrite mulPP_assoc.
+    rewrite mulPP_p_p.
+    rewrite addPP_p_p.
+    rewrite addPP_0.
+    reflexivity.
+  rewrite Hsrq.
+  rewrite <- substP_distr_mulPP.
+  rewrite <- substP_distr_addPP.
+  assert (Hqr1: (addPP (mulPP r q) r) = (mulPP (addPP [[]] q) r)).
+    rewrite <- (mulPP_1r r) at 2.
+    rewrite mulPP_comm.
+    rewrite (mulPP_comm r [[]]).
+    rewrite <- mulPP_distr_addPP.
+    rewrite addPP_comm.
+    reflexivity.
+  rewrite Hqr1.
+  apply Hunif.
+Qed.
+
+Definition poly_var_eq p x : bool :=
+  match p with
+  | [[y]] => y =? x
+  | _ => false
+  end.
+
+
+Lemma build_subst_is_reprod : forall x p q r s,
+  is_poly p ->
+  div_by_var x p = (q, r) ->
+  reprod_unif s (build_poly q r) ->
+  inDom x s = false ->
+  forall t, unifier t p ->
+            subst_comp (build_subst s x q r) t t.
+Proof.
+  intros x p q r s HpolyX Hdiv Hreprod Hin t HunifT.
+  assert (HunifT' := HunifT).
+  apply (div_build_unif _ _ _ _ _ HpolyX Hdiv) in HunifT'.
+  unfold subst_comp.
+  intros y HpolyY.
+  destruct (poly_var_eq y x) eqn:Hyx.
+  - admit.
+  - assert (HsubSY: substP (build_subst s x q r) y = substP s y).
+      unfold build_subst.
+      admit.
+    rewrite HsubSY.
+    unfold reprod_unif in Hreprod.
+    destruct Hreprod as [HunifS Hsub_comp].
+    unfold subst_comp in Hsub_comp.
+    apply (Hsub_comp _ HunifT' _ HpolyY).
+Admitted.
+
+Lemma reprod_build_subst : forall x p q r s,
+  is_poly p ->
   div_by_var x p = (q, r) ->
   reprod_unif s (build_poly q r) ->
   inDom x s = false ->
   reprod_unif (build_subst s x q r) p.
 Proof.
-Admitted.
+  intros.
+  unfold reprod_unif.
+  split.
+  - apply (build_subst_is_unif _ _ _ _ _ H H0 H1).
+  - apply (build_subst_is_reprod _ _ _ _ _ H H0 H1 H2).
+Qed.
 
 
 
@@ -397,7 +528,7 @@ Proof.
       apply (sve_in_vars_in_unif _ _ _ Hvars Hpoly H _ Hs0).
 
     apply (IHxs _ Hvars Hpoly) in Hs0.
-    apply (reprod_build_subst _ _ _ _ _ Hqr Hs0 Hin).
+    apply (reprod_build_subst _ _ _ _ _ H0 Hqr Hs0 Hin).
 Qed.
 
 

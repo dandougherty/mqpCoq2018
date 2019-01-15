@@ -22,12 +22,12 @@ Fixpoint appSubst (s : subst) (x : var) : poly :=
   end.
 
 Fixpoint substM (s : subst) (m : mono) : poly :=
-  match s with 
-  | [] => [m]
-  | (y,p)::s' => 
-    match (inDom y s) with
-    | true => mulPP (appSubst s y) (substM s' m)
-    | false => mulMP [y] (substM s' m)
+  match m with 
+  | [] => [[]]
+  | x :: m => 
+    match (inDom x s) with
+    | true => mulPP (appSubst s x) (substM s m)
+    | false => mulMP [x] (substM s m)
     end
   end.
 
@@ -40,6 +40,27 @@ Fixpoint substP (s : subst) (p : poly) : poly :=
 
 Lemma substP_distr_mulPP : forall p q s,
   substP s (mulPP p q) = mulPP (substP s p) (substP s q).
+Proof.
+Admitted.
+
+Lemma substP_distr_addPP : forall p q s,
+  substP s (addPP p q) = addPP (substP s p) (substP s q).
+Proof.
+Admitted.
+
+Lemma substP_distr_mulMP : forall m p s,
+  substP s (mulMP m p) = mulPP (substP s [m]) (substP s p).
+Proof.
+Admitted.
+
+Lemma substP_cons : forall x p,
+  (forall m, In m p -> ~ In x m) ->
+  forall q s, substP ((x, q) :: s) p = substP s p.
+Proof.
+Admitted.
+
+Lemma substP_1 : forall s,
+  substP s [[]] = [[]].
 Proof.
 Admitted.
 
@@ -86,8 +107,7 @@ Lemma empty_substM : forall (m : mono),
   is_mono m ->
   substM [] m = [m].
 Proof.
-  auto.
-Qed.
+Admitted.
 
 Lemma empty_substP : forall (p : poly),
   is_poly p ->

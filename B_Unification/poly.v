@@ -317,6 +317,16 @@ Proof.
   intros p. unfold addPP. destruct p; auto.
 Qed.
 
+Lemma addPP_p_p : forall p,
+  addPP p p = [].
+Proof.
+Admitted.
+
+Lemma addPP_comm : forall p q,
+  addPP p q = addPP q p.
+Proof.
+Admitted.
+
 Lemma mulMM_0 : forall m,
   mulMM [] m = m.
 Proof.
@@ -334,6 +344,46 @@ Proof.
       * apply poly_order in Hp. rewrite Hp. auto.
     + apply poly_cons in Hp. apply Hp.
 Qed.
+
+Lemma mulPP_1r : forall p,
+  mulPP p [[]] = p.
+Proof.
+Admitted.
+
+Lemma mulMP_1r : forall m,
+  mulMP m [[]] = [m].
+Proof.
+Admitted.
+
+Lemma mulMP_mulPP : forall m p,
+  mulMP m p = mulPP [m] p.
+Proof.
+Admitted.
+
+Lemma mulPP_assoc : forall p q r,
+  mulPP (mulPP p q) r = mulPP p (mulPP q r).
+Proof.
+Admitted.
+
+Lemma mulPP_comm : forall p q,
+  mulPP p q = mulPP q p.
+Proof.
+Admitted.
+
+Lemma mulPP_p_p : forall p,
+  mulPP p p = p.
+Proof.
+Admitted.
+
+Lemma mulPP_distr_addPP : forall p q r,
+  mulPP (addPP p q) r = addPP (mulPP p r) (mulPP q r).
+Proof.
+Admitted.
+
+Lemma mulMP_distr_addPP : forall m p q,
+  mulMP m (addPP p q) = addPP (mulMP m p) (mulMP m q).
+Proof.
+Admitted.
 
 (* Lemma addPP_comm : forall p q,
   is_poly p /\ is_poly q -> addPP p q = addPP q p.
@@ -477,6 +527,7 @@ Lemma part_Sorted : forall {X:Type} (c:X->X->Prop) f p,
 Proof.
   intros X c f p Hsort. induction p.
   - simpl. 
+Admitted.
 
 Lemma part_is_poly : forall f p l r,
   is_poly p ->
@@ -484,10 +535,10 @@ Lemma part_is_poly : forall f p l r,
   is_poly l /\ is_poly r.
 Proof.
   intros f p l r Hpoly Hpart. destruct Hpoly. split; split.
-  - apply (part_Sorted _ _ _ _ _ H Hpart).
+  - apply (part_Sorted _ _ _ H _ _ Hpart).
   - intros m Hin. apply H0. apply elements_in_partition with (x:=m) in Hpart.
     apply Hpart; auto.
-  - apply (part_Sorted _ _ _ _ _ H Hpart).
+  - apply (part_Sorted _ _ _ H _ _ Hpart).
   - intros m Hin. apply H0. apply elements_in_partition with (x:=m) in Hpart.
     apply Hpart; auto.
 Qed.
