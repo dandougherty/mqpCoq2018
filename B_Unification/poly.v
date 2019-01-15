@@ -407,13 +407,70 @@ Proof.
   intros p q r. unfold mulPP.
 Admitted.
 
-Print partition.
+Lemma partition_filter_fst {X} p l :
+  fst (partition p l) = @filter X p l.
+Proof.
+  induction l; simpl.
+  - trivial.
+  - rewrite <- IHl.
+    destruct (partition p l); simpl.
+    destruct (p a); now simpl.
+Qed.
+
+(* Just rearrange previous, to fit better with your lemma formulation *)
+Lemma partition_filter_fst' : forall {X} p (l t f : list X),
+    partition p l = (t, f) ->
+    t = @filter X p l .
+Proof.
+  intros X p l t f H.
+  rewrite <- partition_filter_fst.
+  now rewrite H.
+Qed.
+
+Definition neg {X:Type} := fun (f:X->bool) => fun (a:X) => (negb (f a)).
+
+Lemma neg_true_false : forall {X} (p:X->bool) (a:X),
+  (p a) = true <-> neg p a = false.
+Proof.
+  intros X p a. unfold neg. split; intro.
+  - rewrite H. auto.
+  - destruct (p a); intuition.
+Qed.
+
+Lemma neg_false_true : forall {X} (p:X->bool) (a:X),
+  (p a) = false <-> neg p a = true.
+Proof.
+  intros X p a. unfold neg. split; intro.
+  - rewrite H. auto.
+  - destruct (p a); intuition.
+Qed.
+
+Lemma partition_filter_snd {X} p l : 
+  snd (partition p l) = @filter X (neg p) l.
+Proof.
+  induction l; simpl.
+  - reflexivity.
+  - rewrite <- IHl.
+    destruct (partition p l); simpl.
+    destruct (p a) eqn:Hp.
+    + simpl. apply neg_true_false in Hp. rewrite Hp; auto.
+    + simpl. apply neg_false_true in Hp. rewrite Hp; auto.
+Qed.
+
+Lemma partition_filter_snd' : forall {X} p (l t f : list X),
+  partition p l = (t, f) ->
+  f = @filter X (neg p) l.
+Proof.
+  intros X p l t f H.
+  rewrite <- partition_filter_snd.
+  now rewrite H.
+Qed.
 
 Lemma lpart :
   forall {X:Type} f (l:list X), partition f l = match l with
                        | []  => ([],[])
                        | x::tl => let (g, d) := partition f tl in if f x then (x :: g, d) else (g, x :: d)
-                       end.
+                       end. 
 Proof.
   intros.
   induction l as [| x tl]; auto.
@@ -432,43 +489,26 @@ Lemma part_fst_true : forall X p (l t f : list X),
   partition p l = (t, f) ->
   (forall a, In a t -> p a = true).
 Proof.
-  intros X p l t f Hpart. generalize dependent t; generalize dependent f. induction l as [| hd tl].
-  - intros f t Hpart. inversion Hpart. contradiction.
-  -(*  intros f0 t0 Hpart. apply IHtl. rewrite <- Hpart. 
-  
-  
-   rewrite <- Hpart in IHl. simpl in IHl.
-    destruct (partition p l) as [t1 f1]; destruct (p a0).
-    + inversion IHl.
-  
-   apply IHl. rewrite <- Hpart. simpl. destruct (partition p l) as [t1 f1].
-    destruct (p a0).
-    + f_equal.
-    
-    destruct 
-
-   destruct (p a) eqn:Hp.
-  - reflexivity.
-  - rewrite lpart in Hpart. destruct l.
-    + inversion Hpart. rewrite <- H0 in Hin. contradiction.
-    + apply IHl. simpl in Hpart. inversion Hpart.  
-   inversion t. apply (partition_cons1 p x l) in Hpart. *)
-Admitted.
+  intros X p l t f Hpart a Hin.
+  assert (Hf: t = filter p l).
+  - now apply partition_filter_fst' with f.
+  - assert (Hass := filter_In p a l).
+    apply Hass.
+    now rewrite <- Hf.
+Qed.
 
 Lemma part_snd_false : forall X p (x t f : list X),
   partition p x = (t, f) ->
   (forall a, In a f -> p a = false).
 Proof.
-Admitted.
-
-Fixpoint evenb n : bool :=
-  match n with
-  | 0 => true
-  | S 0 => false
-  | S (S n') => evenb n'
-  end.
-
-Compute (partition evenb [0;1;2;3;4;5]).
+  intros X p l t f Hpart a Hin.
+  assert (Hf: f = filter (neg p) l).
+  - now apply partition_filter_snd' with t.
+  - assert (Hass := filter_In (neg p) a l).
+    rewrite <- neg_false_true in Hass.
+    apply Hass.
+    now rewrite <- Hf.
+Qed.
 
 Lemma part_Sorted : forall {X:Type} (c:X->X->Prop) f p,
   Sorted c p -> 
@@ -476,7 +516,8 @@ Lemma part_Sorted : forall {X:Type} (c:X->X->Prop) f p,
   Sorted c l /\ Sorted c r.
 Proof.
   intros X c f p Hsort. induction p.
-  - simpl. 
+  - simpl.
+Admitted.
 
 Lemma part_is_poly : forall f p l r,
   is_poly p ->
@@ -484,10 +525,10 @@ Lemma part_is_poly : forall f p l r,
   is_poly l /\ is_poly r.
 Proof.
   intros f p l r Hpoly Hpart. destruct Hpoly. split; split.
-  - apply (part_Sorted _ _ _ _ _ H Hpart).
+  - apply (part_Sorted _ _ _ H _ _ Hpart).
   - intros m Hin. apply H0. apply elements_in_partition with (x:=m) in Hpart.
     apply Hpart; auto.
-  - apply (part_Sorted _ _ _ _ _ H Hpart).
+  - apply (part_Sorted _ _ _ H _ _ Hpart).
   - intros m Hin. apply H0. apply elements_in_partition with (x:=m) in Hpart.
     apply Hpart; auto.
 Qed.
