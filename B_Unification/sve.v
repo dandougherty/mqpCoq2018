@@ -267,14 +267,41 @@ Definition build_subst (s : subst) (x : var) (q r : poly) : subst :=
   let xs  := (x, addPP (mulMP [x] q1s) rs) in
   xs :: s.
 
+Lemma has_var_in : forall x m,
+  In x m -> has_var x m = true.
+Proof. 
+  intros.
+  unfold has_var.
+  apply existsb_exists.
+  exists x.
+  split; auto.
+  symmetry.
+  apply beq_nat_refl.
+Qed.
+
 Lemma div_var_not_in_qr : forall x p q r,
   div_by_var x p = (q, r) ->
   ((forall m, In m q -> ~ In x m) /\
    (forall m, In m r -> ~ In x m)).
 Proof.
-Admitted.
-
-(* Lemma substP_not_in_dom : forall s *)
+  intros.
+  unfold div_by_var in H.
+  assert (exists qxr, qxr = partition (has_var x) p) as [[qx r0] Hqxr]. eauto.
+  rewrite <- Hqxr in H.
+  injection H. intros Hr Hq.
+  split.
+  - apply (elim_var_not_in_rem _ _ _ Hq).
+  - rewrite Hr in Hqxr.
+    symmetry in Hqxr.
+    intros. intro.
+    apply has_var_in in H1.
+    apply Bool.negb_false_iff in H1.
+    revert H1.
+    apply Bool.eq_true_false_abs.
+    apply Bool.negb_true_iff.
+    revert m H0.
+    apply (part_snd_false _ _ _ _ _ Hqxr).
+Qed.
 
 Lemma build_subst_is_unif : forall x p q r s,
   is_poly p ->
@@ -436,14 +463,6 @@ Proof.
   - apply build_subst_is_reprod; auto.
 Qed.
 
-Lemma no_unif_build_poly : forall x p q r,
-  is_poly p ->
-  div_by_var x p = (q, r) ->
-  ~ unifiable (build_poly q r) ->
-  ~ unifiable p.
-Proof.
-Admitted.
-
 
 
 (** * Recursive Algorithm *)
@@ -600,7 +619,12 @@ Proof.
       apply div_is_poly in Hqr; auto.
 
     apply (IHxs _ Hvars Hpoly) in Hs0.
-    apply (no_unif_build_poly _ _ _ _ H0 Hqr Hs0).
+    unfold not, unifiable in *.
+    intros.
+    apply Hs0.
+    destruct H2 as [s Hs].
+    exists s.
+    apply (div_build_unif _ _ _ _ _ H0 Hqr Hs).
 Qed.
 
 
