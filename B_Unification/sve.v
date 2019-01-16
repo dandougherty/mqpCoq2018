@@ -360,12 +360,6 @@ Proof.
   apply Hunif.
 Qed.
 
-Definition poly_var_eq p x : bool :=
-  match p with
-  | [[y]] => y =? x
-  | _ => false
-  end.
-
 
 Lemma build_subst_is_reprod : forall x p q r s,
   is_poly p ->
@@ -375,22 +369,58 @@ Lemma build_subst_is_reprod : forall x p q r s,
   forall t, unifier t p ->
             subst_comp (build_subst s x q r) t t.
 Proof.
-  intros x p q r s HpolyX Hdiv Hreprod Hin t HunifT.
+  intros x p q r s HpolyP Hdiv Hreprod Hin t HunifT.
   assert (HunifT' := HunifT).
-  apply (div_build_unif _ _ _ _ _ HpolyX Hdiv) in HunifT'.
-  unfold subst_comp.
-  intros y HpolyY.
-  destruct (poly_var_eq y x) eqn:Hyx.
-  - admit.
-  - assert (HsubSY: substP (build_subst s x q r) y = substP s y).
-      unfold build_subst.
-      admit.
-    rewrite HsubSY.
-    unfold reprod_unif in Hreprod.
-    destruct Hreprod as [HunifS Hsub_comp].
-    unfold subst_comp in Hsub_comp.
-    apply (Hsub_comp _ HunifT' _ HpolyY).
-Admitted.
+  apply (div_build_unif _ _ _ _ _ HpolyP Hdiv) in HunifT'.
+  unfold reprod_unif in Hreprod.
+  destruct Hreprod as [HunifS Hsub_comp].
+  unfold subst_comp in *.
+  intros y.
+  destruct (y =? x) eqn:Hyx.
+  - unfold build_subst. simpl substP at 2. unfold inDom.
+    simpl existsb. rewrite Hyx. simpl addPP.
+    rewrite mulPP_1r.
+    rewrite addPP_0r.
+    rewrite substP_distr_addPP.
+    rewrite substP_distr_mulMP.
+    rewrite substP_distr_addPP.
+    rewrite substP_distr_addPP.
+    rewrite substP_1.
+    assert (Hdiv2 := Hdiv).
+    apply div_eq in Hdiv; auto.
+    apply div_is_poly in Hdiv2 as [HpolyQ HpolyR]; auto.
+    rewrite (subst_comp_poly s t t x); auto.
+    rewrite (subst_comp_poly s t t x); auto.
+    rewrite mulPP_comm.
+    rewrite mulPP_distr_addPP.
+    rewrite mulPP_comm.
+    rewrite mulPP_1r.
+    rewrite (addPP_comm (substP t [[x]]) _ ).
+    rewrite addPP_assoc.
+    rewrite (addPP_comm (substP t [[x]]) _ ).
+    rewrite <- addPP_assoc.
+    rewrite <- substP_distr_mulPP.
+    rewrite <- substP_distr_addPP.
+    rewrite mulPP_comm.
+    rewrite <- mulMP_mulPP.
+    rewrite <- Hdiv.
+    unfold unifier in HunifT.
+    rewrite HunifT.
+    rewrite addPP_0.
+    apply beq_nat_true in Hyx.
+    rewrite Hyx.
+    reflexivity.
+  - unfold build_subst.
+    rewrite substP_cons; auto.
+    intros.
+    inversion H; auto.
+    rewrite <- H0.
+    simpl. intro.
+    destruct H1; auto.
+    apply Nat.eqb_eq in H1.
+    rewrite Hyx in H1.
+    inversion H1.
+Qed.
 
 Lemma reprod_build_subst : forall x p q r s,
   is_poly p ->
@@ -402,8 +432,8 @@ Proof.
   intros.
   unfold reprod_unif.
   split.
-  - apply (build_subst_is_unif _ _ _ _ _ H H0 H1).
-  - apply (build_subst_is_reprod _ _ _ _ _ H H0 H1 H2).
+  - apply build_subst_is_unif; auto.
+  - apply build_subst_is_reprod; auto.
 Qed.
 
 

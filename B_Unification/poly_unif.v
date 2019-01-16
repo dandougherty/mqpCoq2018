@@ -74,9 +74,8 @@ Definition unifiable (p : poly) : Prop :=
 
 
 Definition subst_comp (s t u : subst) : Prop :=
-  forall p,
-  is_poly p ->
-  substP t (substP s p) = substP u p.
+  forall x,
+  substP t (substP s [[x]]) = substP u [[x]].
 
 
 Definition more_general (s t : subst) : Prop :=
@@ -96,6 +95,15 @@ Definition reprod_unif (s : subst) (p : poly) : Prop :=
   unifier t p ->
   subst_comp s t t.
 
+
+
+Lemma subst_comp_poly : forall s t u x,
+  substP t (substP s [[x]]) = substP u [[x]] ->
+  forall p,
+  is_poly p ->
+  substP t (substP s p) = substP u p.
+Proof.
+Admitted.
 
 Lemma reprod_is_mgu : forall p s,
   reprod_unif s p ->
@@ -142,14 +150,12 @@ Lemma empty_mgu : mgu [] [].
 Proof.
   unfold mgu, more_general, subst_comp.
   intros.
-  simpl.
   split.
   - apply empty_unifier.
   - intros.
     exists t.
     intros.
-    rewrite (empty_substP _ H0).
-    reflexivity.
+    rewrite empty_substP; auto.
 Qed.
 
 Lemma empty_reprod_unif : reprod_unif [] [].

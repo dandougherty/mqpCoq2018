@@ -229,7 +229,13 @@ Proof.
   - intro; contradiction.
 Qed.
 
-Hint Resolve mono_order mono_cons poly_order poly_cons nil_is_mono nil_is_poly.
+Lemma var_is_poly : forall x,
+  is_poly [[x]].
+Proof.
+Admitted.
+
+Hint Resolve mono_order mono_cons poly_order poly_cons nil_is_mono nil_is_poly
+  var_is_poly.
 
 
 
@@ -324,6 +330,11 @@ Admitted.
 
 Lemma addPP_comm : forall p q,
   addPP p q = addPP q p.
+Proof.
+Admitted.
+
+Lemma addPP_assoc : forall p q r,
+  addPP (addPP p q) r = addPP p (addPP q r).
 Proof.
 Admitted.
 
