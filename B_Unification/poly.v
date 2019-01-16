@@ -154,6 +154,12 @@ Lemma vars_nodup : forall x xs p,
 Proof.
 Admitted.
 
+Lemma no_vars_is_ground : forall p,
+  vars p = [] ->
+  p = [] \/ p = [[]].
+Proof.
+Admitted.
+
 (** There are a few userful things we can prove about these definitions too. First, 
     every element in a monomial is guaranteed to be less than the elements after it. *)
 

@@ -436,6 +436,14 @@ Proof.
   - apply build_subst_is_reprod; auto.
 Qed.
 
+Lemma no_unif_build_poly : forall x p q r,
+  is_poly p ->
+  div_by_var x p = (q, r) ->
+  ~ unifiable (build_poly q r) ->
+  ~ unifiable p.
+Proof.
+Admitted.
+
 
 
 (** * Recursive Algorithm *)
@@ -562,12 +570,38 @@ Proof.
 Qed.
 
 
-Lemma sveVars_none : forall (p : poly),
+Lemma sveVars_none : forall (xs : list var) (p : poly),
+  xs = vars p ->
   is_poly p ->
-  sveVars (vars p) p = None ->
+  sveVars xs p = None ->
   ~ unifiable p.
 Proof.
-Admitted.
+  induction xs as [|x xs].
+  - intros. simpl in H1. destruct p; inversion H1. intro.
+    unfold unifiable in H2. destruct H2. unfold unifier in H2.
+    symmetry in H.
+    apply no_vars_is_ground in H.
+    destruct H; inversion H.
+    rewrite H4 in H2.
+    rewrite H5 in H2.
+    rewrite substP_1 in H2.
+    inversion H2.
+  - intros.
+    assert (exists qr, div_by_var x p = qr) as [[q r] Hqr]. eauto.
+    simpl in H1.
+    rewrite Hqr in H1.
+    destruct (sveVars xs (build_poly q r)) eqn:Hs0; inversion H1.
+
+    assert (Hvars: xs = vars (build_poly q r)).
+      apply (div_vars x xs p q r H Hqr).
+
+    assert (Hpoly: is_poly (build_poly q r)).
+      apply build_poly_is_poly.
+      apply div_is_poly in Hqr; auto.
+
+    apply (IHxs _ Hvars Hpoly) in Hs0.
+    apply (no_unif_build_poly _ _ _ _ H0 Hqr Hs0).
+Qed.
 
 
 Lemma sveVars_correct : forall (p : poly),
@@ -581,7 +615,7 @@ Proof.
   remember (sveVars (vars p) p).
   destruct o.
   - apply (sveVars_some (vars p)); auto.
-  - apply sveVars_none; auto.
+  - apply (sveVars_none (vars p)); auto.
 Qed.
 
 
