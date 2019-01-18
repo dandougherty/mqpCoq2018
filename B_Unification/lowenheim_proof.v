@@ -297,6 +297,46 @@ Lemma lowenheim_most_general_unifier:
 Proof.
 intros. apply reproductive_is_mgu. apply lowenheim_reproductive.  apply H.
 Qed.
+
+(** 3.4 extension to include Main function and subst_option *)
+
+
+Definition subst_option_is_some (so : subst_option) : bool :=
+  match so with
+  | Some_subst s => true
+  | None_subst => false
+  end.
+
+Definition convert_to_subst (so : subst_option) : subst :=
+  match so with
+  | Some_subst s => s
+  | None_subst => nil (*not considered*)
+  end.
+
+
+Lemma find_unifier_is_unifier:
+ forall (t : term),
+  (unifiable t) -> (unifier t (convert_to_subst (find_unifier t))).
+Proof.
+Admitted.
+
+
+Lemma builder_to_main:
+ forall (t : term),
+(unifiable t) -> most_general_unifier t (build_lowenheim_subst t (convert_to_subst (find_unifier t))) ->
+ most_general_unifier t (convert_to_subst (Lowenheim_Main t)) .
+Proof.
+Admitted.
+
+
+Lemma lowenheim_main_most_general_unifier:
+ forall (t: term),
+ (unifiable t) -> most_general_unifier t (convert_to_subst (Lowenheim_Main t)).
+Proof.
+ intros. apply builder_to_main.
+ -  apply H.
+ - apply lowenheim_most_general_unifier. apply find_unifier_is_unifier. apply H.
+Qed.
   
 
 
