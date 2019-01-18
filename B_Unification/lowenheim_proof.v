@@ -189,6 +189,10 @@ Lemma distr_opp :
 Proof.
 Admitted.
 
+(* @@ dd note.  Might be easier to prove a more general lemma,
+referring to any list of vars, or at least, any list containing vars
+of t *)
+
 
 (* lemma: applying lowenheim's subtitution on any variable of a term gives us the initial format 
   of the replacement for that variable (lowenheim's reverse application ) *)
@@ -230,6 +234,14 @@ Lemma lowenheim_rephrase2 :
   Proof.
 Admitted.
 
+(** @@ dd - this will be hard to prove!  need a detour into decidability, etc...
+Trt to avoid it!
+
+Advice for now:  don't for now try to prove "reproductive", just prove "mgu".
+THAT IS, only prove the sub condition for variables in t.
+Then (I think) you don't need var_in_out_list 
+*)
+  
 Lemma var_in_out_list:
   forall (x : var) (lvar : list var),
   (In x lvar) \/ ~ (In x lvar).
