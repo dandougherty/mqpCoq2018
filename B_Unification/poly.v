@@ -148,17 +148,25 @@ Hint Unfold is_mono is_poly.
 Definition vars (p : poly) : list var :=
   nodup var_eq_dec (concat p).
 
-Lemma vars_nodup : forall x xs p,
+(* Lemma vars_nodup : forall x xs p,
   x :: xs = vars p ->
   ~ In x xs.
 Proof.
-Admitted.
+Admitted. *)
+
+Lemma NoDup_vars : forall (p : poly),
+  NoDup (vars p).
+Proof. Admitted.
 
 Lemma no_vars_is_ground : forall p,
   vars p = [] ->
   p = [] \/ p = [[]].
 Proof.
 Admitted.
+
+Lemma in_mono_in_vars : forall x p,
+  (forall m : mono, In m p -> ~ In x m) <-> ~ In x (vars p).
+Proof. Admitted.
 
 (** There are a few userful things we can prove about these definitions too. First, 
     every element in a monomial is guaranteed to be less than the elements after it. *)
@@ -474,8 +482,6 @@ Proof.
   intros p q r. unfold mulPP.
 Admitted.
 
-Print partition.
-
 Lemma lpart :
   forall {X:Type} f (l:list X), partition f l = match l with
                        | []  => ([],[])
@@ -486,13 +492,17 @@ Proof.
   induction l as [| x tl]; auto.
 Qed.
 
+Lemma incl_nil : forall {X:Type} (l:list X),
+  incl l [] <-> l = [].
+Proof. Admitted.
+
 Lemma part_add_eq : forall f p l r,
   is_poly p ->
   partition f p = (l, r) ->
   p = addPP l r.
 Proof.
   intros f p l r Hpoly Hpart. induction l.
-  - rewrite addPP_0. Search partition. unfold partition in Hpart. simpl.
+  - rewrite addPP_0. unfold partition in Hpart. simpl.
 Admitted.
 
 Lemma part_fst_true : forall X p (l t f : list X),
@@ -501,25 +511,6 @@ Lemma part_fst_true : forall X p (l t f : list X),
 Proof.
   intros X p l t f Hpart. generalize dependent t; generalize dependent f. induction l as [| hd tl].
   - intros f t Hpart. inversion Hpart. contradiction.
-  -(*  intros f0 t0 Hpart. apply IHtl. rewrite <- Hpart. 
-  
-  
-   rewrite <- Hpart in IHl. simpl in IHl.
-    destruct (partition p l) as [t1 f1]; destruct (p a0).
-    + inversion IHl.
-  
-   apply IHl. rewrite <- Hpart. simpl. destruct (partition p l) as [t1 f1].
-    destruct (p a0).
-    + f_equal.
-    
-    destruct 
-
-   destruct (p a) eqn:Hp.
-  - reflexivity.
-  - rewrite lpart in Hpart. destruct l.
-    + inversion Hpart. rewrite <- H0 in Hin. contradiction.
-    + apply IHl. simpl in Hpart. inversion Hpart.  
-   inversion t. apply (partition_cons1 p x l) in Hpart. *)
 Admitted.
 
 Lemma part_snd_false : forall X p (x t f : list X),
@@ -528,22 +519,13 @@ Lemma part_snd_false : forall X p (x t f : list X),
 Proof.
 Admitted.
 
-Fixpoint evenb n : bool :=
-  match n with
-  | 0 => true
-  | S 0 => false
-  | S (S n') => evenb n'
-  end.
-
-Compute (partition evenb [0;1;2;3;4;5]).
-
 Lemma part_Sorted : forall {X:Type} (c:X->X->Prop) f p,
   Sorted c p -> 
   forall l r, partition f p = (l, r) ->
   Sorted c l /\ Sorted c r.
 Proof.
   intros X c f p Hsort. induction p.
-  - simpl. 
+  - simpl.
 Admitted.
 
 Lemma part_is_poly : forall f p l r,
