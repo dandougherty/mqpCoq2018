@@ -1,3 +1,18 @@
+For Monday 1/21:
+
+Things I worked on:
+- made a draft extension of the mgu proof to include the Main Lowenheim's function.
+- proved an important helper lemma for the "reproductive proof" of the builder, which is 
+  that applying lowenheim's substitution on a variable gives us the initial format of the replacement.
+  
+Plans:
+ - finish the helper lemmas for the lownheim_builder mgu proof.
+ - cut from the proof the case for which x is not in Var(t)
+ 
+ 
+-----------------------------------------------------------------------------
+
+
 During Christmas break :
 
 Things I worked on:
