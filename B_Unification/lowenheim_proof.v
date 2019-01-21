@@ -14,6 +14,7 @@ Require Export lowenheim_formula.
 Require Export EqNat.
 Require Import List.
 Import ListNotations.
+Import  Coq.Init.Tactics.
 
 (*** 3. Lownheim's proof ***)
 
@@ -193,6 +194,56 @@ Admitted.
 referring to any list of vars, or at least, any list containing vars
 of t *)
 
+Lemma elt_in_list:
+ forall (x: var) (a : var) (l : list var),
+  (In x (a::l)) ->
+  x = a \/ (In x l).
+Proof.
+Admitted.
+
+
+Lemma lowenheim_rephrase1_easy :
+  forall (l : list var) (x : var) (sig1 : subst) (sig2 : subst) (s : term),
+  (In x l) -> 
+  (apply_subst (VAR x) (build_on_list_of_vars l s  sig1 sig2)) == 
+  (s + T1) * (apply_subst (VAR x) sig1 )  + s * (apply_subst (VAR x) sig2 ).
+Proof.
+intros.
+induction l.
+- simpl. unfold In in H. destruct H.
+-  apply elt_in_list in H. destruct H.
+  + simpl. destruct (beq_nat a x) as []eqn:?. 
+    { rewrite H.  reflexivity. }
+    { pose proof beq_nat_false as H2. specialize (H2 a x).
+      specialize (H2 Heqb). intuition. symmetry in H. specialize (H2 H).  inversion H2. }
+  + simpl. destruct (beq_nat a x) as []eqn:?. 
+    { symmetry in Heqb.  pose proof beq_nat_eq  as H2. specialize (H2 a x). specialize (H2 Heqb). rewrite H2.
+      reflexivity. }
+    { apply IHl. apply H. }
+Qed.
+
+
+
+
+Lemma helper_3a:
+forall (x: var) (l: list var),
+In x l -> 
+  apply_subst (VAR x) (build_id_subst l) == VAR x.
+Proof.
+intros. induction l.
+ -  unfold build_id_subst. simpl. reflexivity.
+ -  apply elt_in_list in H. destruct H.
+   + simpl. destruct (beq_nat a x) as []eqn:?.
+    { rewrite H. reflexivity. }
+    {  pose proof beq_nat_false as H2. specialize (H2 a x).
+       specialize (H2 Heqb). intuition. symmetry in H. specialize (H2 H).  inversion H2. }
+   + simpl.  destruct (beq_nat a x) as []eqn:?. 
+    { symmetry in Heqb.  pose proof beq_nat_eq  as H2. specialize (H2 a x). specialize (H2 Heqb). rewrite H2.
+      reflexivity. }
+    {  apply IHl. apply H. }
+Qed.
+    
+
 
 (* lemma: applying lowenheim's subtitution on any variable of a term gives us the initial format 
   of the replacement for that variable (lowenheim's reverse application ) *)
@@ -203,24 +254,14 @@ Lemma lowenheim_rephrase1 :
   (apply_subst (VAR x) (build_lowenheim_subst t tau)) == 
   (t + T1) * (VAR x) + t * (apply_subst (VAR x) tau).
   Proof.
-intros. 
-induction t.
-  - unfold build_lowenheim_subst. unfold term_unique_vars. unfold term_vars. unfold var_set_create_unique.
-    unfold build_id_subst. unfold build_on_list_of_vars. rewrite mul_comm with (y := VAR x). rewrite distr.
-    rewrite mul_T0_x_sym. rewrite sum_id. rewrite mul_T0_x. rewrite mul_id_sym. rewrite sum_id_sym. unfold apply_subst. reflexivity.
-  - unfold term_unique_vars in H0. unfold term_vars in H0. unfold var_set_create_unique in H0. unfold In in H0. destruct H0.
-  - unfold build_lowenheim_subst. unfold term_unique_vars. unfold term_vars. unfold var_set_create_unique.
-    unfold var_set_includes_var. unfold term_unique_vars in H0. unfold term_vars in H0. unfold var_set_create_unique in H0. 
-    unfold var_set_includes_var in H0. unfold In in H0. simpl in H0.  destruct H0.
-    + rewrite H0. unfold build_id_subst. unfold build_on_list_of_vars. simpl. destruct beq_nat. 
-      {  reflexivity. }
-      { rewrite mul_comm with (y := VAR x). rewrite distr. rewrite mul_x_x. rewrite mul_id_sym. rewrite sum_x_x. rewrite sum_id.
-        rewrite H0 in H. unfold unifier in H. rewrite H. rewrite mul_T0_x_sym. pose proof term_ident_prop  as H1. specialize (H1 (VAR x) T0).
-        simpl in H1. destruct H1. }
-    +  destruct H0.
-  - unfold unifier in H. rewrite subst_sum_distr_opp in H. pose proof unifies_T0_equiv as H5 . specialize (H5 t1 t2 tau).
-    unfold unifies in H5. unfold unifies_T0 in H5. rewrite <- H5 in H. 
-Admitted.
+ intros. 
+  unfold build_lowenheim_subst. pose proof lowenheim_rephrase1_easy as H1. 
+  specialize (H1 (term_unique_vars t) x (build_id_subst (term_unique_vars t)) tau t).
+  rewrite helper_3a in H1. 
+ - apply H1. apply H0.
+ -  apply H0.
+Qed.
+
 
 (* lemma: applying lowenheim's subtitution on any variable not in the term gives us the same term
   (no replacement is applied/ found since the variable is not in the term) *)
