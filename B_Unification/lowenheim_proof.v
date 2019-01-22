@@ -14,7 +14,10 @@ Require Export lowenheim_formula.
 Require Export EqNat.
 Require Import List.
 Import ListNotations.
-Import  Coq.Init.Tactics.
+Import Coq.Init.Tactics.
+Require Export Classical_Prop.
+
+
 
 (*** 3. Lownheim's proof ***)
 
@@ -39,9 +42,102 @@ Lemma sub_term_id :
 Admitted.
 
 
+(* helper lemma : if the sum of two terms is a subterm of another term t', then each component of the sum is
+   also a subterm of the other term t' *)
+Lemma helper_2a:
+  forall (t1 t2 t' : term),
+  sub_term (t1 + t2) t' -> sub_term t1 t'.
+Proof.
+ intros.  unfold sub_term in *. intros. specialize (H x).   
+Admitted. 
+  
+(* helper lemma : if the sum of two terms is a subterm of another term t', then each component of the sum is
+   also a subterm of the other term t' *)
+Lemma helper_2b:
+  forall (t1 t2 t' : term),
+  sub_term (t1 + t2) t' -> sub_term t2 t'.
+Proof.
+intros.  unfold sub_term in *. intros. specialize (H x). 
+Admitted. 
+
+
+Lemma elt_in_list:
+ forall (x: var) (a : var) (l : list var),
+  (In x (a::l)) ->
+  x = a \/ (In x l).
+Proof.
+Admitted.
+
+Lemma elt_not_in_list:
+ forall (x: var) (a : var) (l : list var),
+  ~ (In x (a::l)) ->
+  x <> a /\ ~ (In x l).
+Proof.
+Admitted.
+
+
+
+Lemma in_list_of_var_term_of_var:
+forall (x : var),
+  In x (term_unique_vars (VAR x)).
+Proof.
+intros. simpl. left. intuition. 
+Qed.
+
+
+
+Lemma distr_opp :
+ forall x y z, x * y  +  x * z == x * ( y + z).
+Proof.
+Admitted.
+
+
+Lemma var_in_out_list:
+  forall (x : var) (lvar : list var),
+  (In x lvar) \/ ~ (In x lvar).
+Proof.
+ intros.
+ pose proof classic as H1. specialize (H1 (In x lvar)). apply H1.
+Qed. 
+
+
 
 
 (** 3.2 Proof that Lownheim's algorithm unifes a given term **)
+
+
+
+Lemma helper1_easy:
+ forall (x: var) (lvar : list var) (sig1 sig2 : subst) (s : term),
+ (In x lvar) ->
+  apply_subst (VAR x) (build_on_list_of_vars lvar s sig1 sig2)
+  == 
+  apply_subst (VAR x) (build_on_list_of_vars (cons x nil) s sig1 sig2).
+Proof. 
+ intros.
+ induction lvar. 
+ - simpl. simpl in H. destruct H.
+ - apply elt_in_list in H. destruct H.
+  + simpl.  destruct (beq_nat a x) as []eqn:?. 
+   {  apply beq_nat_true in Heqb. destruct (beq_nat x x) as []eqn:?.
+    { rewrite H. reflexivity. }
+    { apply beq_nat_false in Heqb.
+      { destruct Heqb.  }
+      { rewrite Heqb.  apply Heqb0. } }}
+   { simpl in IHlvar. apply IHlvar.  symmetry in H. rewrite H in Heqb. 
+    apply beq_nat_false in Heqb. destruct Heqb. intuition. }
+  + destruct (beq_nat a x) as []eqn:?.
+    { apply beq_nat_true in Heqb.  symmetry in Heqb. rewrite Heqb in IHlvar.  rewrite Heqb.
+        simpl in IHlvar.   simpl. destruct (beq_nat a a) as []eqn:?.
+     {  reflexivity. }
+     { apply IHlvar.  rewrite Heqb in H. apply H. }}
+    { apply beq_nat_false in Heqb. simpl. destruct (beq_nat a x) as []eqn:?.
+     { apply beq_nat_true in Heqb0. rewrite Heqb0 in Heqb.  destruct Heqb. intuition. }
+     { simpl in IHlvar. apply IHlvar.  apply H. }}
+Qed.  
+
+
+
 
 
 (* helper lemma: applying two different substitutions on the same variable give the same result. 
@@ -55,24 +151,11 @@ forall (t' s : term) (v : var) (sig1 sig2 : subst),
   == 
   apply_subst (VAR v) (build_on_list_of_vars (term_unique_vars (VAR v)) s sig1 sig2).
 Proof.
-Admitted.
+ intros.  unfold sub_term in H. specialize (H v). pose proof in_list_of_var_term_of_var as H3.
+ specialize (H3 v).  specialize (H H3).  pose proof helper1_easy as H2. 
+ specialize (H2 v (term_unique_vars t') sig1 sig2 s).  apply H2. apply H.
+Qed.
 
-
-(* helper lemma : if the sum of two terms is a subterm of another term t', then each component of the sum is
-   also a subterm of the other term t' *)
-Lemma helper_2a:
-  forall (t1 t2 t' : term),
-  sub_term (t1 + t2) t' -> sub_term t1 t'.
-Proof.
-Admitted. 
-  
-(* helper lemma : if the sum of two terms is a subterm of another term t', then each component of the sum is
-   also a subterm of the other term t' *)
-Lemma helper_2b:
-  forall (t1 t2 t' : term),
-  sub_term (t1 + t2) t' -> sub_term t2 t'.
-Proof.
-Admitted. 
 
 
 
@@ -174,32 +257,7 @@ Definition reproductive_unifier (t : term) (sig : subst) : Prop :=
   (apply_subst (apply_subst (VAR x) sig ) tau) == (apply_subst (VAR x) tau).
 
 
-(* converting identical terms boolean to Propositions *) 
-Lemma term_ident_prop :
- forall (t1 t2 : term),
-  match identical t1 t2 with
-   | true => True
-   | false => False
-  end.
- Proof. 
-Admitted.
 
-
-Lemma distr_opp :
- forall x y z, x * y  +  x * z == x * ( y + z).
-Proof.
-Admitted.
-
-(* @@ dd note.  Might be easier to prove a more general lemma,
-referring to any list of vars, or at least, any list containing vars
-of t *)
-
-Lemma elt_in_list:
- forall (x: var) (a : var) (l : list var),
-  (In x (a::l)) ->
-  x = a \/ (In x l).
-Proof.
-Admitted.
 
 
 Lemma lowenheim_rephrase1_easy :
@@ -263,6 +321,29 @@ Lemma lowenheim_rephrase1 :
 Qed.
 
 
+
+
+
+
+
+Lemma lowenheim_rephrase2_easy :
+  forall (l : list var) (x : var) (sig1 : subst) (sig2 : subst) (s : term),
+  ~ (In x l) -> 
+  (apply_subst (VAR x) (build_on_list_of_vars l s  sig1 sig2)) == 
+  (VAR x).
+Proof.
+intros. unfold not in H. 
+induction  l.
+-  simpl. reflexivity.
+- simpl. pose proof elt_not_in_list as H2. specialize (H2 x a l). unfold not in H2.
+  specialize (H2 H). destruct H2. 
+  destruct (beq_nat a x) as []eqn:?. 
+  + symmetry in Heqb. apply beq_nat_eq in Heqb. symmetry in Heqb.  specialize (H0 Heqb).  destruct H0.
+  + simpl in IHl. apply IHl.  apply H1.
+Qed. 
+
+
+
 (* lemma: applying lowenheim's subtitution on any variable not in the term gives us the same term
   (no replacement is applied/ found since the variable is not in the term) *)
 
@@ -272,22 +353,14 @@ Lemma lowenheim_rephrase2 :
   ~ (In x (term_unique_vars t)) -> 
   (apply_subst (VAR x) (build_lowenheim_subst t tau)) == 
   (VAR x).
-  Proof.
-Admitted.
-
-(** @@ dd - this will be hard to prove!  need a detour into decidability, etc...
-Trt to avoid it!
-
-Advice for now:  don't for now try to prove "reproductive", just prove "mgu".
-THAT IS, only prove the sub condition for variables in t.
-Then (I think) you don't need var_in_out_list 
-*)
-  
-Lemma var_in_out_list:
-  forall (x : var) (lvar : list var),
-  (In x lvar) \/ ~ (In x lvar).
 Proof.
-Admitted.
+intros. unfold build_lowenheim_subst.  pose proof lowenheim_rephrase2_easy as H2. 
+specialize (H2 (term_unique_vars t) x (build_id_subst (term_unique_vars t)) tau t).
+specialize (H2 H0). apply H2.  
+Qed.
+
+  
+
 
 (* lowenheim's algorithm gives a reproductive unifier *)
 Lemma lowenheim_reproductive:
@@ -391,7 +464,6 @@ Proof.
  -  apply H.
  - apply lowenheim_most_general_unifier. apply find_unifier_is_unifier. apply H.
 Qed.
-  
 
 
   
