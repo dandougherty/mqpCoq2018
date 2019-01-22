@@ -1,3 +1,30 @@
+Since 12/13/18:
+  Done:
+    - Informally proved that for solving a B-unification problem it suffices to use just a single term equal to 0.
+    - Prove that a variable is in the solution domain only if in it is in the variables of the problem.
+  Goals:
+    - Prove reprod_build_subst using the proof from the book.
+    - Add prose before each theorem.
+
+Since 12/10/18:
+  Done:
+    - Wrote about unification in the intro file. This includes unification in general, syntactic, semantic, and Boolean unification.
+    - Helped merge lowenheim_dev branch into master.
+  Goals:
+    - Write more about unification.
+    - Add to other intro sections.
+    - Prove sveVars_none.
+
+Since 12/06/18:
+  Done:
+    - Wrote introductions to each section of sve.v. I couldn't say much about the individual proofs since most of them had to do with sets and not ordered lists.
+    - Finished changing polynomials to ordered lists. Some lemmas have been left admitted.
+    - Proved sveVars_some using 5 new provable admitted lemmas in a branch.
+  Goals:
+    - Start documenting poly_unif.v and more lemmas in sve.v.
+    - Add intro.v for introduction chapter of report.
+    - Prove facts about mulMP and mulMM useful in proving Theorem 10.4.10 part 1.
+
 Since 12/03/18:
   Done:
     - Renamed bunify to sve.
