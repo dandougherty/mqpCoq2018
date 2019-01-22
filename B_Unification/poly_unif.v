@@ -1,3 +1,4 @@
+Require Import ListSet.
 Require Import List.
 Import ListNotations.
 Require Import Arith.
@@ -21,12 +22,12 @@ Fixpoint appSubst (s : subst) (x : var) : poly :=
   end.
 
 Fixpoint substM (s : subst) (m : mono) : poly :=
-  match s with 
-  | [] => [m]
-  | (y,p)::s' => 
-    match (inDom y s) with
-    | true => mulPP (appSubst s y) (substM s' m)
-    | false => mulMP [y] (substM s' m)
+  match m with 
+  | [] => [[]]
+  | x :: m => 
+    match (inDom x s) with
+    | true => mulPP (appSubst s x) (substM s m)
+    | false => mulMP [x] (substM s m)
     end
   end.
 
@@ -42,6 +43,27 @@ Lemma substP_distr_mulPP : forall p q s,
 Proof.
 Admitted.
 
+Lemma substP_distr_addPP : forall p q s,
+  substP s (addPP p q) = addPP (substP s p) (substP s q).
+Proof.
+Admitted.
+
+Lemma substP_distr_mulMP : forall m p s,
+  substP s (mulMP m p) = mulPP (substP s [m]) (substP s p).
+Proof.
+Admitted.
+
+Lemma substP_cons : forall x p,
+  (forall m, In m p -> ~ In x m) ->
+  forall q s, substP ((x, q) :: s) p = substP s p.
+Proof.
+Admitted.
+
+Lemma substP_1 : forall s,
+  substP s [[]] = [[]].
+Proof.
+Admitted.
+
 
 
 Definition unifier (s : subst) (p : poly) : Prop :=
@@ -52,9 +74,8 @@ Definition unifiable (p : poly) : Prop :=
 
 
 Definition subst_comp (s t u : subst) : Prop :=
-  forall p,
-  is_poly p ->
-  substP t (substP s p) = substP u p.
+  forall x,
+  substP t (substP s [[x]]) = substP u [[x]].
 
 
 Definition more_general (s t : subst) : Prop :=
@@ -75,6 +96,15 @@ Definition reprod_unif (s : subst) (p : poly) : Prop :=
   subst_comp s t t.
 
 
+
+Lemma subst_comp_poly : forall s t u x,
+  substP t (substP s [[x]]) = substP u [[x]] ->
+  forall p,
+  is_poly p ->
+  substP t (substP s p) = substP u p.
+Proof.
+Admitted.
+
 Lemma reprod_is_mgu : forall p s,
   reprod_unif s p ->
   mgu s p.
@@ -85,8 +115,7 @@ Lemma empty_substM : forall (m : mono),
   is_mono m ->
   substM [] m = [m].
 Proof.
-  auto.
-Qed.
+Admitted.
 
 Lemma empty_substP : forall (p : poly),
   is_poly p ->
@@ -110,18 +139,26 @@ Qed. *)
 
 Lemma empty_unifier : unifier [] [].
 Proof.
-Admitted.
+	unfold unifier. apply empty_substP.
+  unfold is_poly.
+  split.
+  + apply Sorted.Sorted_nil.
+  + intros. inversion H.
+Qed.
 
 Lemma empty_mgu : mgu [] [].
 Proof.
   unfold mgu, more_general, subst_comp.
   intros.
-  simpl.
   split.
   - apply empty_unifier.
   - intros.
     exists t.
     intros.
-    rewrite (empty_substP _ H0).
-    reflexivity.
+    rewrite empty_substP; auto.
 Qed.
+
+Lemma empty_reprod_unif : reprod_unif [] [].
+Proof.
+Admitted.
+

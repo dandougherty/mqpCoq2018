@@ -148,6 +148,26 @@ Hint Unfold is_mono is_poly.
 Definition vars (p : poly) : list var :=
   nodup var_eq_dec (concat p).
 
+(* Lemma vars_nodup : forall x xs p,
+  x :: xs = vars p ->
+  ~ In x xs.
+Proof.
+Admitted. *)
+
+Lemma NoDup_vars : forall (p : poly),
+  NoDup (vars p).
+Proof. Admitted.
+
+Lemma no_vars_is_ground : forall p,
+  vars p = [] ->
+  p = [] \/ p = [[]].
+Proof.
+Admitted.
+
+Lemma in_mono_in_vars : forall x p,
+  (forall m : mono, In m p -> ~ In x m) <-> ~ In x (vars p).
+Proof. Admitted.
+
 (** There are a few userful things we can prove about these definitions too. First, 
     every element in a monomial is guaranteed to be less than the elements after it. *)
 
@@ -223,7 +243,13 @@ Proof.
   - intro; contradiction.
 Qed.
 
-Hint Resolve mono_order mono_cons poly_order poly_cons nil_is_mono nil_is_poly.
+Lemma var_is_poly : forall x,
+  is_poly [[x]].
+Proof.
+Admitted.
+
+Hint Resolve mono_order mono_cons poly_order poly_cons nil_is_mono nil_is_poly
+  var_is_poly.
 
 
 
@@ -305,6 +331,27 @@ Proof.
   intros p. unfold addPP. destruct p; auto.
 Qed.
 
+Lemma addPP_0r : forall p,
+  addPP p [] = p.
+Proof.
+  intros p. unfold addPP. destruct p; auto.
+Qed.
+
+Lemma addPP_p_p : forall p,
+  addPP p p = [].
+Proof.
+Admitted.
+
+Lemma addPP_comm : forall p q,
+  addPP p q = addPP q p.
+Proof.
+Admitted.
+
+Lemma addPP_assoc : forall p q r,
+  addPP (addPP p q) r = addPP p (addPP q r).
+Proof.
+Admitted.
+
 Lemma mulMM_0 : forall m,
   mulMM [] m = m.
 Proof.
@@ -323,7 +370,47 @@ Proof.
     + apply poly_cons in Hp. apply Hp.
 Qed.
 
-Lemma addPP_comm : forall p q,
+Lemma mulPP_1r : forall p,
+  mulPP p [[]] = p.
+Proof.
+Admitted.
+
+Lemma mulMP_1r : forall m,
+  mulMP m [[]] = [m].
+Proof.
+Admitted.
+
+Lemma mulMP_mulPP : forall m p,
+  mulMP m p = mulPP [m] p.
+Proof.
+Admitted.
+
+Lemma mulPP_assoc : forall p q r,
+  mulPP (mulPP p q) r = mulPP p (mulPP q r).
+Proof.
+Admitted.
+
+Lemma mulPP_comm : forall p q,
+  mulPP p q = mulPP q p.
+Proof.
+Admitted.
+
+Lemma mulPP_p_p : forall p,
+  mulPP p p = p.
+Proof.
+Admitted.
+
+Lemma mulPP_distr_addPP : forall p q r,
+  mulPP (addPP p q) r = addPP (mulPP p r) (mulPP q r).
+Proof.
+Admitted.
+
+Lemma mulMP_distr_addPP : forall m p q,
+  mulMP m (addPP p q) = addPP (mulMP m p) (mulMP m q).
+Proof.
+Admitted.
+
+(* Lemma addPP_comm : forall p q,
   is_poly p /\ is_poly q -> addPP p q = addPP q p.
 Proof.
   intros p q H. generalize dependent q. induction p; induction q.
@@ -340,9 +427,9 @@ Proof.
     + apply lex_lt_gt in Hlex. rewrite Hlex. f_equal. unfold addPP in IHq. simpl length in IHq. rewrite <- IHq.
       * rewrite <- add_1_l. rewrite plus_assoc. rewrite <- (add_1_r (length p)). reflexivity.
       * destruct H. apply poly_cons in H0 as []. split; auto.
-Admitted.
+Admitted. *)
 
-Lemma addPP_is_poly : forall p q,
+(* Lemma addPP_is_poly : forall p q,
   is_poly p /\ is_poly q -> is_poly (addPP p q).
 Proof.
   intros p q Hpoly. inversion Hpoly. unfold is_poly in H, H0. destruct H, H0.  split.
@@ -359,36 +446,34 @@ Proof.
         -- intuition.
       * apply Sorted_cons.
         -- rewrite plus_comm. simpl.
-Admitted.
+Admitted. *)
 
-Lemma mullPP_1 : forall p,
+(* Lemma mullPP_1 : forall p,
   is_poly p -> mulPP [[]] p = p.
 Proof.
   intros p H. unfold mulPP. rewrite mulMP_0. rewrite addPP_comm.
   - apply addPP_0.
   - split; auto.
   - apply H.
-Qed.
+Qed. *)
 
-Lemma mulMP_is_poly : forall m p,
+(* Lemma mulMP_is_poly : forall m p,
   is_mono m /\ is_poly p -> is_poly (mulMP m p).
 Proof. Admitted.
 
-Hint Resolve mulMP_is_poly.
+Hint Resolve mulMP_is_poly. *)
 
 Lemma mulMP_mulPP_eq : forall m p,
   is_mono m /\ is_poly p -> mulMP m p = mulPP [m] p.
 Proof.
-  intros m p H. unfold mulPP. rewrite addPP_comm.
-  - rewrite addPP_0. reflexivity.
-  - split; auto.
+  intros m p H. unfold mulPP. rewrite addPP_0r. reflexivity.
 Qed.
 
-Lemma mulPP_comm : forall p q,
+(* Lemma mulPP_comm : forall p q,
   mulPP p q = mulPP q p.
 Proof.
   intros p q. unfold mulPP.
-Admitted.
+Admitted. *)
 
 Lemma mulPP_addPP_1 : forall p q r,
   mulPP (addPP (mulPP p q) r) (addPP [[]] q) =
@@ -397,10 +482,96 @@ Proof.
   intros p q r. unfold mulPP.
 Admitted.
 
+Lemma lpart :
+  forall {X:Type} f (l:list X), partition f l = match l with
+                       | []  => ([],[])
+                       | x::tl => let (g, d) := partition f tl in if f x then (x :: g, d) else (g, x :: d)
+                       end.
+Proof.
+  intros.
+  induction l as [| x tl]; auto.
+Qed.
+
+Lemma incl_nil : forall {X:Type} (l:list X),
+  incl l [] <-> l = [].
+Proof. Admitted.
 
 Lemma part_add_eq : forall f p l r,
   is_poly p ->
   partition f p = (l, r) ->
   p = addPP l r.
+Proof.
+  intros f p l r Hpoly Hpart. induction l.
+  - rewrite addPP_0. unfold partition in Hpart. simpl.
+Admitted.
+
+Lemma part_fst_true : forall X p (l t f : list X),
+  partition p l = (t, f) ->
+  (forall a, In a t -> p a = true).
+Proof.
+  intros X p l t f Hpart. generalize dependent t; generalize dependent f. induction l as [| hd tl].
+  - intros f t Hpart. inversion Hpart. contradiction.
+Admitted.
+
+Lemma part_snd_false : forall X p (x t f : list X),
+  partition p x = (t, f) ->
+  (forall a, In a f -> p a = false).
+Proof.
+Admitted.
+
+Lemma part_Sorted : forall {X:Type} (c:X->X->Prop) f p,
+  Sorted c p -> 
+  forall l r, partition f p = (l, r) ->
+  Sorted c l /\ Sorted c r.
+Proof.
+  intros X c f p Hsort. induction p.
+  - simpl.
+Admitted.
+
+Lemma part_is_poly : forall f p l r,
+  is_poly p ->
+  partition f p = (l, r) ->
+  is_poly l /\ is_poly r.
+Proof.
+  intros f p l r Hpoly Hpart. destruct Hpoly. split; split.
+  - apply (part_Sorted _ _ _ H _ _ Hpart).
+  - intros m Hin. apply H0. apply elements_in_partition with (x:=m) in Hpart.
+    apply Hpart; auto.
+  - apply (part_Sorted _ _ _ H _ _ Hpart).
+  - intros m Hin. apply H0. apply elements_in_partition with (x:=m) in Hpart.
+    apply Hpart; auto.
+Qed.
+
+Lemma addPP_cons : forall (m:mono) (p:poly),
+  HdRel (fun m n => lex compare m n = Lt) m p ->
+  addPP [m] p = m :: p.
+Proof. Admitted.
+
+Lemma mulMx_HdRel : forall x m p,
+  HdRel (fun m n => lex compare m n = Lt) m p ->
+  HdRel (fun m n => lex compare m n = Lt) (mulMM [x] m) (mulMP [x] p).
+Proof.
+  intros. Admitted.
+
+Lemma mulMP_map_mulMM : forall x q,
+  is_poly q ->
+  (forall m, In m q -> ~ In x m) ->
+  map (mulMM [x]) q = mulMP [x] q.
+Proof.
+  intros.
+  induction q.
+  - auto.
+  - simpl. rewrite (addPP_cons (mulMM [x] a) (mulMP [x] q)).
+    + f_equal. apply IHq.
+      * apply poly_cons in H as []; auto.
+      * intros m Hm. apply H0. simpl. right. apply Hm.
+    + unfold is_poly in H. destruct H. apply Sorted.Sorted_inv in H as [].
+      apply mulMx_HdRel. apply H2.
+Qed.
+
+Lemma mulMM_rem_eq : forall x m,
+  is_mono m ->
+  In x m ->
+  mulMM [x] (remove var_eq_dec x m) = m.
 Proof.
 Admitted.
