@@ -30,6 +30,7 @@ Require Export terms.
 (** A monomial is simply a list of variables, with variables as defined in terms.v. *)
 
 Definition mono := list var.
+Definition mono_eq_dec := (list_eq_dec Nat.eq_dec).
 
 (** A polynomial, then, is a list of monomials. *)
 
@@ -135,7 +136,7 @@ Hint Resolve lex_nat_refl lex_nat_antisym lex_nat_cons.
 
 (** Monomials are simply sorted lists of natural numbers. *)
 
-Definition is_mono (m : mono) : Prop := Sorted lt m.
+Definition is_mono (m : mono) : Prop := Sorted lt m /\ NoDup m.
 
 (** Polynomials are sorted lists of lists, where all of the lists in the polynomail
     are monomials. *)
@@ -156,7 +157,9 @@ Admitted. *)
 
 Lemma NoDup_vars : forall (p : poly),
   NoDup (vars p).
-Proof. Admitted.
+Proof.
+  intros p. unfold vars. apply NoDup_nodup.
+Qed.
 
 Lemma no_vars_is_ground : forall p,
   vars p = [] ->
@@ -176,10 +179,10 @@ Lemma mono_order : forall x y m,
   x < y.
 Proof.
   unfold is_mono.
-  intros.
+  intros x y m [].
   apply Sorted_inv in H as [].
-  apply HdRel_inv in H0.
-  apply H0. 
+  apply HdRel_inv in H1. 
+  apply H1.
 Qed.
 
 (** Similarly, if x :: m is a monomial, then m is also a monomial. *)
@@ -189,9 +192,9 @@ Lemma mono_cons : forall x m,
   is_mono m.
 Proof.
   unfold is_mono.
-  intros.
-  apply Sorted_inv in H as [].
-  apply H.
+  intros x m []. split.
+  - apply Sorted_inv in H as []. apply H.
+  - apply NoDup_cons_iff in H0. apply H0.
 Qed.
 
 (** The same properties hold for is_poly as well; any list in a polynomial is
@@ -232,7 +235,9 @@ Qed.
 Lemma nil_is_mono :
   is_mono [].
 Proof.
-  auto.
+  unfold is_mono. split.
+  - auto.
+  - apply NoDup_nil.
 Qed.
 
 Lemma nil_is_poly :
@@ -243,18 +248,135 @@ Proof.
   - intro; contradiction.
 Qed.
 
+Lemma one_is_poly :
+  is_poly [[]].
+Proof.
+  unfold is_poly. split.
+  - auto.
+  - intro. intro. simpl in H. destruct H.
+    + rewrite <- H. apply nil_is_mono.
+    + inversion H.
+Qed.
+
 Lemma var_is_poly : forall x,
   is_poly [[x]].
 Proof.
-Admitted.
+  intros x. unfold is_poly. split.
+  - apply Sorted_cons; auto.
+  - intros m H. simpl in H; destruct H; inversion H.
+    unfold is_mono. split; auto.
+    apply NoDup_cons; auto. apply NoDup_nil.
+Qed.
 
 Hint Resolve mono_order mono_cons poly_order poly_cons nil_is_mono nil_is_poly
-  var_is_poly.
+  var_is_poly one_is_poly.
 
 
 
 (* ===== Functions over Monomials and Polynomials ===== *) 
 (** * Functions over Monomials and Polynomials *)
+Module Import VarSort := NatSort.
+
+Require Import Orders.
+Module MonoOrder <: TotalLeBool.
+  Definition t := mono.
+  Fixpoint leb x y :=
+    match lex compare x y with
+    | Lt => true
+    | Eq => true
+    | Gt => false
+    end.
+  Infix "<=m" := leb (at level 35).
+  Theorem leb_total : forall a1 a2, (a1 <=m a2 = true) \/ (a2 <=m a1 = true).
+  Proof. Admitted.
+End MonoOrder.
+Module Import MonoSort := Sort MonoOrder.
+
+Lemma NoDup_neq : forall {X:Type} (m : list X) a b,
+  NoDup (a :: b :: m) -> 
+  a <> b.
+Proof.
+  intros X m a b Hdup. apply NoDup_cons_iff in Hdup as [].
+  apply NoDup_cons_iff in H0 as []. intro. apply H. simpl. auto.
+Qed.
+Lemma HdRel_le_lt : forall a m,
+  HdRel (fun n m => is_true (leb n m)) a m /\ NoDup (a::m) -> HdRel lt a m.
+Proof.
+  intros a m []. remember (fun n m => is_true (leb n m)) as le.
+  destruct m.
+  - apply HdRel_nil.
+  - apply HdRel_cons. apply HdRel_inv in H.
+    apply (NoDup_neq _ a n) in H0; intuition. rewrite Heqle in H.
+    unfold is_true in H. apply leb_le in H. destruct (a ?= n) eqn:Hcomp.
+    + apply compare_eq_iff in Hcomp. contradiction.
+    + apply compare_lt_iff in Hcomp. apply Hcomp.
+    + apply compare_gt_iff in Hcomp. apply leb_correct_conv in Hcomp.
+      apply leb_correct in H. rewrite H in Hcomp. inversion Hcomp.
+Qed.
+Lemma VarSort_Sorted : forall (m : mono),
+  Sorted (fun n m => is_true (leb n m)) m /\ NoDup m -> Sorted lt m.
+Proof.
+  intros m []. remember (fun n m => is_true (leb n m)) as le.
+  induction m.
+  - apply Sorted_nil.
+  - apply Sorted_inv in H. apply Sorted_cons.
+    + apply IHm.
+      * apply H.
+      * apply NoDup_cons_iff in H0. apply H0.
+    + apply HdRel_le_lt. split.
+      * rewrite <- Heqle. apply H.
+      * apply H0.
+Qed.
+Lemma In_sorted : forall a l,
+  In a l <-> In a (sort l).
+Proof.
+  intros a l. split; intros Hin.
+  - induction l.
+    + contradiction.
+    + destruct Hin.
+      * 
+Admitted.
+Lemma MonoSort_Sorted : forall (p : poly),
+  Sorted (fun n m => is_true (MonoOrder.leb n m)) p /\ NoDup p -> 
+  Sorted (fun n m => lex compare n m = Lt) p.
+Proof. Admitted.
+Lemma NoDup_VarSort : forall (m : mono),
+  NoDup m -> NoDup (NatSort.sort m).
+Proof.
+  intros m Hdup. induction m.
+  - unfold sort. simpl. apply NoDup_nil.
+  -
+Admitted.
+Lemma NoDup_MonoSort : forall (p : poly),
+  NoDup p -> NoDup (MonoSort.sort p).
+Proof.
+Admitted.
+
+Definition make_mono (l : list nat) : mono := VarSort.sort (nodup var_eq_dec l).
+Definition make_poly (l : list mono) : poly := MonoSort.sort (nodup mono_eq_dec (map make_mono l)).
+Lemma make_mono_is_mono : forall m,
+  is_mono (make_mono m).
+Proof.
+  intros m. unfold is_mono, make_mono. split.
+  - apply VarSort_Sorted. split.
+    + apply VarSort.LocallySorted_sort.
+    + apply NoDup_VarSort. apply NoDup_nodup.
+  - apply NoDup_VarSort. apply NoDup_nodup.
+Qed.
+Lemma make_poly_is_poly : forall p,
+  is_poly (make_poly p).
+Proof.
+  intros p. unfold is_poly, make_poly. split.
+  - apply MonoSort_Sorted. split.
+    + apply MonoSort.LocallySorted_sort.
+    + apply NoDup_MonoSort. apply NoDup_nodup.
+  - intros m Hm. apply In_sorted in Hm. apply nodup_In in Hm.
+    apply in_map_iff in Hm. destruct Hm. destruct H. rewrite <- H.
+    apply make_mono_is_mono.
+Qed.
+
+Definition addPP_make (p q : poly) : poly :=
+  make_poly (p ++ q).
 
 Fixpoint addPPn (p q : poly) (n : nat) : poly :=
   match n with
@@ -342,9 +464,33 @@ Lemma addPP_p_p : forall p,
 Proof.
 Admitted.
 
-Lemma addPP_comm : forall p q,
-  addPP p q = addPP q p.
+Lemma addPPn_comm : forall n p q,
+  n > (length p + length q) ->
+  is_poly p /\ is_poly q ->
+  addPPn p q n = addPPn q p n.
 Proof.
+  intros n. induction n.
+  - reflexivity.
+  -
+Admitted.
+
+Lemma addPP_comm : forall p q,
+  is_poly p /\ is_poly q -> addPP p q = addPP q p.
+Proof.
+  intros p q H. generalize dependent q. induction p; induction q.
+  - reflexivity.
+  - rewrite addPP_0. destruct q; auto.
+  - rewrite addPP_0. destruct p; auto.
+  - intro. unfold addPP. simpl. destruct (lex compare a a0) eqn:Hlex.
+    + apply lex_eq in Hlex. rewrite Hlex. rewrite plus_comm. simpl.
+      rewrite <- (plus_comm (S (length p))). simpl. unfold addPP in IHp.
+      rewrite plus_comm. rewrite IHp.
+      * rewrite plus_comm. reflexivity.
+      * destruct H. apply poly_cons in H as []. apply poly_cons in H0 as []. split; auto.
+    + apply lex_lt_gt in Hlex. rewrite Hlex. f_equal. admit.
+    + apply lex_lt_gt in Hlex. rewrite Hlex. f_equal. unfold addPP in IHq. simpl length in IHq. rewrite <- IHq.
+      * rewrite <- add_1_l. rewrite plus_assoc. rewrite <- (add_1_r (length p)). reflexivity.
+      * destruct H. apply poly_cons in H0 as []. split; auto.
 Admitted.
 
 Lemma addPP_assoc : forall p q r,
@@ -410,26 +556,7 @@ Lemma mulMP_distr_addPP : forall m p q,
 Proof.
 Admitted.
 
-(* Lemma addPP_comm : forall p q,
-  is_poly p /\ is_poly q -> addPP p q = addPP q p.
-Proof.
-  intros p q H. generalize dependent q. induction p; induction q.
-  - reflexivity.
-  - rewrite addPP_0. destruct q; auto.
-  - rewrite addPP_0. destruct p; auto.
-  - intro. unfold addPP. simpl. destruct (lex compare a a0) eqn:Hlex.
-    + apply lex_eq in Hlex. rewrite Hlex. rewrite plus_comm. simpl.
-      rewrite <- (plus_comm (S (length p))). simpl. unfold addPP in IHp.
-      rewrite plus_comm. rewrite IHp.
-      * rewrite plus_comm. reflexivity.
-      * destruct H. apply poly_cons in H as []. apply poly_cons in H0 as []. split; auto.
-    + apply lex_lt_gt in Hlex. rewrite Hlex. f_equal. admit.
-    + apply lex_lt_gt in Hlex. rewrite Hlex. f_equal. unfold addPP in IHq. simpl length in IHq. rewrite <- IHq.
-      * rewrite <- add_1_l. rewrite plus_assoc. rewrite <- (add_1_r (length p)). reflexivity.
-      * destruct H. apply poly_cons in H0 as []. split; auto.
-Admitted. *)
-
-(* Lemma addPP_is_poly : forall p q,
+Lemma addPP_is_poly : forall p q,
   is_poly p /\ is_poly q -> is_poly (addPP p q).
 Proof.
   intros p q Hpoly. inversion Hpoly. unfold is_poly in H, H0. destruct H, H0.  split.
@@ -446,7 +573,11 @@ Proof.
         -- intuition.
       * apply Sorted_cons.
         -- rewrite plus_comm. simpl.
-Admitted. *)
+Admitted.
+
+Lemma mulPP_is_poly : forall p q,
+  is_poly p /\ is_poly q -> is_poly (mulPP p q).
+Proof. Admitted.
 
 (* Lemma mullPP_1 : forall p,
   is_poly p -> mulPP [[]] p = p.

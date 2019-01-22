@@ -240,7 +240,10 @@ Lemma build_poly_is_poly : forall q r,
   is_poly q /\ is_poly r ->
   is_poly (build_poly q r).
 Proof.
-Admitted.
+  intros q r []. unfold build_poly. 
+  apply mulPP_is_poly. split; auto.
+  apply addPP_is_poly. split; auto.
+Qed.
 
 Lemma div_build_unif : forall x p q r s,
   is_poly p ->
@@ -283,6 +286,14 @@ Lemma incl_vars_mulPP : forall xs p q,
   incl (vars p) xs /\ incl (vars q) xs -> incl (vars (mulPP p q)) xs.
 Proof. Admitted.
 
+Lemma incl_div : forall x xs p q r,
+  incl (vars p) (x :: xs) ->
+  div_by_var x p = (q, r) ->
+  incl (vars q) xs /\ incl (vars r) xs.
+Proof.
+  intros x xs p q r Hincl Hdiv. split. induction xs as [|y xs].
+  - Admitted.
+
 Lemma div_vars : forall x xs p q r,
   incl (vars p) (x :: xs) ->
   div_by_var x p = (q, r) ->
@@ -291,12 +302,12 @@ Proof.
   intros x xs p q r Hincl Hdiv. unfold build_poly.
   apply div_var_not_in_qr in Hdiv as Hin. destruct Hin as [Hinq Hinr].
   apply in_mono_in_vars in Hinq. apply in_mono_in_vars in Hinr.
-  apply incl_vars_mulPP. split.
+  apply incl_vars_mulPP. apply (incl_div _ _ _ _ _ Hincl) in Hdiv. split.
   - apply incl_vars_addPP. split.
     + unfold vars. simpl. unfold incl. intros a [].
-    + admit.
-  - admit.
-Admitted.
+    + apply Hdiv.
+  - apply Hdiv.
+Qed.
 
 
 
@@ -677,5 +688,3 @@ Proof.
   apply sveVars_correct.
   auto.
 Qed.
-
-
