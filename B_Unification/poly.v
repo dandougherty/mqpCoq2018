@@ -277,10 +277,53 @@ Hint Resolve mono_order mono_cons poly_order poly_cons nil_is_mono nil_is_poly
 (** * Functions over Monomials and Polynomials *)
 Module Import VarSort := NatSort.
 
+Fixpoint nodup_cancel_n {A} Aeq_dec (l : list A) n : list A :=
+  match n with
+  | 0 => []
+  | S n' => 
+    match l with
+    | [] => []
+    | x::xs => 
+      let count := (count_occ Aeq_dec xs x) in 
+      let xs' := (nodup_cancel_n Aeq_dec (remove Aeq_dec x xs) n') in
+      if (even count) then x::xs' else xs'
+    end
+  end.
+
+Definition nodup_cancel {A} Aeq_dec (l : list A) : list A :=
+  nodup_cancel_n Aeq_dec l (length l).
+
+Lemma NoDup_nodup_cancel : forall (A:Type) Aeq_dec (l:list A),
+  NoDup (nodup_cancel Aeq_dec l).
+Proof. Admitted.
+
+Lemma nodup_cancel_in : forall (A:Type) Aeq_Dec a (l:list A),
+  In a (nodup_cancel Aeq_Dec l) -> In a l.
+Proof. Admitted.
+
+(* Lemma nodup_In l x : In x (nodup l) <-> In x l.
+  Proof.
+    induction l as [|a l' Hrec]; simpl.
+    - reflexivity.
+    - destruct (in_dec decA a l'); simpl; rewrite Hrec.
+      * intuition; now subst.
+      * reflexivity.
+  Qed.
+
+  Lemma NoDup_nodup l: NoDup (nodup l).
+  Proof.
+    induction l as [|a l' Hrec]; simpl.
+    - constructor.
+    - destruct (in_dec decA a l'); simpl.
+      * assumption.
+      * constructor; [ now rewrite nodup_In | assumption].
+  Qed. *)
+
+
 Require Import Orders.
 Module MonoOrder <: TotalLeBool.
   Definition t := mono.
-  Fixpoint leb x y :=
+  Definition leb x y :=
     match lex compare x y with
     | Lt => true
     | Eq => true
@@ -327,15 +370,30 @@ Proof.
       * rewrite <- Heqle. apply H.
       * apply H0.
 Qed.
+Lemma In_iter_merge_list : forall (a:mono) s l,
+  In a l -> In a (iter_merge s l) .
+Proof.
+  intros a s l Hin. Admitted.
+Lemma In_iter_merge : forall (a:mono) s si sl l,
+  In a (iter_merge s l) -> 
+  (si = Some sl /\ In a sl /\ In si s) \/ In a l.
+Proof. Admitted.
 Lemma In_sorted : forall a l,
   In a l <-> In a (sort l).
 Proof.
-  intros a l. split; intros Hin.
-  - induction l.
+  intros a l. unfold sort. split; intros Hin.
+  - destruct l.
     + contradiction.
     + destruct Hin.
-      * 
-Admitted.
+      * rewrite H. apply In_iter_merge_list. intuition.
+      * apply In_iter_merge_list. intuition.
+  - destruct l.
+    + contradiction.
+    + simpl in Hin. apply (In_iter_merge _ _ (Some [m]) [m]) in Hin.
+      destruct Hin.
+      * destruct H, H0. simpl in H0. destruct H0; inversion H0. intuition.
+      * intuition.
+Qed.
 Lemma MonoSort_Sorted : forall (p : poly),
   Sorted (fun n m => is_true (MonoOrder.leb n m)) p /\ NoDup p -> 
   Sorted (fun n m => lex compare n m = Lt) p.
@@ -353,7 +411,7 @@ Proof.
 Admitted.
 
 Definition make_mono (l : list nat) : mono := VarSort.sort (nodup var_eq_dec l).
-Definition make_poly (l : list mono) : poly := MonoSort.sort (nodup mono_eq_dec (map make_mono l)).
+Definition make_poly (l : list mono) : poly := MonoSort.sort (nodup_cancel mono_eq_dec (map make_mono l)).
 Lemma make_mono_is_mono : forall m,
   is_mono (make_mono m).
 Proof.
@@ -369,14 +427,39 @@ Proof.
   intros p. unfold is_poly, make_poly. split.
   - apply MonoSort_Sorted. split.
     + apply MonoSort.LocallySorted_sort.
-    + apply NoDup_MonoSort. apply NoDup_nodup.
-  - intros m Hm. apply In_sorted in Hm. apply nodup_In in Hm.
+    + apply NoDup_MonoSort. apply NoDup_nodup_cancel.
+  - intros m Hm. apply In_sorted in Hm. apply nodup_cancel_in in Hm.
     apply in_map_iff in Hm. destruct Hm. destruct H. rewrite <- H.
     apply make_mono_is_mono.
 Qed.
 
+
 Definition addPP_make (p q : poly) : poly :=
-  make_poly (p ++ q).
+  make_poly (p ++ q). (* either need to remove both instances of duplicates here or in make_poly *)
+
+Definition distribute {A} (l m : list (list A)) : list (list A) :=
+  concat (map (fun a:(list A) => (map (app a) l)) m).
+
+Definition mulPP_make (p q : poly) : poly :=
+  make_poly (distribute p q).
+
+Lemma addPPmake_is_poly : forall p q,
+  is_poly (addPP_make p q).
+Proof.
+  intros p q. apply make_poly_is_poly.
+Qed.
+
+Lemma sort_app_comm : forall l m,
+  sort (l ++ m) = sort (m ++ l).
+Proof.
+  intros l m. induction l.
+  - simpl. rewrite app_nil_r. reflexivity.
+  - 
+
+Lemma addPPmake_comm : forall p q,
+  addPP_make p q = addPP_make q p.
+Proof.
+  intros p q. unfold addPP_make, make_poly. Admitted.
 
 Fixpoint addPPn (p q : poly) (n : nat) : poly :=
   match n with
