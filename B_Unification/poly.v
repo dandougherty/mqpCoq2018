@@ -370,45 +370,29 @@ Proof.
       * rewrite <- Heqle. apply H.
       * apply H0.
 Qed.
-Lemma In_iter_merge_list : forall (a:mono) s l,
-  In a l -> In a (iter_merge s l) .
-Proof.
-  intros a s l Hin. Admitted.
-Lemma In_iter_merge : forall (a:mono) s si sl l,
-  In a (iter_merge s l) -> 
-  (si = Some sl /\ In a sl /\ In si s) \/ In a l.
-Proof. Admitted.
 Lemma In_sorted : forall a l,
   In a l <-> In a (sort l).
 Proof.
-  intros a l. unfold sort. split; intros Hin.
-  - destruct l.
-    + contradiction.
-    + destruct Hin.
-      * rewrite H. apply In_iter_merge_list. intuition.
-      * apply In_iter_merge_list. intuition.
-  - destruct l.
-    + contradiction.
-    + simpl in Hin. apply (In_iter_merge _ _ (Some [m]) [m]) in Hin.
-      destruct Hin.
-      * destruct H, H0. simpl in H0. destruct H0; inversion H0. intuition.
-      * intuition.
+  intros a l. pose (MonoSort.Permuted_sort l). split; intros Hin.
+  - apply (Permutation.Permutation_in _ p Hin).
+  - apply (Permutation.Permutation_in' (Logic.eq_refl a) p). auto.
 Qed.
 Lemma MonoSort_Sorted : forall (p : poly),
   Sorted (fun n m => is_true (MonoOrder.leb n m)) p /\ NoDup p -> 
   Sorted (fun n m => lex compare n m = Lt) p.
 Proof. Admitted.
 Lemma NoDup_VarSort : forall (m : mono),
-  NoDup m -> NoDup (NatSort.sort m).
+  NoDup m -> NoDup (VarSort.sort m).
 Proof.
-  intros m Hdup. induction m.
-  - unfold sort. simpl. apply NoDup_nil.
-  -
-Admitted.
+  intros m Hdup. pose (VarSort.Permuted_sort m).
+  apply (Permutation.Permutation_NoDup p Hdup).
+Qed.
 Lemma NoDup_MonoSort : forall (p : poly),
   NoDup p -> NoDup (MonoSort.sort p).
 Proof.
-Admitted.
+  intros p Hdup. pose (MonoSort.Permuted_sort p).
+  apply (Permutation.Permutation_NoDup p0 Hdup).
+Qed.
 
 Definition make_mono (l : list nat) : mono := VarSort.sort (nodup var_eq_dec l).
 Definition make_poly (l : list mono) : poly := MonoSort.sort (nodup_cancel mono_eq_dec (map make_mono l)).
@@ -454,7 +438,7 @@ Lemma sort_app_comm : forall l m,
 Proof.
   intros l m. induction l.
   - simpl. rewrite app_nil_r. reflexivity.
-  - 
+  - simpl. unfold sort. simpl. Search sort. Search NoDup.
 
 Lemma addPPmake_comm : forall p q,
   addPP_make p q = addPP_make q p.
