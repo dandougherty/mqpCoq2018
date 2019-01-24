@@ -145,6 +145,7 @@ Definition is_poly (p : poly) : Prop :=
   Sorted (fun m n => lex compare m n = Lt) p /\ forall m, In m p -> is_mono m.
 
 Hint Unfold is_mono is_poly.
+Hint Resolve NoDup_cons NoDup_nil Sorted_cons.
 
 Definition vars (p : poly) : list var :=
   nodup var_eq_dec (concat p).
@@ -262,10 +263,9 @@ Lemma var_is_poly : forall x,
   is_poly [[x]].
 Proof.
   intros x. unfold is_poly. split.
-  - apply Sorted_cons; auto.
+  - auto.
   - intros m H. simpl in H; destruct H; inversion H.
-    unfold is_mono. split; auto.
-    apply NoDup_cons; auto. apply NoDup_nil.
+    auto.
 Qed.
 
 Hint Resolve mono_order mono_cons poly_order poly_cons nil_is_mono nil_is_poly
@@ -417,6 +417,11 @@ Proof.
     apply make_mono_is_mono.
 Qed.
 
+Lemma make_mono_In : forall x m,
+  In x (make_mono m) -> In x m.
+Proof.
+Admitted.
+
 
 Definition addPP_make (p q : poly) : poly :=
   make_poly (p ++ q). (* either need to remove both instances of duplicates here or in make_poly *)
@@ -439,6 +444,7 @@ Proof.
   intros l m. induction l.
   - simpl. rewrite app_nil_r. reflexivity.
   - simpl. unfold sort. simpl. Search sort. Search NoDup.
+Admitted.
 
 Lemma addPPmake_comm : forall p q,
   addPP_make p q = addPP_make q p.
@@ -618,6 +624,11 @@ Lemma mulPP_distr_addPP : forall p q r,
 Proof.
 Admitted.
 
+Lemma mulPP_distr_addPPr : forall p q r,
+  mulPP r (addPP p q) = addPP (mulPP r p) (mulPP r q).
+Proof.
+Admitted.
+
 Lemma mulMP_distr_addPP : forall m p q,
   mulMP m (addPP p q) = addPP (mulMP m p) (mulMP m q).
 Proof.
@@ -643,8 +654,10 @@ Proof.
 Admitted.
 
 Lemma mulPP_is_poly : forall p q,
-  is_poly p /\ is_poly q -> is_poly (mulPP p q).
+  is_poly (mulPP p q).
 Proof. Admitted.
+
+Hint Resolve mulPP_is_poly.
 
 (* Lemma mullPP_1 : forall p,
   is_poly p -> mulPP [[]] p = p.
@@ -689,6 +702,14 @@ Proof.
   intros.
   induction l as [| x tl]; auto.
 Qed.
+
+Lemma incl_vars_addPP : forall xs p q,
+  incl (vars p) xs /\ incl (vars q) xs -> incl (vars (addPP p q)) xs.
+Proof. Admitted.
+
+Lemma incl_vars_mulPP : forall xs p q,
+  incl (vars p) xs /\ incl (vars q) xs -> incl (vars (mulPP p q)) xs.
+Proof. Admitted.
 
 Lemma incl_nil : forall {X:Type} (l:list X),
   incl l [] <-> l = [].
