@@ -1,15 +1,3 @@
-(*
-  Lowenheim's Formula's proof
-
-  Authors:
-    Joseph St. Pierre
-    Spyridon Antonatos
-*)
-
-(* Required Libraries *)
-
-Require Export terms.
-Require Export lowenheim_formula.
 
 Require Export EqNat.
 Require Import List.
@@ -39,7 +27,50 @@ Lemma sub_term_id :
   forall (t : term),
   sub_term t t.
  Proof.
-Admitted.
+ intros. firstorder.
+ Qed.
+
+
+Lemma term_vars_distr :
+forall (t1 t2 : term),
+ (term_vars (t1 + t2)) = (term_vars t1) ++ (term_vars t2).
+Proof.
+ intros.
+ induction t2.
+ - simpl. reflexivity.
+ - simpl. reflexivity.
+ - simpl. reflexivity.
+ - simpl. reflexivity.
+ - simpl. reflexivity.
+Qed.
+
+Lemma tv_h1:
+forall (t1 t2 : term) ,
+forall (x : var),
+ (In x (term_vars t1)) -> (In x (term_vars (t1 + t2))).
+Proof.
+intros. induction t2.
+ - simpl. rewrite app_nil_r. apply H.
+ - simpl. rewrite app_nil_r. apply H.
+ - simpl. pose proof in_or_app as H1. specialize (H1 var (term_vars t1) [v] x). firstorder.
+ - rewrite term_vars_distr. apply in_or_app. left. apply H.
+ - rewrite term_vars_distr. apply in_or_app. left.  apply H.
+Qed.
+
+
+
+Lemma tv_h2:
+forall (t1 t2 : term) ,
+forall (x : var),
+ (In x (term_vars t2)) -> (In x (term_vars (t1 + t2))).
+Proof.
+intros. induction t1.
+ - simpl. apply H.
+ - simpl.  apply H.
+ - simpl. pose proof in_or_app as H1. right. apply H. 
+ - rewrite term_vars_distr. apply in_or_app. right. apply H.
+ - rewrite term_vars_distr. apply in_or_app. right.  apply H.
+Qed.
 
 
 (* helper lemma : if the sum of two terms is a subterm of another term t', then each component of the sum is
@@ -48,8 +79,13 @@ Lemma helper_2a:
   forall (t1 t2 t' : term),
   sub_term (t1 + t2) t' -> sub_term t1 t'.
 Proof.
- intros.  unfold sub_term in *. intros. specialize (H x).   
-Admitted. 
+ intros.  unfold sub_term in *. intros. specialize (H x).
+ pose proof in_dup_and_non_dup as H10. unfold term_unique_vars. unfold term_unique_vars in *.
+ pose proof tv_h1 as H7. apply H. specialize (H7 t1 t2 x). specialize (H10 x (term_vars (t1 + t2))). destruct H10 . 
+ apply H1. apply H7. pose proof in_dup_and_non_dup as H10. specialize (H10 x (term_vars t1)). destruct H10.
+ apply H4.  apply H0. 
+Qed. 
+
   
 (* helper lemma : if the sum of two terms is a subterm of another term t', then each component of the sum is
    also a subterm of the other term t' *)
@@ -58,7 +94,11 @@ Lemma helper_2b:
   sub_term (t1 + t2) t' -> sub_term t2 t'.
 Proof.
 intros.  unfold sub_term in *. intros. specialize (H x). 
-Admitted. 
+pose proof in_dup_and_non_dup as H10. unfold term_unique_vars. unfold term_unique_vars in *.
+ pose proof tv_h2 as H7. apply H. specialize (H7 t1 t2 x). specialize (H10 x (term_vars (t1 + t2))). destruct H10 . 
+ apply H1. apply H7. pose proof in_dup_and_non_dup as H10. specialize (H10 x (term_vars t2)). destruct H10.
+ apply H4.  apply H0.
+Qed. 
 
 
 Lemma elt_in_list:
@@ -66,16 +106,25 @@ Lemma elt_in_list:
   (In x (a::l)) ->
   x = a \/ (In x l).
 Proof.
-Admitted.
+intros.
+pose proof in_inv as H1.
+specialize (H1 var a x l H).
+destruct H1.
+ - left. symmetry in H0. apply H0.
+ - right. apply H0.
+Qed.
+
+
 
 Lemma elt_not_in_list:
  forall (x: var) (a : var) (l : list var),
   ~ (In x (a::l)) ->
   x <> a /\ ~ (In x l).
 Proof.
-Admitted.
-
-
+intros.
+pose proof not_in_cons. specialize (H0 var x a l). destruct H0.
+specialize (H0 H). apply H0.
+Qed.
 
 Lemma in_list_of_var_term_of_var:
 forall (x : var),
@@ -86,10 +135,6 @@ Qed.
 
 
 
-Lemma distr_opp :
- forall x y z, x * y  +  x * z == x * ( y + z).
-Proof.
-Admitted.
 
 
 Lemma var_in_out_list:
@@ -247,19 +292,6 @@ Qed.
 (** 3.3.a Proof that Lownheim's algorithm produces a reproductive unifier **)
 
 
-(* definition of a reproductive unifier. We have a small modification than the book's, we are
-   defining a unifier to be reproductive for the all x in Var(t), not for all x in general ,
-  because our lownheim builder uses only variables from a term *)
-Definition reproductive_unifier (t : term) (sig : subst) : Prop :=
-  unifier t sig ->
-  forall (tau : subst) (x : var),
-  unifier t tau ->
-  (apply_subst (apply_subst (VAR x) sig ) tau) == (apply_subst (VAR x) tau).
-
-
-
-
-
 Lemma lowenheim_rephrase1_easy :
   forall (l : list var) (x : var) (sig1 : subst) (sig2 : subst) (s : term),
   (In x l) -> 
@@ -393,29 +425,6 @@ Qed.
 
 (** 3.3.b lowenheim builder gives  a most general unifier  **)
 
-(* substitution composition *)
-Definition substitution_composition (s s' delta : subst) (t : term) : Prop :=
-  forall (x : var), apply_subst (apply_subst (VAR x) s) delta == apply_subst (VAR x) s' .
-
-(* more general unifier *)
-Definition more_general_substitution (s s': subst) (t : term) : Prop :=
-  exists delta, substitution_composition s s' delta t.
-
-
-
-Definition most_general_unifier (t : term) (s : subst) : Prop :=
-  (unifier t s) -> (forall (s' : subst), unifier t s' -> more_general_substitution s s' t ).
-
-
-Lemma reproductive_is_mgu : forall (t : term) (u : subst),
-  reproductive_unifier t u ->
-  most_general_unifier t u.
-Proof.
- intros. unfold most_general_unifier.  unfold reproductive_unifier in H.
-  unfold more_general_substitution . unfold substitution_composition.
-  intros. specialize (H H0). exists s' . intros.  specialize (H s' x).  specialize (H H1). apply H.
-Qed.
-
 
 Lemma lowenheim_most_general_unifier:
   forall (t : term) (tau : subst),
@@ -464,6 +473,3 @@ Proof.
  -  apply H.
  - apply lowenheim_most_general_unifier. apply find_unifier_is_unifier. apply H.
 Qed.
-
-
-  
