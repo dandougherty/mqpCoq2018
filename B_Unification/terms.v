@@ -229,6 +229,12 @@ Lemma mul_assoc_opp :
 Proof.
 Admitted.
 
+Lemma distr_opp :
+ forall x y z, x * y  +  x * z == x * ( y + z).
+Proof.
+Admitted.
+
+
 (** * Variable Sets **)
 
 (**
@@ -267,21 +273,21 @@ Fixpoint var_set_remove_var (v : var) (vars : var_set) : var_set :=
 
 (* Function to return a unique var_set without duplicates. Found_vars should be empty for correctness
    guarantee *)
-Fixpoint var_set_create_unique (vars : var_set) (found_vars : var_set) : var_set :=
+Fixpoint var_set_create_unique (vars : var_set): var_set :=
   match vars with
     | nil => nil
     | n :: n' => 
-    if (var_set_includes_var n found_vars) then var_set_create_unique n' (n :: found_vars)
-    else n :: var_set_create_unique n' (n :: found_vars)
+    if (var_set_includes_var n n') then var_set_create_unique n'
+    else n :: var_set_create_unique n'
   end.
 
 (* Function to check if a given var_set is unique *)
-Fixpoint var_set_is_unique (vars : var_set) (found_vars : var_set) : bool :=
+Fixpoint var_set_is_unique (vars : var_set): bool :=
   match vars with
     | nil => true
     | n :: n' => 
-    if (var_set_includes_var n found_vars) then false 
-    else var_set_is_unique n' (n :: found_vars)
+    if (var_set_includes_var n n') then false 
+    else var_set_is_unique n'
   end.
 
 (* Function to get the variables of a term as a var_set *)
@@ -296,18 +302,87 @@ Fixpoint term_vars (t : term) : var_set :=
 
 (* Function to generate a list of unique variables that make up a given term *)
 Definition term_unique_vars (t : term) : var_set :=
-  (var_set_create_unique (term_vars t) []).
+  (var_set_create_unique (term_vars t)).
+
+
+Lemma vs_includes_true : forall (x : var) (lvar : list var),
+  var_set_includes_var x lvar = true -> In x lvar.
+ Proof.
+ intros.
+  induction lvar.
+  -  simpl; intros.
+  discriminate.
+  - simpl in H. remember (beq_nat x a) as H2. destruct H2.
+  +  simpl. left. symmetry in HeqH2. pose proof beq_nat_true as H7. specialize (H7 x a HeqH2).
+    symmetry in H7.  apply H7.
+  + specialize (IHlvar H). simpl.  right.  apply IHlvar. 
+Qed.
+
+
+Lemma vs_includes_false : forall (x : var) (lvar : list var),
+  var_set_includes_var x lvar = false -> ~ In x lvar.
+ Proof.
+ intros.
+  induction lvar.
+  -  simpl; intros. unfold not. intros. destruct H0.
+  - simpl in H. remember (beq_nat x a) as H2. destruct H2. inversion H.
+    specialize (IHlvar H). firstorder. intuition. apply IHlvar. simpl in H0.
+    destruct H0. 
+    { inversion HeqH2. symmetry in H2. pose proof beq_nat_false as H7. specialize (H7 x a H2).
+      rewrite H0 in H7. destruct H7. intuition. }
+    {  apply H0. }
+Qed.
+
+
+Lemma in_dup_and_non_dup :
+ forall (x: var) (lvar : list var),
+ In x lvar <-> In x (var_set_create_unique lvar).
+Proof.
+ intros. split.
+ - induction lvar.
+  +  intros. simpl in H. destruct H.
+  + intros. simpl. remember(var_set_includes_var a lvar) as C. destruct C.
+   { symmetry in HeqC. pose proof vs_includes_true as H7. specialize (H7 a lvar HeqC).
+     simpl in H. destruct H. 
+    { rewrite H in H7. specialize (IHlvar H7). apply IHlvar. }
+    { specialize (IHlvar H). apply IHlvar. }
+   }
+   { symmetry in HeqC. pose proof vs_includes_false as H7. specialize (H7 a lvar HeqC).
+     simpl in H. destruct H.
+    { simpl.  left.  apply H. }
+    {  specialize (IHlvar H). simpl. right. apply IHlvar. }
+   } 
+ - induction lvar.
+   + intros.  simpl in H. destruct H.
+   +  intros. simpl in H. remember(var_set_includes_var a lvar) as C. destruct C.
+     { symmetry in HeqC. pose proof vs_includes_true as H7. specialize (H7 a lvar HeqC).
+      specialize (IHlvar H). simpl.  right. apply IHlvar. }
+     { symmetry in HeqC. pose proof vs_includes_false as H7. specialize (H7 a lvar HeqC).
+       simpl in H. destruct H.
+      { simpl.  left. apply H. }
+      { specialize (IHlvar H).  simpl. right. apply IHlvar. } }
+Qed.  
+
+Search nodup.
+(*
+Lemma decA: forall x y : var, {x = y} + {x <> y}.
+Proof.
+Admitted.
+
+Definition term_unique_vars (t : term) : var_set :=
+  (nodup decA (term_vars t)).
+*)
 
 (** ** Examples **)
 
 Example var_set_create_unique_ex1 :
-  var_set_create_unique [0;5;2;1;1;2;2;9;5;3] [] = [0;5;2;1;9;3].
+  var_set_create_unique [0;5;2;1;1;2;2;9;5;3] = [0;1;2;9;5;3].
 Proof.
 simpl. reflexivity.
 Qed.
 
 Example var_set_is_unique_ex1 :
-  var_set_is_unique [0;2;2;2] [] = false.
+  var_set_is_unique [0;2;2;2] = false.
 Proof.
 simpl. reflexivity.
 Qed.
@@ -721,55 +796,45 @@ Qed.
 (* In this subsection we define propositions, lemmas and examples related 
   to the most general unifier *)
 
+
 (* substitution composition *)
-Definition subst_compose (s s' delta : subst) (t : term) : Prop :=
-   apply_subst t s' == apply_subst (apply_subst t s) delta.
+Definition substitution_composition (s s' delta : subst) (t : term) : Prop :=
+  forall (x : var), apply_subst (apply_subst (VAR x) s) delta == apply_subst (VAR x) s' .
 
 (* more general unifier *)
-Definition more_general_subst (s s': subst) (t : term) : Prop :=
-  exists delta, subst_compose s s' delta t.
+Definition more_general_substitution (s s': subst) (t : term) : Prop :=
+  exists delta, substitution_composition s s' delta t.
 
-(* Simplified notation for saying if a subst is more general than another *)
-Notation "u1 <_ u2 { t }" := (more_general_subst u1 u2 t) (at level 51, left associativity).
 
-(* 
-  A Most General Unifier (MGU) takes in a term and a substitution and tells whether or not said substitution
-  is an mgu for the given term.
-*)
-Definition mgu (t : term) (s : subst) : Prop :=
-  (unifier t s) /\ (forall (s' : subst), unifier t s' -> (more_general_subst s s' t) ).
+(* A Most General Unifier (MGU) takes in a term and a substitution and tells whether or not said substitution
+  is an mgu for the given term. *)
+Definition most_general_unifier (t : term) (s : subst) : Prop :=
+  (unifier t s) -> (forall (s' : subst), unifier t s' -> more_general_substitution s s' t ).
 
-(* 
-  In report explain why we are using reproductive as opposed to mgu.
-*)
+Definition reproductive_unifier (t : term) (sig : subst) : Prop :=
+  unifier t sig ->
+  forall (tau : subst) (x : var),
+  unifier t tau ->
+  (apply_subst (apply_subst (VAR x) sig ) tau) == (apply_subst (VAR x) tau).
 
-(* reproductive unifier *)
-Definition reprod_unif (t : term) (s : subst) : Prop :=
-  unifier t s /\
-  forall u,
-  unifier t u ->
-  subst_compose s u u t.
 
-(* might be useful for the proof *)
-Lemma reprod_is_mgu : forall (t : term) (u : subst),
-  reprod_unif t u ->
-  mgu t u.
+Lemma reproductive_is_mgu : forall (t : term) (u : subst),
+  reproductive_unifier t u ->
+  most_general_unifier t u.
 Proof.
-Admitted.
+ intros. unfold most_general_unifier.  unfold reproductive_unifier in H.
+  unfold more_general_substitution . unfold substitution_composition.
+  intros. specialize (H H0). exists s' . intros.  specialize (H s' x).  specialize (H H1). apply H.
+Qed.
+
+
+
 
 Example mgu_ex1 :
-  mgu (VAR 0 * VAR 1) ((0, VAR 0 * (T1 + VAR 1)) :: nil).
+  most_general_unifier (VAR 0 * VAR 1) ((0, VAR 0 * (T1 + VAR 1)) :: nil).
 Proof.
-unfold mgu. unfold unifier. simpl. unfold more_general_subst. simpl. split.
-{
-  rewrite distr. rewrite mul_comm with (y := T1). rewrite mul_id.
-  rewrite mul_comm. rewrite distr. rewrite mul_comm with (x := VAR 0).
-  rewrite <- mul_assoc with (x := VAR 1) (y := VAR 1). rewrite mul_x_x.
-  rewrite sum_x_x. reflexivity.
-}
-{ 
-  intros. unfold subst_compose. 
-Admitted. 
+unfold most_general_unifier. unfold unifier. simpl. unfold more_general_substitution. simpl. 
+Admitted.
 
 
 
@@ -807,7 +872,7 @@ Definition plus_one_step (a b : term) : term :=
     | PRODUCT x y , T0 => a
     | PRODUCT x y, _ => if identical a b then T0 else SUM a b
     | SUM x y , T0 => a
-    | SUM x y, _ => if identical a b then T0 else SUM a b(* Not considered *)
+    | SUM x y, _ => if identical a b then T0 else SUM a b
   end.
 
 (* Basic Multiplication for terms *)
@@ -823,7 +888,7 @@ Definition mult_one_step (a b : term) : term :=
     | PRODUCT x y, _ => if identical a b then a else PRODUCT a b
     | SUM x y , T0 => T0
     | SUM x y , T1 => a
-    | SUM x y, _ => if identical a b then a else SUM a b(* Not considered *)
+    | SUM x y, _ => if identical a b then a else PRODUCT a b
   end.
 
 (* Simplifies a term in very apparent and basic ways *)
