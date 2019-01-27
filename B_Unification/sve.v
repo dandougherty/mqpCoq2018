@@ -103,6 +103,8 @@ Lemma elim_var_mul : forall x p r,
   elim_var x p = r ->
   p = mulPP [[x]] r.
 Proof.
+  intros.
+  
   (*intros.
   rewrite <- (mulMP_map_mulMM _ _ H0).
   apply (elim_var_map_mulMM_rem _ _ _ H H1 H2).
@@ -362,24 +364,23 @@ Proof.
          (substP s r))).
     simpl. unfold inDom. simpl.
     rewrite <- beq_nat_refl. simpl.
-    rewrite addPP_0r.
-    rewrite mulPP_1r.
-    reflexivity.
+    rewrite addPP_0r; auto.
+    rewrite mulPP_1r; auto.
   rewrite Hsx.
 
   rewrite substP_distr_addPP.
   rewrite substP_1.
   rewrite mulPP_distr_addPPr.
-  rewrite mulPP_1r.
+  rewrite mulPP_1r; auto.
   rewrite mulPP_distr_addPP.
   rewrite mulPP_distr_addPP.
   rewrite mulPP_assoc.
   rewrite mulPP_p_p.
   rewrite addPP_p_p.
-  rewrite addPP_0.
+  rewrite addPP_0; auto.
   rewrite <- substP_distr_mulPP.
   rewrite <- substP_distr_addPP.
-  rewrite <- (mulPP_1r r) at 2.
+  rewrite <- (mulPP_1r r) at 2; auto.
   rewrite mulPP_comm.
   rewrite (mulPP_comm r [[]]).
   rewrite <- mulPP_distr_addPP.
@@ -410,9 +411,8 @@ Proof.
         (addPP (mulPP [[x]] (substP s (addPP [[]] q))) (substP s r))).
       simpl substP. unfold inDom.
       simpl existsb. rewrite Hyx. simpl.
-      rewrite mulPP_1r.
-      rewrite addPP_0r.
-      reflexivity.
+      rewrite mulPP_1r; auto.
+      rewrite addPP_0r; auto.
     rewrite H.
 
     rewrite substP_distr_addPP.
@@ -428,7 +428,7 @@ Proof.
     rewrite mulPP_comm.
     rewrite mulPP_distr_addPP.
     rewrite mulPP_comm.
-    rewrite mulPP_1r.
+    rewrite mulPP_1r; auto.
     rewrite (addPP_comm (substP t [[x]]) _); auto.
     rewrite addPP_assoc.
     rewrite (addPP_comm (substP t [[x]]) _ ); auto.
@@ -439,7 +439,7 @@ Proof.
     rewrite <- Hdiv.
     unfold unifier in HunifT.
     rewrite HunifT.
-    rewrite addPP_0.
+    rewrite addPP_0; auto.
     apply beq_nat_true in Hyx.
     rewrite Hyx.
     reflexivity.

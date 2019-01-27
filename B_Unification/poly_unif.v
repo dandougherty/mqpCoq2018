@@ -48,11 +48,6 @@ Lemma substP_distr_addPP : forall p q s,
 Proof.
 Admitted.
 
-Lemma substP_distr_mulMP : forall m p s,
-  substP s (mulMP m p) = mulPP (substP s [m]) (substP s p).
-Proof.
-Admitted.
-
 Lemma substP_cons : forall x p,
   (forall m, In m p -> ~ In x m) ->
   forall q s, substP ((x, q) :: s) p = substP s p.
