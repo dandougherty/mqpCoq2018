@@ -1,3 +1,20 @@
+For Monday 1/28:
+
+Things I worked on:
+ - modified the definition of var_set_create_unique to make it more efficient and clean and proved lemmas for it
+  like distribution.
+ - completed the core proof (book's proof for the builder):
+   + using classical logic, proved mgu for all x, filling in any important admitted lemmas related to it (2-3)
+   + filled in  a lot of small helper admitted lemmas used for the proof (4-5) and added and proved
+     more used for these (another 4-5) (made the proof for unique vars, not only vars)
+     
+Things to work on:
+ - start working on the extension of the proof for the main function 
+ 
+
+
+
+
 For Monday 1/21:
 
 Things I worked on:
