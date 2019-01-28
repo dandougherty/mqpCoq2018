@@ -1,3 +1,14 @@
+Since 1/21/18:
+  Done:
+    - Proved reprod_build_subst which is the inductive step in the main sve function.
+    - Proved sveVars_none which states that if the sve function returns none then the polynomial is not unifiable.
+    - Changed uses of mulMM and mulMP to use mulPP.
+  Goals:
+    - Prove elim_var_mul using the new polynomial arithmetic.
+    - Prove admitted lemmas in poly_unif.v
+  Problems:
+    - elim_var_mul
+
 Since 12/13/18:
   Done:
     - Informally proved that for solving a B-unification problem it suffices to use just a single term equal to 0.
