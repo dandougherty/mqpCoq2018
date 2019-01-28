@@ -787,6 +787,65 @@ Proof.
   intros p q r. unfold mulPP.
 Admitted.
 
+Lemma partition_filter_fst {X} p l :
+  fst (partition p l) = @filter X p l.
+Proof.
+  induction l; simpl.
+  - trivial.
+  - rewrite <- IHl.
+    destruct (partition p l); simpl.
+    destruct (p a); now simpl.
+Qed.
+
+(* Just rearrange previous, to fit better with your lemma formulation *)
+Lemma partition_filter_fst' : forall {X} p (l t f : list X),
+    partition p l = (t, f) ->
+    t = @filter X p l .
+Proof.
+  intros X p l t f H.
+  rewrite <- partition_filter_fst.
+  now rewrite H.
+Qed.
+
+Definition neg {X:Type} := fun (f:X->bool) => fun (a:X) => (negb (f a)).
+
+Lemma neg_true_false : forall {X} (p:X->bool) (a:X),
+  (p a) = true <-> neg p a = false.
+Proof.
+  intros X p a. unfold neg. split; intro.
+  - rewrite H. auto.
+  - destruct (p a); intuition.
+Qed.
+
+Lemma neg_false_true : forall {X} (p:X->bool) (a:X),
+  (p a) = false <-> neg p a = true.
+Proof.
+  intros X p a. unfold neg. split; intro.
+  - rewrite H. auto.
+  - destruct (p a); intuition.
+Qed.
+
+Lemma partition_filter_snd {X} p l : 
+  snd (partition p l) = @filter X (neg p) l.
+Proof.
+  induction l; simpl.
+  - reflexivity.
+  - rewrite <- IHl.
+    destruct (partition p l); simpl.
+    destruct (p a) eqn:Hp.
+    + simpl. apply neg_true_false in Hp. rewrite Hp; auto.
+    + simpl. apply neg_false_true in Hp. rewrite Hp; auto.
+Qed.
+
+Lemma partition_filter_snd' : forall {X} p (l t f : list X),
+  partition p l = (t, f) ->
+  f = @filter X (neg p) l.
+Proof.
+  intros X p l t f H.
+  rewrite <- partition_filter_snd.
+  now rewrite H.
+Qed.
+
 Lemma lpart :
   forall {X:Type} f (l:list X), partition f l = match l with
                        | []  => ([],[])
@@ -822,15 +881,26 @@ Lemma part_fst_true : forall X p (l t f : list X),
   partition p l = (t, f) ->
   (forall a, In a t -> p a = true).
 Proof.
-  intros X p l t f Hpart. generalize dependent t; generalize dependent f. induction l as [| hd tl].
-  - intros f t Hpart. inversion Hpart. contradiction.
-Admitted.
+  intros X p l t f Hpart a Hin.
+  assert (Hf: t = filter p l).
+  - now apply partition_filter_fst' with f.
+  - assert (Hass := filter_In p a l).
+    apply Hass.
+    now rewrite <- Hf.
+Qed.
 
 Lemma part_snd_false : forall X p (x t f : list X),
   partition p x = (t, f) ->
   (forall a, In a f -> p a = false).
 Proof.
-Admitted.
+  intros X p l t f Hpart a Hin.
+  assert (Hf: f = filter (neg p) l).
+  - now apply partition_filter_snd' with t.
+  - assert (Hass := filter_In (neg p) a l).
+    rewrite <- neg_false_true in Hass.
+    apply Hass.
+    now rewrite <- Hf.
+Qed.
 
 Lemma part_Sorted : forall {X:Type} (c:X->X->Prop) f p,
   Sorted c p -> 
