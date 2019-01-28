@@ -27,7 +27,7 @@ Fixpoint substM (s : subst) (m : mono) : poly :=
   | x :: m => 
     match (inDom x s) with
     | true => mulPP (appSubst s x) (substM s m)
-    | false => mulMP [x] (substM s m)
+    | false => mulPP [[x]] (substM s m)
     end
   end.
 
@@ -48,11 +48,6 @@ Lemma substP_distr_addPP : forall p q s,
 Proof.
 Admitted.
 
-Lemma substP_distr_mulMP : forall m p s,
-  substP s (mulMP m p) = mulPP (substP s [m]) (substP s p).
-Proof.
-Admitted.
-
 Lemma substP_cons : forall x p,
   (forall m, In m p -> ~ In x m) ->
   forall q s, substP ((x, q) :: s) p = substP s p.
@@ -63,6 +58,13 @@ Lemma substP_1 : forall s,
   substP s [[]] = [[]].
 Proof.
 Admitted.
+
+Lemma substP_is_poly : forall s p,
+  is_poly (substP s p).
+Proof.
+Admitted.
+
+Hint Resolve substP_is_poly.
 
 
 

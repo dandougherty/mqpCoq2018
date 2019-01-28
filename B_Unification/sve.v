@@ -44,7 +44,7 @@ Require Export poly_unif.
 Definition has_var (x : var) := existsb (beq_nat x).
 
 Definition elim_var (x : var) (p : poly) : poly :=
-  map (remove var_eq_dec x) p.
+  make_poly (map (remove var_eq_dec x) p).
 
 Definition div_by_var (x : var) (p : poly) : prod poly poly :=
   let (qx, r) := partition (has_var x) p in
@@ -65,13 +65,20 @@ Lemma elim_var_not_in_rem : forall x p r,
 Proof.
   intros.
   unfold elim_var in H.
+  unfold make_poly in H.
   rewrite <- H in H0.
+  apply In_sorted in H0.
+  apply nodup_cancel_in in H0.
+  rewrite map_map in H0.
   apply in_map_iff in H0 as [n []].
   rewrite <- H0.
-  apply remove_In.
+  intro.
+  apply make_mono_In in H2.
+  apply remove_In in H2.
+  auto.
 Qed.
 
-Lemma elim_var_map_mulMM_rem : forall x p r,
+(*Lemma elim_var_map_mulMM_rem : forall x p r,
   is_poly p ->
   (forall m, In m p -> In x m) ->
   elim_var x p = r ->
@@ -87,20 +94,23 @@ Proof.
     apply H in Hx.
     apply (mulMM_rem_eq _ _ Hm Hx).
   - rewrite H1. symmetry. apply map_id.
-Qed.
+Qed.*)
 
 Lemma elim_var_mul : forall x p r,
   is_poly p ->
   is_poly r ->
   (forall m, In m p -> In x m) ->
   elim_var x p = r ->
-  p = mulMP [x] r.
+  p = mulPP [[x]] r.
 Proof.
   intros.
+  
+  (*intros.
   rewrite <- (mulMP_map_mulMM _ _ H0).
   apply (elim_var_map_mulMM_rem _ _ _ H H1 H2).
   apply (elim_var_not_in_rem _ _ _ H2).
-Qed.
+Qed.*)
+Admitted.
 
 Lemma has_var_eq_in : forall x m,
   has_var x m = true <-> In x m.
@@ -115,13 +125,13 @@ Proof.
   - exists x. rewrite Nat.eqb_eq. auto.
 Qed.
 
-Lemma elim_var_poly : forall x p r,
-  is_poly p ->
-  (forall m, In m p -> In x m) ->
-  elim_var x p = r ->
-  is_poly r.
+Lemma elim_var_poly : forall x p,
+  is_poly (elim_var x p).
 Proof.
-Admitted.
+  intros.
+  unfold elim_var.
+  apply make_poly_is_poly.
+Qed.
 
 Lemma part_var_eq_in : forall x p i o,
   partition (has_var x) p = (i, o) ->
@@ -152,7 +162,7 @@ Proof.
   rewrite Hr in Hpr.
   apply part_var_eq_in in Hpart as [Hin Hout].
   split.
-  - apply (elim_var_poly x l q Hpl Hin Hq).
+  - rewrite <- Hq. apply elim_var_poly.
   - apply Hpr.
 Qed.
 
@@ -163,7 +173,7 @@ Qed.
 Lemma div_eq : forall x p q r,
   is_poly p ->
   div_by_var x p = (q, r) ->
-  p = addPP (mulMP [x] q) r.
+  p = addPP (mulPP [[x]] q) r.
 Proof.
   intros x p q r HP HD.
   
@@ -237,12 +247,9 @@ Definition build_poly (q r : poly) : poly :=
   mulPP (addPP [[]] q) r.
 
 Lemma build_poly_is_poly : forall q r,
-  is_poly q /\ is_poly r ->
   is_poly (build_poly q r).
 Proof.
-  intros q r []. unfold build_poly. 
-  apply mulPP_is_poly. split; auto.
-  apply addPP_is_poly. split; auto.
+  unfold build_poly. auto.
 Qed.
 
 Lemma div_build_unif : forall x p q r s,
@@ -267,24 +274,15 @@ Proof.
   rewrite Hp, Hq1.
   rewrite <- substP_distr_mulPP.
   f_equal.
-
+  
   assert (HMx: is_mono [x]). auto.
   apply (div_is_poly x p q r HPp) in HD.
   destruct HD as [HPq HPr].
   assert (is_mono [x] /\ is_poly q). auto.
 
-  rewrite (mulMP_mulPP_eq _ _ H).
   rewrite mulPP_addPP_1.
   reflexivity.
 Qed.
-
-Lemma incl_vars_addPP : forall xs p q,
-  incl (vars p) xs /\ incl (vars q) xs -> incl (vars (addPP p q)) xs.
-Proof. Admitted.
-
-Lemma incl_vars_mulPP : forall xs p q,
-  incl (vars p) xs /\ incl (vars q) xs -> incl (vars (mulPP p q)) xs.
-Proof. Admitted.
 
 Lemma incl_div : forall x xs p q r,
   incl (vars p) (x :: xs) ->
@@ -326,7 +324,7 @@ Definition build_subst (s : subst) (x : var) (q r : poly) : subst :=
   let q1 := addPP [[]] q in
   let q1s := substP s q1 in
   let rs  := substP s r in
-  let xs  := (x, addPP (mulMP [x] q1s) rs) in
+  let xs  := (x, addPP (mulPP [[x]] q1s) rs) in
   xs :: s.
 
 Lemma build_subst_is_unif : forall x p q r s,
@@ -341,76 +339,52 @@ Proof.
   unfold unifier in Hunif.
   unfold build_poly in Hunif.
   assert (Hnqr := Hdiv).
-  apply (div_eq _ _ _ _ Hpoly) in Hdiv.
-  rewrite Hdiv.
-  rewrite substP_distr_addPP.
-  rewrite substP_distr_mulMP.
-  unfold build_subst.
   apply div_var_not_in_qr in Hnqr.
   destruct Hnqr as [Hnq Hnr].
-  assert (Hsq: (substP
-      ((x,
-       addPP
-         (mulMP [x]
-            (substP s (addPP [[]] q)))
-         (substP s r)) :: s) q) = substP s q).
-    apply substP_cons. apply Hnq.
-  assert (Hsr: (substP
-   ((x,
-    addPP
-      (mulMP [x]
-         (substP s (addPP [[]] q)))
-      (substP s r)) :: s) r) = substP s r).
-    apply substP_cons. apply Hnr.
-  rewrite Hsq. rewrite Hsr.
+  assert (HpolyQR := Hdiv).
+  apply div_is_poly in HpolyQR as [HpolyQ HpolyR]; auto.
+  apply div_eq in Hdiv; auto.
+  
+  rewrite Hdiv.
+  rewrite substP_distr_addPP.
+  rewrite substP_distr_mulPP.
+  unfold build_subst.
+  rewrite (substP_cons _ _ Hnq).
+  rewrite (substP_cons _ _ Hnr).
+
   assert (Hsx: (substP
-      ((x,
-       addPP
-         (mulMP [x]
-            (substP s (addPP [[]] q)))
-         (substP s r)) :: s) 
-      (@cons mono
-            [x]
-            (@nil mono))) = (addPP
-         (mulMP [x]
+        ((x,
+         addPP
+           (mulPP [[x]]
+              (substP s (addPP [[]] q)))
+           (substP s r)) :: s) 
+        [[x]]) = (addPP
+         (mulPP [[x]]
             (substP s (addPP [[]] q)))
          (substP s r))).
     simpl. unfold inDom. simpl.
     rewrite <- beq_nat_refl. simpl.
-    rewrite addPP_0r.
-    rewrite mulPP_1r.
-    reflexivity.
+    rewrite addPP_0r; auto.
+    rewrite mulPP_1r; auto.
   rewrite Hsx.
-  assert (Hsrq: (mulPP
-   (addPP
-      (mulMP [x]
-         (substP s (addPP [[]] q)))
-      (substP s r)) (substP s q)) = (mulPP 
-        (substP s r) (substP s q))).
-    rewrite substP_distr_addPP.
-    rewrite mulMP_distr_addPP.
-    rewrite substP_1.
-    rewrite mulMP_1r.
-    rewrite mulPP_distr_addPP.
-    rewrite mulPP_distr_addPP.
-    rewrite mulMP_mulPP.
-    rewrite mulPP_assoc.
-    rewrite mulPP_p_p.
-    rewrite addPP_p_p.
-    rewrite addPP_0.
-    reflexivity.
-  rewrite Hsrq.
+
+  rewrite substP_distr_addPP.
+  rewrite substP_1.
+  rewrite mulPP_distr_addPPr.
+  rewrite mulPP_1r; auto.
+  rewrite mulPP_distr_addPP.
+  rewrite mulPP_distr_addPP.
+  rewrite mulPP_assoc.
+  rewrite mulPP_p_p.
+  rewrite addPP_p_p.
+  rewrite addPP_0; auto.
   rewrite <- substP_distr_mulPP.
   rewrite <- substP_distr_addPP.
-  assert (Hqr1: (addPP (mulPP r q) r) = (mulPP (addPP [[]] q) r)).
-    rewrite <- (mulPP_1r r) at 2.
-    rewrite mulPP_comm.
-    rewrite (mulPP_comm r [[]]).
-    rewrite <- mulPP_distr_addPP.
-    rewrite addPP_comm.
-    reflexivity.
-  rewrite Hqr1.
-  apply Hunif.
+  rewrite <- (mulPP_1r r) at 2; auto.
+  rewrite mulPP_comm.
+  rewrite (mulPP_comm r [[]]).
+  rewrite <- mulPP_distr_addPP.
+  rewrite addPP_comm; auto.
 Qed.
 
 
@@ -430,12 +404,19 @@ Proof.
   unfold subst_comp in *.
   intros y.
   destruct (y =? x) eqn:Hyx.
-  - unfold build_subst. simpl substP at 2. unfold inDom.
-    simpl existsb. rewrite Hyx. simpl addPP.
-    rewrite mulPP_1r.
-    rewrite addPP_0r.
+  - unfold build_subst.
+    assert (H: (substP
+        ((x, addPP (mulPP [[x]] (substP s (addPP [[]] q))) (substP s r)) :: s)
+          [[y]]) =
+        (addPP (mulPP [[x]] (substP s (addPP [[]] q))) (substP s r))).
+      simpl substP. unfold inDom.
+      simpl existsb. rewrite Hyx. simpl.
+      rewrite mulPP_1r; auto.
+      rewrite addPP_0r; auto.
+    rewrite H.
+
     rewrite substP_distr_addPP.
-    rewrite substP_distr_mulMP.
+    rewrite substP_distr_mulPP.
     rewrite substP_distr_addPP.
     rewrite substP_distr_addPP.
     rewrite substP_1.
@@ -447,19 +428,18 @@ Proof.
     rewrite mulPP_comm.
     rewrite mulPP_distr_addPP.
     rewrite mulPP_comm.
-    rewrite mulPP_1r.
-    rewrite (addPP_comm (substP t [[x]]) _ ).
+    rewrite mulPP_1r; auto.
+    rewrite (addPP_comm (substP t [[x]]) _); auto.
     rewrite addPP_assoc.
-    rewrite (addPP_comm (substP t [[x]]) _ ).
+    rewrite (addPP_comm (substP t [[x]]) _ ); auto.
     rewrite <- addPP_assoc.
     rewrite <- substP_distr_mulPP.
     rewrite <- substP_distr_addPP.
     rewrite mulPP_comm.
-    rewrite <- mulMP_mulPP.
     rewrite <- Hdiv.
     unfold unifier in HunifT.
     rewrite HunifT.
-    rewrite addPP_0.
+    rewrite addPP_0; auto.
     apply beq_nat_true in Hyx.
     rewrite Hyx.
     reflexivity.
@@ -565,9 +545,8 @@ Proof.
     assert (Hvars: incl (vars (build_poly q r)) xs).
       apply (div_vars x xs p q r H Hqr).
 
-    assert (Hpoly: is_poly (build_poly q r)).
+    assert (Hpoly: is_poly (build_poly q r)). simpl.
       apply build_poly_is_poly.
-      apply div_is_poly in Hqr; auto.
 
     assert (Hny: ~ In y xs).
       simpl in H1. intro. auto.
@@ -608,7 +587,6 @@ Proof.
 
     assert (Hpoly: is_poly (build_poly q r)).
       apply build_poly_is_poly.
-      apply div_is_poly in Hqr; auto.
 
     apply NoDup_cons_iff in Hdup as Hnin. destruct Hnin as [Hnin Hdup0].
 
@@ -647,7 +625,6 @@ Proof.
 
     assert (Hpoly: is_poly (build_poly q r)).
       apply build_poly_is_poly.
-      apply div_is_poly in Hqr; auto.
 
     apply NoDup_cons_iff in Hdup as Hnin. destruct Hnin as [Hnin Hdup0].
 
