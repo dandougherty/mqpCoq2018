@@ -570,12 +570,14 @@ Proof.
 Qed.
 
 Lemma Permutation_incl : forall {A} (l m : list A),
-  Permutation l m -> incl l m /\ incl m l.
+  Permutation l m <-> incl l m /\ incl m l.
 Proof.
-  intros A l m H. apply Permutation_sym in H as H0. split.
-  - unfold incl. intros a. apply (Permutation_in _ H).
-  - unfold incl. intros a. apply (Permutation_in _ H0).
-Qed.
+  intros A l m. split.
+  - intros H. apply Permutation_sym in H as H0. split.
+    + unfold incl. intros a. apply (Permutation_in _ H).
+    + unfold incl. intros a. apply (Permutation_in _ H0).
+  - intros []. Admitted.
+(* Qed. *)
 
 Lemma incl_cons_inv : forall (A:Type) (a:A) (l m : list A),
   incl (a :: l) m -> In a m /\ incl l m.
