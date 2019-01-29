@@ -15,6 +15,7 @@
 Require Import List.
 Import ListNotations.
 Require Import Arith.
+Require Import Permutation.
 Require Import FunctionalExtensionality.
 
 Require Export poly_unif.
@@ -96,21 +97,111 @@ Proof.
   - rewrite H1. symmetry. apply map_id.
 Qed.*)
 
-Lemma elim_var_mul : forall x p r,
-  is_poly p ->
-  is_poly r ->
-  (forall m, In m p -> In x m) ->
-  elim_var x p = r ->
-  p = mulPP [[x]] r.
+Lemma already_poly : forall p,
+  NoDup p ->
+  (forall m, In m p -> is_mono m) ->
+  nodup_cancel mono_eq_dec (map make_mono p) = p.
 Proof.
-  intros.
+Admitted.
+
+Lemma ugh : forall x p a,
+  is_poly (a :: p) ->
+  (forall m, In m p -> In x m) ->
+  NoDup (remove var_eq_dec x a :: map (remove var_eq_dec x) p).
+Proof.
+Admitted.
+
+Lemma elim_var_map_remove_Permutation : forall p x,
+  is_poly p ->
+  (forall m, In m p -> In x m) ->
+  Permutation (elim_var x p)
+              (map (remove var_eq_dec x) p).
+Proof.
+  intros p x H H0. induction p.
+  - simpl. unfold elim_var, make_poly, MonoSort.sort. auto.
+  - simpl. unfold elim_var. simpl. unfold make_poly. pose (MonoSort.Permuted_sort (nodup_cancel mono_eq_dec (map make_mono (remove var_eq_dec x a :: map (remove var_eq_dec x) p)))).
+    assert (Permutation (nodup_cancel mono_eq_dec (map make_mono (remove var_eq_dec x a :: map (remove var_eq_dec x) p))) (remove var_eq_dec x a :: map (remove var_eq_dec x) p)).
+    + clear p0. rewrite already_poly.
+      * apply Permutation_refl.
+      * apply ugh; auto. intros m Hin. apply H0; intuition.
+      * intros m Hin. admit.
+    + apply Permutation_sym in p0. apply (Permutation_trans p0 H1).
+Admitted.
+
+Lemma mulPP_map_app_permutation : forall x l l',
+  (forall m, In m l' -> ~ In x m) ->
+  Permutation l l' ->
+  Permutation (mulPP [[x]] l) (map (fun a => (a ++ [x])) l').
+Proof.
+  intros x l l' H H0. induction H0.
+  - simpl. rewrite mulPP_comm. rewrite mulPP_0. auto.
+  - unfold mulPP, distribute. simpl. 
+    replace (make_poly ((x0 ++ [x]) :: concat (map (fun a : list var => [a ++ [x]]) l))) with ((x0 ++ [x]) :: (make_poly (concat (map (fun a : list var => [a ++ [x]]) l)))).
+    + apply Permutation_cons; auto. apply IHPermutation. intros m Hin. apply H.
+      intuition.
+    + admit.
+  - unfold mulPP, distribute. simpl. admit.
+  - 
   
+  (*
+   induction l.
+  - rewrite mulPP_comm. rewrite mulPP_0. apply Permutation_nil in H1.
+    rewrite H1. simpl. auto.
+  - 
+  
+  
+   unfold mulPP. unfold distribute. simpl.
+  apply Permutation_incl. split.
+  -  *)
+Admitted.
+
+Lemma rebuild_map_permutation : forall p x,
+  is_poly p ->
+  (forall m, In m p -> In x m) ->
+  Permutation (mulPP [[x]] (elim_var x p))
+              (map (fun a => (a ++ [x])) (map (remove var_eq_dec x) p)).
+Proof.
+  intros p x H H0. apply mulPP_map_app_permutation.
+  - intros m H1. apply in_map_iff in H1 as [n []].
+    rewrite <- H1. apply remove_In.
+  - apply elim_var_map_remove_Permutation.
+Qed.
+
+Lemma p_map_Permutation : forall p x,
+  is_poly p ->
+  (forall m, In m p -> In x m) ->
+  Permutation p (map (fun a => (a ++ [x])) (map (remove var_eq_dec x) p)).
+Proof.
+  intros p x H H0.
+Admitted.
+
+Lemma elim_var_permutation : forall p x, 
+  is_poly p ->
+  (forall m, In m p -> In x m) ->
+  Permutation p (mulPP [[x]] (elim_var x p)).
+Proof.
+  intros p x H H0. pose (rebuild_map_permutation p x H H0).
+  apply Permutation_sym in p0. pose (p_map_Permutation p x H H0).
+  apply (Permutation_trans p1 p0).
+Qed.
+
+Lemma elim_var_mul : forall x p,
+  is_poly p ->
+  (forall m, In m p -> In x m) ->
+  p = mulPP [[x]] (elim_var x p).
+Proof.
+  intros. apply Permutation_Sorted_eq.
+  - apply elim_var_permutation; auto.
+  - unfold is_poly in H. apply Sorted_MonoSorted. apply H.
+  - pose (mulPP_is_poly [[x]] (elim_var x p)). unfold is_poly in i.
+    apply Sorted_MonoSorted. apply i.
+Qed.
   (*intros.
   rewrite <- (mulMP_map_mulMM _ _ H0).
   apply (elim_var_map_mulMM_rem _ _ _ H H1 H2).
   apply (elim_var_not_in_rem _ _ _ H2).
 Qed.*)
-Admitted.
+(* Admitted. *)
 
 Lemma has_var_eq_in : forall x m,
   has_var x m = true <-> In x m.

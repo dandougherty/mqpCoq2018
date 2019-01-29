@@ -491,6 +491,12 @@ Proof.
       * apply H0.
 Qed.
 
+Lemma Sorted_MonoSorted : forall (p : poly),
+  Sorted (fun n m => lex compare n m = Lt) p ->
+  Sorted (fun n m => is_true (MonoOrder.leb n m)) p.
+Proof.
+Admitted.
+
 Lemma NoDup_VarSort : forall (m : mono),
   NoDup m -> NoDup (VarSort.sort m).
 Proof.
