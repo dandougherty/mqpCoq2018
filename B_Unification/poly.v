@@ -317,32 +317,14 @@ Hint Resolve mono_order mono_cons poly_order poly_cons nil_is_mono nil_is_poly
 (** * Functions over Monomials and Polynomials *)
 Module Import VarSort := NatSort.
 
-Fixpoint nodup_cancel_n {A} Aeq_dec (l : list A) n : list A :=
-  match n with
-  | 0 => []
-  | S n' => 
-    match l with
-    | [] => []
-    | x::xs => 
-      let count := (count_occ Aeq_dec xs x) in 
-      let xs' := (nodup_cancel_n Aeq_dec (remove Aeq_dec x xs) n') in
-      if (even count) then x::xs' else xs'
-    end
+Fixpoint nodup_cancel {A} Aeq_dec (l : list A) : list A :=
+  match l with
+  | [] => []
+  | x::xs => 
+    let count := (count_occ Aeq_dec xs x) in 
+    let xs' := (remove Aeq_dec x (nodup_cancel Aeq_dec xs)) in
+    if (even count) then x::xs' else xs'
   end.
-
-Definition nodup_cancel {A} Aeq_dec (l : list A) : list A :=
-  nodup_cancel_n Aeq_dec l (length l).
-
-Hint Unfold nodup_cancel.
-
-(* Lemma nodup_In {X} Aeq_dec (l:list X) x : In x (nodup Aeq_dec l) <-> In x l.
-Proof.
-  induction l as [|a l' Hrec]; simpl.
-  - reflexivity.
-  - destruct (in_dec Aeq_dec a l'); simpl.
-    * rewrite Hrec. intuition; now subst.
-    * rewrite Hrec. reflexivity.
-Qed. *)
 
 Lemma In_remove : forall {A:Type} Aeq_dec a b (l:list A),
   In a (remove Aeq_dec b l) -> In a l.
@@ -354,40 +336,30 @@ Proof.
     + destruct H; [rewrite H; intuition | right; auto].
 Qed.
 
-Lemma remove_not_In : forall (A:Type) Aeq_dec a (l:list A),
-  ~ In a l -> (remove Aeq_dec a l) = l.
-Proof.
-Admitted.
-
-Lemma remove_nodup_cancel : forall {A:Type} Aeq_dec a (l:list A) n,
-  remove Aeq_dec a (nodup_cancel_n Aeq_dec l n) = 
-  nodup_cancel_n Aeq_dec (remove Aeq_dec a l) n.
-Proof.
-  intros A Aeq_dec a l n. destruct (in_dec Aeq_dec a l).
-  -
-Admitted.
-
 Lemma nodup_cancel_in : forall (A:Type) Aeq_dec a (l:list A),
   In a (nodup_cancel Aeq_dec l) -> In a l.
 Proof.
   intros A Aeq_dec a l H. induction l as [|b l IHl].
   - contradiction.
-  - unfold nodup_cancel in *. simpl in H. destruct (Aeq_dec a b).
+  - simpl in H. destruct (Aeq_dec a b).
     + rewrite e. intuition.
     + right. apply IHl. destruct (even (count_occ Aeq_dec l b)).
       * simpl in H. destruct H. rewrite H in n. contradiction.
-        rewrite <- remove_nodup_cancel in H. apply In_remove in H. auto.
-      * rewrite <- remove_nodup_cancel in H. apply In_remove in H. auto.
+        apply In_remove in H. auto.
+      * apply In_remove in H. auto.
 Qed.
 
-Lemma NoDup_nodup : forall (A:Type) Aeq_dec (l: list A),
-  NoDup (nodup Aeq_dec l).
+Lemma NoDup_remove : forall (A:Type) Aeq_dec a (l:list A),
+  NoDup l -> NoDup (remove Aeq_dec a l).
 Proof.
-  induction l as [|a l' Hrec]; simpl.
-  - constructor.
-  - destruct (in_dec Aeq_dec a l'); simpl.
-    * assumption.
-    * constructor; [ now rewrite nodup_In | assumption].
+  intros A Aeq_dec a l H. induction l.
+  - simpl. auto.
+  - simpl. destruct (Aeq_dec a a0).
+    + apply IHl. apply NoDup_cons_iff in H. intuition.
+    + apply NoDup_cons.
+      * apply NoDup_cons_iff in H as []. intro. apply H.
+        apply (In_remove Aeq_dec a0 a l H1).
+      * apply IHl. apply NoDup_cons_iff in H; intuition.
 Qed.
 
 Lemma NoDup_nodup_cancel : forall (A:Type) Aeq_dec (l:list A),
@@ -396,8 +368,9 @@ Proof.
   induction l as [|a l' Hrec]; simpl.
   - constructor.
   - destruct (even (count_occ Aeq_dec l' a)); simpl.
-    *
-Admitted.
+    + apply NoDup_cons; [apply remove_In | apply NoDup_remove; auto].
+    + apply NoDup_remove; auto.
+Qed.
 
 Require Import Orders.
 Module MonoOrder <: TotalLeBool.
@@ -410,7 +383,10 @@ Module MonoOrder <: TotalLeBool.
     end.
   Infix "<=m" := leb (at level 35).
   Theorem leb_total : forall a1 a2, (a1 <=m a2 = true) \/ (a2 <=m a1 = true).
-  Proof. Admitted.
+  Proof.
+    intros n m. unfold "<=m". destruct (lex compare n m) eqn:Hcomp; auto.
+    apply lex_rev_lt_gt in Hcomp. rewrite Hcomp. auto.
+  Qed.
 End MonoOrder.
 
 Module Import MonoSort := Sort MonoOrder.
@@ -419,15 +395,11 @@ Lemma MonoOrder_Transitive :
   Relations_1.Transitive (fun x y : list nat => is_true (MonoOrder.leb x y)).
 Proof.
   unfold Relations_1.Transitive, is_true, MonoOrder.leb.
-  induction x, y, z; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - simpl in *. inversion H.
-  - simpl in *. inversion H.
-  - simpl in *. inversion H0.
-  - simpl in *. destruct (a ?= n) eqn:Han.
+  induction x, y, z; intros; try reflexivity; simpl in *.
+  - inversion H.
+  - inversion H.
+  - inversion H0.
+  - destruct (a ?= n) eqn:Han.
     + apply compare_eq_iff in Han. rewrite Han. destruct (n ?= n0) eqn:Hn0.
       * apply (IHx _ _ H H0).
       * reflexivity.
@@ -857,11 +829,11 @@ Proof.
 Qed.
 
 Lemma incl_vars_addPP : forall xs p q,
-  incl (vars p) xs /\ incl (vars q) xs -> incl (vars (addPP p q)) xs.
+  incl (vars p) xs /\ incl (vars q) xs <-> incl (vars (addPP p q)) xs.
 Proof. Admitted.
 
 Lemma incl_vars_mulPP : forall xs p q,
-  incl (vars p) xs /\ incl (vars q) xs -> incl (vars (mulPP p q)) xs.
+  incl (vars p) xs /\ incl (vars q) xs <-> incl (vars (mulPP p q)) xs.
 Proof. Admitted.
 
 Lemma incl_nil : forall {X:Type} (l:list X),

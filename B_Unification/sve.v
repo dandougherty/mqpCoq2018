@@ -284,27 +284,59 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma incl_div : forall x xs p q r,
-  incl (vars p) (x :: xs) ->
+Lemma div_by_var_nil : forall x q r,
+  div_by_var x [] = (q, r) ->
+  q = [] /\ r = [].
+Proof.
+  intros x q r H. unfold div_by_var, elim_var, make_poly, MonoSort.sort in H.
+  simpl in H. inversion H. auto.
+Qed.
+
+Hint Unfold vars div_by_var elim_var make_poly MonoSort.sort.
+Hint Resolve div_by_var_nil.
+
+Lemma incl_not_in : forall A a (l m : list A) 
+  (Aeq_dec : forall (a b : A), {a = b}+{a <> b}), 
+  incl l (a :: m) ->
+  ~ In a l ->
+  incl l m.
+Proof.
+  intros A a l m Aeq_dec Hincl Hnin. unfold incl in *. intros a0 Hin.
+  destruct (Aeq_dec a a0).
+  - rewrite e in Hnin. contradiction.
+  - simpl in Hincl. apply Hincl in Hin. destruct Hin; [contradiction | auto].
+Qed.
+
+Lemma incl_div : forall q r x,
+  forall p, is_poly p -> 
   div_by_var x p = (q, r) ->
+  forall xs, incl (vars p) (x :: xs) ->
   incl (vars q) xs /\ incl (vars r) xs.
 Proof.
-  intros x xs p q r Hincl Hdiv. split. induction xs as [|y xs].
-  - Admitted.
+  intros q r x. intros p H Hp. apply (div_eq x p q r H) in Hp as Hp'.
+  intros xs Hxs. rewrite Hp' in Hxs. apply incl_vars_addPP in Hxs as [].
+  apply incl_vars_mulPP in H0 as [].
+  apply (incl_not_in _ _ _ _ var_eq_dec) in H2.
+  apply (incl_not_in _ _ _ _ var_eq_dec) in H1.
+  - split; auto.
+  - apply div_var_not_in_qr in Hp as []. apply in_mono_in_vars in H4. auto.
+  - apply div_var_not_in_qr in Hp as []. apply in_mono_in_vars in H3. auto.
+Qed.
 
 Lemma div_vars : forall x xs p q r,
+  is_poly p -> 
   incl (vars p) (x :: xs) ->
   div_by_var x p = (q, r) ->
   incl (vars (build_poly q r)) xs.
 Proof.
-  intros x xs p q r Hincl Hdiv. unfold build_poly.
+  intros x xs p q r H Hincl Hdiv. unfold build_poly.
   apply div_var_not_in_qr in Hdiv as Hin. destruct Hin as [Hinq Hinr].
   apply in_mono_in_vars in Hinq. apply in_mono_in_vars in Hinr.
-  apply incl_vars_mulPP. apply (incl_div _ _ _ _ _ Hincl) in Hdiv. split.
+  apply incl_vars_mulPP. apply (incl_div _ _ _ _ H Hdiv) in Hincl. split.
   - apply incl_vars_addPP. split.
     + unfold vars. simpl. unfold incl. intros a [].
-    + apply Hdiv.
-  - apply Hdiv.
+    + apply Hincl.
+  - apply Hincl.
 Qed.
 
 
@@ -344,7 +376,7 @@ Proof.
   assert (HpolyQR := Hdiv).
   apply div_is_poly in HpolyQR as [HpolyQ HpolyR]; auto.
   apply div_eq in Hdiv; auto.
-  
+
   rewrite Hdiv.
   rewrite substP_distr_addPP.
   rewrite substP_distr_mulPP.
@@ -543,7 +575,7 @@ Proof.
     destruct (sveVars xs (build_poly q r)) eqn:Hs0; inversion H2.
 
     assert (Hvars: incl (vars (build_poly q r)) xs).
-      apply (div_vars x xs p q r H Hqr).
+      apply (div_vars x xs p q r H0 H Hqr).
 
     assert (Hpoly: is_poly (build_poly q r)). simpl.
       apply build_poly_is_poly.
@@ -583,7 +615,7 @@ Proof.
     destruct (sveVars xs (build_poly q r)) eqn:Hs0; inversion H1.
 
     assert (Hvars: incl (vars (build_poly q r)) xs).
-      apply (div_vars x xs p q r H Hqr).
+      apply (div_vars x xs p q r H0 H Hqr).
 
     assert (Hpoly: is_poly (build_poly q r)).
       apply build_poly_is_poly.
@@ -621,7 +653,7 @@ Proof.
     destruct (sveVars xs (build_poly q r)) eqn:Hs0; inversion H1.
 
     assert (Hvars: incl (vars (build_poly q r)) xs).
-      apply (div_vars x xs p q r H Hqr).
+      apply (div_vars x xs p q r H0 H Hqr).
 
     assert (Hpoly: is_poly (build_poly q r)).
       apply build_poly_is_poly.
