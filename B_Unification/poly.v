@@ -826,16 +826,6 @@ Proof.
   now rewrite H.
 Qed.
 
-Lemma lpart :
-  forall {X:Type} f (l:list X), partition f l = match l with
-                       | []  => ([],[])
-                       | x::tl => let (g, d) := partition f tl in if f x then (x :: g, d) else (g, x :: d)
-                       end.
-Proof.
-  intros.
-  induction l as [| x tl]; auto.
-Qed.
-
 Lemma incl_vars_addPP : forall xs p q,
   incl (vars p) xs /\ incl (vars q) xs <-> incl (vars (addPP p q)) xs.
 Proof. Admitted.

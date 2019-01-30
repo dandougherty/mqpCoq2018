@@ -79,23 +79,13 @@ Proof.
   auto.
 Qed.
 
-(*Lemma elim_var_map_mulMM_rem : forall x p r,
-  is_poly p ->
-  (forall m, In m p -> In x m) ->
-  elim_var x p = r ->
-  p = map (mulMM [x]) r.
+Lemma elim_var_poly : forall x p,
+  is_poly (elim_var x p).
 Proof.
-  intros x p r Hpoly H H0. unfold elim_var in H0.
-  rewrite <- H0. rewrite map_map.
-  assert (map (fun x0 => mulMM [x] (remove var_eq_dec x x0)) p = map id p).
-  - apply map_ext_in. intros m Hm. unfold id.
-    unfold is_poly in Hpoly. destruct Hpoly.
-    assert (Hx := Hm).
-    apply H2 in Hm.
-    apply H in Hx.
-    apply (mulMM_rem_eq _ _ Hm Hx).
-  - rewrite H1. symmetry. apply map_id.
-Qed.*)
+  intros.
+  unfold elim_var.
+  apply make_poly_is_poly.
+Qed.
 
 Lemma already_poly : forall p,
   NoDup p ->
@@ -128,49 +118,71 @@ Proof.
     + apply Permutation_sym in p0. apply (Permutation_trans p0 H1).
 Admitted.
 
-Lemma mulPP_map_app_permutation : forall x l l',
-  (forall m, In m l' -> ~ In x m) ->
-  Permutation l l' ->
-  Permutation (mulPP [[x]] l) (map (fun a => (a ++ [x])) l').
+Lemma mulPP_Permutation : forall x a0 l,
+  is_poly (a0::l) ->
+  (forall m, In m (a0::l) -> ~ In x m) ->
+  Permutation (mulPP [[x]] (a0 :: l)) ((make_mono (a0++[x]))::(mulPP [[x]] l)).
 Proof.
-  intros x l l' H H0. induction H0.
-  - simpl. rewrite mulPP_comm. rewrite mulPP_0. auto.
-  - unfold mulPP, distribute. simpl. 
-    replace (make_poly ((x0 ++ [x]) :: concat (map (fun a : list var => [a ++ [x]]) l))) with ((x0 ++ [x]) :: (make_poly (concat (map (fun a : list var => [a ++ [x]]) l)))).
-    + apply Permutation_cons; auto. apply IHPermutation. intros m Hin. apply H.
-      intuition.
-    + admit.
-  - unfold mulPP, distribute. simpl. admit.
-  - 
+  intros x a0 l Hp Hx. unfold mulPP, distribute. simpl. unfold make_poly. 
+  pose (MonoSort.Permuted_sort (nodup_cancel mono_eq_dec
+        (map make_mono ((a0 ++ [x]) :: concat (map (fun a : list var => [a ++ [x]]) l))))).
+  apply Permutation_sym in p. apply (Permutation_trans p). simpl map.
   
-  (*
-   induction l.
-  - rewrite mulPP_comm. rewrite mulPP_0. apply Permutation_nil in H1.
-    rewrite H1. simpl. auto.
-  - 
-  
-  
-   unfold mulPP. unfold distribute. simpl.
-  apply Permutation_incl. split.
-  -  *)
 Admitted.
+
+Lemma mulPP_map_app_permutation : forall (x:var) (l l' : poly),
+  is_poly l ->
+  (forall m, In m l -> ~ In x m) ->
+  Permutation l l' ->
+  Permutation (mulPP [[x]] l) (map (fun a => (make_mono(a ++ [x]))) l').
+Proof.
+  intros x l l' Hp H H0. generalize dependent l'. induction l; induction l'.
+  - intros. unfold mulPP, distribute, make_poly, MonoSort.sort. simpl. auto.
+  - intros. apply Permutation_nil_cons in H0. contradiction.
+  - intros. apply Permutation_sym in H0. apply Permutation_nil_cons in H0. contradiction.
+  - intros. clear IHl'. destruct (mono_eq_dec a a0).
+    + rewrite e in *. pose (mulPP_Permutation x a0 l Hp H). apply (Permutation_trans p). simpl.
+      apply perm_skip. apply IHl.
+      * clear p. apply poly_cons in Hp. apply Hp.
+      * intros m Hin. apply H. intuition.
+      * apply Permutation_cons_inv in H0. auto.
+    + apply Permutation_incl in H0 as H1. destruct H1. apply incl_cons_inv in H1 as [].
+      destruct H1; try (rewrite H1 in n; contradiction). apply in_split in H1.
+      destruct H1 as [l1 [l2]]. rewrite H1 in H0.
+      pose (Permutation_middle (a0::l1) l2 a). apply Permutation_sym in p.
+      simpl in p. apply (Permutation_trans H0) in p. 
+      apply Permutation_cons_inv in p. rewrite H1. simpl. rewrite map_app. simpl.
+      pose (Permutation_middle ((make_mono (a0 ++ [x]) :: map 
+        (fun a1 : list var => make_mono (a1 ++ [x])) l1)) (map 
+        (fun a1 : list var => make_mono (a1 ++ [x])) l2) (make_mono (a++[x]))).
+      simpl in p0. simpl. apply Permutation_trans with (l':=(make_mono (a ++ [x])
+      :: make_mono (a0 ++ [x])
+         :: map (fun a1 : list var => make_mono (a1 ++ [x])) l1 ++
+            map (fun a1 : list var => make_mono (a1 ++ [x])) l2)); auto. clear p0.
+      rewrite <- map_app. rewrite <- (map_cons (fun a1 : list var => make_mono (a1 ++ [x])) a0 (@app (list var) l1 l2)).
+      pose (mulPP_Permutation x a l Hp H). apply (Permutation_trans p0). apply perm_skip.
+      apply IHl.
+      * clear p0. apply poly_cons in Hp. apply Hp.
+      * intros m Hin. apply H. intuition.
+      * apply p.
+Qed.
 
 Lemma rebuild_map_permutation : forall p x,
   is_poly p ->
   (forall m, In m p -> In x m) ->
   Permutation (mulPP [[x]] (elim_var x p))
-              (map (fun a => (a ++ [x])) (map (remove var_eq_dec x) p)).
+              (map (fun a => (make_mono(a ++ [x]))) (map (remove var_eq_dec x) p)).
 Proof.
   intros p x H H0. apply mulPP_map_app_permutation.
-  - intros m H1. apply in_map_iff in H1 as [n []].
-    rewrite <- H1. apply remove_In.
-  - apply elim_var_map_remove_Permutation.
+  - apply elim_var_poly.
+  - apply (elim_var_not_in_rem x p); auto.
+  - apply elim_var_map_remove_Permutation; auto.
 Qed.
 
 Lemma p_map_Permutation : forall p x,
   is_poly p ->
   (forall m, In m p -> In x m) ->
-  Permutation p (map (fun a => (a ++ [x])) (map (remove var_eq_dec x) p)).
+  Permutation p (map (fun a => (make_mono(a ++ [x]))) (map (remove var_eq_dec x) p)).
 Proof.
   intros p x H H0.
 Admitted.
@@ -196,12 +208,6 @@ Proof.
   - pose (mulPP_is_poly [[x]] (elim_var x p)). unfold is_poly in i.
     apply Sorted_MonoSorted. apply i.
 Qed.
-  (*intros.
-  rewrite <- (mulMP_map_mulMM _ _ H0).
-  apply (elim_var_map_mulMM_rem _ _ _ H H1 H2).
-  apply (elim_var_not_in_rem _ _ _ H2).
-Qed.*)
-(* Admitted. *)
 
 Lemma has_var_eq_in : forall x m,
   has_var x m = true <-> In x m.
@@ -214,14 +220,6 @@ Proof.
     apply Nat.eqb_eq in H0.
     rewrite H0. apply H.
   - exists x. rewrite Nat.eqb_eq. auto.
-Qed.
-
-Lemma elim_var_poly : forall x p,
-  is_poly (elim_var x p).
-Proof.
-  intros.
-  unfold elim_var.
-  apply make_poly_is_poly.
 Qed.
 
 Lemma part_var_eq_in : forall x p i o,
@@ -281,10 +279,9 @@ Proof.
   apply (div_is_poly _ _ _ _ HP HD).
   assert (is_poly qx /\ is_poly r0) as [HPqx HPr0].
   apply (part_is_poly _ _ _ _ HP Hqr).
-  apply (elim_var_mul _ _ _ HPqx HPq HIH) in Hq.
-  
-  apply (part_add_eq (has_var x) _ _ _ HP).
   rewrite <- Hq.
+  rewrite <- (elim_var_mul x qx HPqx HIH).
+  apply (part_add_eq (has_var x) _ _ _ HP).
   rewrite <- Hr.
   apply Hqr.
 Qed.
