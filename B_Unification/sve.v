@@ -127,7 +127,13 @@ Proof.
   pose (MonoSort.Permuted_sort (nodup_cancel mono_eq_dec
         (map make_mono ((a0 ++ [x]) :: concat (map (fun a : list var => [a ++ [x]]) l))))).
   apply Permutation_sym in p. apply (Permutation_trans p). simpl map.
-  
+  assert ((nodup_cancel mono_eq_dec
+     (make_mono (a0 ++ [x]) :: map make_mono (concat (map (fun a : list var => [a ++ [x]]) l)))) = 
+     (make_mono (a0 ++ [x]) :: map make_mono (concat (map (fun a : list var => [a ++ [x]]) l)))).
+     admit.
+  rewrite H. apply perm_skip. clear p; clear H. apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (map make_mono (concat (map (fun a : list var => [a ++ [x]]) l))))).
+  - admit.
+  - apply MonoSort.Permuted_sort.
 Admitted.
 
 Lemma mulPP_map_app_permutation : forall (x:var) (l l' : poly),
