@@ -549,8 +549,8 @@ Proof.
     assert (Hdiv2 := Hdiv).
     apply div_eq in Hdiv; auto.
     apply div_is_poly in Hdiv2 as [HpolyQ HpolyR]; auto.
-    rewrite (subst_comp_poly s t t x); auto.
-    rewrite (subst_comp_poly s t t x); auto.
+    rewrite (subst_comp_poly s t t); auto.
+    rewrite (subst_comp_poly s t t); auto.
     rewrite mulPP_comm.
     rewrite mulPP_distr_addPP.
     rewrite mulPP_comm.

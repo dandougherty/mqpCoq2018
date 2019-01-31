@@ -737,6 +737,18 @@ Lemma mulPP_is_poly : forall p q,
   is_poly (mulPP p q).
 Proof. Admitted.
 
+Lemma mulPP_mono_cons : forall x m,
+  is_mono (x :: m) ->
+  mulPP [[x]] [m] = [x :: m].
+Proof.
+Admitted.
+
+Lemma addPP_poly_cons : forall m p,
+  is_poly (m :: p) ->
+  addPP [m] p = m :: p.
+Proof.
+Admitted.
+
 Hint Resolve addPP_is_poly mulPP_is_poly.
 
 (* Lemma mullPP_1 : forall p,
