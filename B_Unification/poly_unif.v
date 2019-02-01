@@ -143,7 +143,7 @@ Lemma empty_substM : forall (m : mono),
 Proof.
   intros. induction m.
   - auto.
-  - simpl. apply mono_cons in H as H0. destruct H0.
+  - simpl. apply mono_cons in H as H0.
     rewrite IHm; auto.
     apply mulPP_mono_cons; auto.
 Qed.

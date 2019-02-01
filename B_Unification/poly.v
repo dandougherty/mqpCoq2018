@@ -177,7 +177,7 @@ Hint Resolve lex_nat_refl lex_nat_antisym lex_nat_cons.
 
 (** Monomials are simply sorted lists of natural numbers. *)
 
-Definition is_mono (m : mono) : Prop := Sorted lt m /\ NoDup m.
+Definition is_mono (m : mono) : Prop := Sorted lt m.
 
 (** Polynomials are sorted lists of lists, where all of the lists in the polynomail
     are monomials. *)
@@ -222,10 +222,10 @@ Lemma mono_order : forall x y m,
   x < y.
 Proof.
   unfold is_mono.
-  intros x y m [].
+  intros x y m H.
   apply Sorted_inv in H as [].
-  apply HdRel_inv in H1. 
-  apply H1.
+  apply HdRel_inv in H0.
+  apply H0.
 Qed.
 
 (** Similarly, if x :: m is a monomial, then m is also a monomial. *)
@@ -235,9 +235,7 @@ Lemma mono_cons : forall x m,
   is_mono m.
 Proof.
   unfold is_mono.
-  intros x m []. split.
-  - apply Sorted_inv in H as []. apply H.
-  - apply NoDup_cons_iff in H0. apply H0.
+  intros x m H. apply Sorted_inv in H as []. apply H.
 Qed.
 
 (** The same properties hold for is_poly as well; any list in a polynomial is
@@ -278,9 +276,7 @@ Qed.
 Lemma nil_is_mono :
   is_mono [].
 Proof.
-  unfold is_mono. split.
-  - auto.
-  - apply NoDup_nil.
+  unfold is_mono. auto.
 Qed.
 
 Lemma nil_is_poly :
@@ -307,7 +303,7 @@ Proof.
   intros x. unfold is_poly. split.
   - apply Sorted_cons; auto.
   - intros m H. simpl in H; destruct H; inversion H.
-    unfold is_mono. split; auto.
+    unfold is_mono. auto.
 Qed.
 
 Hint Resolve mono_order mono_cons poly_order poly_cons nil_is_mono nil_is_poly
@@ -345,6 +341,16 @@ Admitted.
 
 Lemma not_In_remove : forall (A:Type) Aeq_dec a (l : list A),
   ~ In a l -> (remove Aeq_dec a l) = l.
+Proof.
+Admitted.
+
+Lemma remove_Sorted_eq : forall (A:Type) Aeq_dec x Rel (l l':list A),
+  NoDup l ->
+  NoDup l' ->
+  Sorted Rel l ->
+  Sorted Rel l' ->
+  remove Aeq_dec x l = remove Aeq_dec x l' ->
+  l = l'.
 Proof.
 Admitted.
 
@@ -397,6 +403,12 @@ Proof.
       * apply StronglySorted_remove. apply IHl. apply H.
       * admit.
     + apply StronglySorted_remove. apply IHl. apply H.
+Admitted.
+
+Lemma no_nodup_cancel_NoDup : forall (A:Type) Aeq_dec (l:list A),
+  NoDup l ->
+  nodup_cancel Aeq_dec l = l.
+Proof.
 Admitted.
 
 Lemma count_occ_Permutation : forall (A:Type) Aeq_dec a (l l':list A),
@@ -456,6 +468,11 @@ Module MonoOrder <: TotalLeBool.
 End MonoOrder.
 
 Module Import MonoSort := Sort MonoOrder.
+
+Lemma VarOrder_Transitive :
+  Relations_1.Transitive (fun x y : nat => is_true (NatOrder.leb x y)).
+Proof.
+Admitted.
 
 Lemma MonoOrder_Transitive : 
   Relations_1.Transitive (fun x y : list nat => is_true (MonoOrder.leb x y)).
@@ -571,6 +588,17 @@ Proof.
         rewrite H0. auto.
 Qed.
 
+Lemma NoDup_MonoSorted : forall (p : poly),
+  Sorted (fun n m => lex compare n m = Lt) p ->
+  NoDup p.
+Proof.
+Admitted.
+
+Lemma NoDup_VarSorted : forall (m : mono),
+  Sorted lt m -> NoDup m.
+Proof.
+Admitted.
+
 Lemma NoDup_VarSort : forall (m : mono),
   NoDup m -> NoDup (VarSort.sort m).
 Proof.
@@ -594,11 +622,9 @@ Definition make_poly (l : list mono) : poly :=
 Lemma make_mono_is_mono : forall m,
   is_mono (make_mono m).
 Proof.
-  intros m. unfold is_mono, make_mono. split.
-  - apply VarSort_Sorted. split.
-    + apply VarSort.LocallySorted_sort.
-    + apply NoDup_VarSort. apply NoDup_nodup.
-  - apply NoDup_VarSort. apply NoDup_nodup.
+  intros m. unfold is_mono, make_mono. apply VarSort_Sorted. split.
+  + apply VarSort.LocallySorted_sort.
+  + apply NoDup_VarSort. apply NoDup_nodup.
 Qed.
 
 Lemma make_poly_is_poly : forall p,
@@ -618,6 +644,33 @@ Lemma make_mono_In : forall x m,
 Proof.
   intros x m H. unfold make_mono in H. pose (VarSort.Permuted_sort (nodup var_eq_dec m)).
   apply Permutation_sym in p. apply (Permutation_in _ p) in H. apply nodup_In in H. auto.
+Qed.
+
+Lemma no_make_mono : forall m,
+  is_mono m ->
+  make_mono m = m.
+Proof.
+Admitted.
+
+Lemma remove_is_mono : forall x m,
+  is_mono m ->
+  is_mono (remove var_eq_dec x m).
+Proof.
+Admitted.
+
+Lemma no_map_make_mono : forall p,
+  (forall m, In m p -> is_mono m) ->
+  map make_mono p = p.
+Proof.
+Admitted.
+
+Lemma unsorted_poly : forall p,
+  NoDup p ->
+  (forall m, In m p -> is_mono m) ->
+  nodup_cancel mono_eq_dec (map make_mono p) = p.
+Proof.
+  intros p Hdup Hin. rewrite no_map_make_mono; auto.
+  apply no_nodup_cancel_NoDup; auto.
 Qed.
 
 Definition addPP (p q : poly) : poly :=
@@ -668,6 +721,39 @@ Lemma Forall_In : forall (A:Type) (l:list A) a Rel,
   In a l -> Forall Rel l -> Rel a.
 Proof.
   intros A l a Rel Hin Hfor. apply (Forall_forall Rel l); auto.
+Qed.
+
+Lemma Permutation_Sorted_mono_eq : forall (m n : mono),
+  Permutation m n ->
+  Sorted (fun n m => is_true (leb n m)) m -> 
+  Sorted (fun n m => is_true (leb n m)) n ->
+  m = n.
+Proof.
+  intros m n Hp Hsl Hsm. generalize dependent n.
+  induction m; induction n; intros.
+  - reflexivity.
+  - apply Permutation_nil in Hp. auto.
+  - apply Permutation_sym, Permutation_nil in Hp. auto.
+  - clear IHn. apply Permutation_incl in Hp as Hp'. destruct Hp'.
+    destruct (a ?= a0) eqn:Hcomp.
+    + apply compare_eq_iff in Hcomp. rewrite Hcomp in *.
+      apply Permutation_cons_inv in Hp. f_equal; auto.
+      apply IHm.
+      * apply Sorted_inv in Hsl. apply Hsl.
+      * apply Hp.
+      * apply Sorted_inv in Hsm. apply Hsm.
+    + apply compare_lt_iff in Hcomp as Hneq. apply incl_cons_inv in H. destruct H.
+      apply Sorted_StronglySorted in Hsm. apply StronglySorted_inv in Hsm as [].
+      * simpl in H. destruct H; try (rewrite H in Hneq; apply lt_irrefl in Hneq; contradiction).
+        pose (Forall_In _ _ _ _ H H3). simpl in i. unfold is_true in i.
+        apply leb_le in i. apply lt_not_le in Hneq. contradiction.
+      * apply VarOrder_Transitive.
+    + apply compare_gt_iff in Hcomp as Hneq. apply incl_cons_inv in H0. destruct H0.
+      apply Sorted_StronglySorted in Hsl. apply StronglySorted_inv in Hsl as [].
+      * simpl in H0. destruct H0; try (rewrite H0 in Hneq; apply gt_irrefl in Hneq; contradiction).
+        pose (Forall_In _ _ _ _ H0 H3). simpl in i. unfold is_true in i.
+        apply leb_le in i. apply lt_not_le in Hneq. contradiction.
+      * apply VarOrder_Transitive.
 Qed.
 
 Lemma Permutation_Sorted_eq : forall (l m : list mono),
@@ -736,7 +822,9 @@ Proof.
       * intros H. apply Permutation_in with (l:=(nodup_cancel mono_eq_dec (sort l))).
         apply nodup_cancel_Permutation. apply Permutation_sym. apply Permuted_sort. auto.
   - apply LocallySorted_sort.
-  - apply Sorted_nodup_cancel. apply LocallySorted_sort.
+  - apply Sorted_nodup_cancel.
+    + apply MonoOrder_Transitive.
+    + apply LocallySorted_sort.
 Qed.
 
 Lemma addPP_comm : forall p q,
