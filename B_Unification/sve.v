@@ -734,7 +734,7 @@ Proof.
   induction xs as [|x xs].
   - intros p Hdup H H0 H1. simpl in H1. destruct p; inversion H1. intro.
     unfold unifiable in H2. destruct H2. unfold unifier in H2.
-    apply incl_nil in H. apply no_vars_is_ground in H.
+    apply incl_nil in H. apply no_vars_is_ground in H; auto.
     destruct H; inversion H.
     rewrite H4 in H2.
     rewrite H5 in H2.
