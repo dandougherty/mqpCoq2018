@@ -354,6 +354,11 @@ Lemma remove_Sorted_eq : forall (A:Type) Aeq_dec x Rel (l l':list A),
 Proof.
 Admitted.
 
+Lemma remove_distr_app : forall (A:Type) Aeq_dec x (l l':list A),
+  remove Aeq_dec x (l ++ l') = remove Aeq_dec x l ++ remove Aeq_dec x l'.
+Proof.
+Admitted.
+
 Lemma nodup_cancel_in : forall (A:Type) Aeq_dec a (l:list A),
   In a (nodup_cancel Aeq_dec l) -> In a l.
 Proof.
