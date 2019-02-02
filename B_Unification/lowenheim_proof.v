@@ -1,4 +1,4 @@
-
+Require Export lowenheim_formula.
 Require Export EqNat.
 Require Import List.
 Import ListNotations.

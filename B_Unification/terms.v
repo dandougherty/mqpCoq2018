@@ -363,7 +363,6 @@ Proof.
       { specialize (IHlvar H).  simpl. right. apply IHlvar. } }
 Qed.  
 
-Search nodup.
 (*
 Lemma decA: forall x y : var, {x = y} + {x <> y}.
 Proof.
