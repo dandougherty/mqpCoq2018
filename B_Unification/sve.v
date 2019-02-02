@@ -145,11 +145,26 @@ Proof.
   - simpl. auto.
   - simpl. apply NoDup_cons.
     + intros H. rewrite map_map in H. apply in_map_iff in H as [m []]. assert (a=m).
-      * apply Permutation_Sorted_mono_eq; admit.
+      * apply poly_cons in Hp as []. apply Permutation_Sorted_mono_eq.
+        -- apply Permutation_sort_mono_eq in H. rewrite no_nodup_NoDup in H.
+           rewrite no_nodup_NoDup in H.
+           ++ pose (Permutation_cons_append m x). pose (Permutation_cons_append a x).
+              apply (Permutation_trans p) in H. apply Permutation_sym in p0.
+              apply (Permutation_trans H) in p0. apply Permutation_cons_inv in p0.
+              apply Permutation_sym. auto.
+           ++ apply Permutation_NoDup with (l:=(x::a)). apply Permutation_cons_append.
+              apply NoDup_cons. apply Hin. intuition. unfold is_mono in H2.
+              apply NoDup_VarSorted in H2. auto.
+           ++ apply Permutation_NoDup with (l:=(x::m)). apply Permutation_cons_append.
+              apply NoDup_cons. apply Hin. intuition. unfold is_poly in H1.
+              destruct H1. apply H3 in H0. unfold is_mono in H0.
+              apply NoDup_VarSorted in H0. auto.
+        -- unfold is_mono in H2. apply Sorted_VarSorted. auto.
+        -- unfold is_poly in H1. destruct H1. apply H3 in H0. apply Sorted_VarSorted. auto.
       * rewrite <- H1 in H0. unfold is_poly in Hp. destruct Hp.
         apply NoDup_MonoSorted in H2. apply NoDup_cons_iff in H2 as []. contradiction.
     + apply IHl. apply poly_cons in Hp. apply Hp. intros m H. apply Hin. intuition.
-Admitted.
+Qed.
 
 Lemma mulPP_Permutation : forall x a0 l,
   is_poly (a0::l) ->

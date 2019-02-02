@@ -405,6 +405,12 @@ Proof.
     + apply StronglySorted_remove. apply IHl. apply H.
 Admitted.
 
+Lemma no_nodup_NoDup : forall (A:Type) Aeq_dec (l:list A),
+  NoDup l ->
+  nodup Aeq_dec l = l.
+Proof.
+Admitted.
+
 Lemma no_nodup_cancel_NoDup : forall (A:Type) Aeq_dec (l:list A),
   NoDup l ->
   nodup_cancel Aeq_dec l = l.
@@ -532,6 +538,20 @@ Proof.
     + apply HdRel_le_lt. split.
       * rewrite <- Heqle. apply H.
       * apply H0.
+Qed.
+
+Lemma Sorted_VarSorted : forall (m : mono),
+  Sorted lt m ->
+  Sorted (fun n m => is_true (leb n m)) m.
+Proof.
+  intros m H. induction H.
+  - apply Sorted_nil.
+  - apply Sorted_cons.
+    + apply IHSorted.
+    + destruct l.
+      * apply HdRel_nil.
+      * apply HdRel_cons. apply HdRel_inv in H0. apply lt_le_incl in H0.
+        apply leb_le in H0. apply H0.
 Qed.
 
 Lemma In_sorted : forall a l,
@@ -756,6 +776,23 @@ Proof.
       * apply VarOrder_Transitive.
 Qed.
 
+Lemma Permutation_sort_mono_eq : forall (l m:mono),
+  Permutation l m <-> VarSort.sort l = VarSort.sort m.
+Proof.
+  intros l m. split; intros H.
+  - assert (H0 : Permutation (VarSort.sort l) (VarSort.sort m)).
+    + apply Permutation_trans with (l:=(VarSort.sort l)) (l':=m) (l'':=(VarSort.sort m)).
+      * apply Permutation_sym. apply Permutation_sym in H.
+        apply (Permutation_trans H (VarSort.Permuted_sort l)).
+      * apply VarSort.Permuted_sort.
+    + apply (Permutation_Sorted_mono_eq _ _ H0 (VarSort.LocallySorted_sort l) (VarSort.LocallySorted_sort m)).
+  - assert (Permutation (VarSort.sort l) (VarSort.sort m)).
+    + rewrite H. apply Permutation_refl.
+    + pose (VarSort.Permuted_sort l). pose (VarSort.Permuted_sort m).
+      apply (Permutation_trans p) in H0. apply Permutation_sym in p0.
+      apply (Permutation_trans H0) in p0. apply p0.
+Qed.
+
 Lemma Permutation_Sorted_eq : forall (l m : list mono),
   Permutation l m ->
   Sorted (fun x y => is_true (MonoOrder.leb x y)) l -> 
@@ -791,21 +828,27 @@ Proof.
 Qed.
 
 Lemma Permutation_sort_eq : forall l m,
-  Permutation l m -> sort l = sort m.
+  Permutation l m <-> sort l = sort m.
 Proof.
-  intros l m H. assert (H0 : Permutation (sort l) (sort m)).
-  - apply Permutation_trans with (l:=(sort l)) (l':=m) (l'':=(sort m)).
-    + apply Permutation_sym. apply Permutation_sym in H.
-      apply (Permutation_trans H (Permuted_sort l)).
-    + apply Permuted_sort.
-  - apply (Permutation_Sorted_eq _ _ H0 (LocallySorted_sort l) (LocallySorted_sort m)).
+  intros l m. split; intros H.
+  - assert (H0 : Permutation (sort l) (sort m)).
+    + apply Permutation_trans with (l:=(sort l)) (l':=m) (l'':=(sort m)).
+      * apply Permutation_sym. apply Permutation_sym in H.
+        apply (Permutation_trans H (Permuted_sort l)).
+      * apply Permuted_sort.
+    + apply (Permutation_Sorted_eq _ _ H0 (LocallySorted_sort l) (LocallySorted_sort m)).
+  - assert (Permutation (sort l) (sort m)).
+    + rewrite H. apply Permutation_refl.
+    + pose (Permuted_sort l). pose (Permuted_sort m).
+      apply (Permutation_trans p) in H0. apply Permutation_sym in p0.
+      apply (Permutation_trans H0) in p0. apply p0.
 Qed.
 
 Lemma sort_app_comm : forall l m,
   sort (l ++ m) = sort (m ++ l).
 Proof.
   intros l m. pose (Permutation.Permutation_app_comm l m).
-  apply (Permutation_sort_eq _ _ p).
+  apply Permutation_sort_eq. auto.
 Qed.
 
 Lemma sort_nodup_cancel_assoc : forall l,
