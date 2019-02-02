@@ -2,7 +2,7 @@
 
 terms.v
 poly.v
-terms_unif.v
 poly_unif.v
-lowenheim.v
 sve.v
+lowenheim_formula.v
+lowenheim_proof.v
