@@ -595,10 +595,12 @@ Lemma build_subst_is_reprod : forall x p q r s,
   div_by_var x p = (q, r) ->
   reprod_unif s (build_poly q r) ->
   inDom x s = false ->
+  is_poly_subst s ->
   forall t, unifier t p ->
+            is_poly_subst t ->
             subst_comp (build_subst s x q r) t t.
 Proof.
-  intros x p q r s HpolyP Hdiv Hreprod Hin t HunifT.
+  intros x p q r s HpolyP Hdiv Hreprod Hin HpsS t HunifT HpsT.
   assert (HunifT' := HunifT).
   apply (div_build_unif _ _ _ _ _ HpolyP Hdiv) in HunifT'.
   unfold reprod_unif in Hreprod.
@@ -662,6 +664,7 @@ Lemma reprod_build_subst : forall x p q r s,
   div_by_var x p = (q, r) ->
   reprod_unif s (build_poly q r) ->
   inDom x s = false ->
+  is_poly_subst s ->
   reprod_unif (build_subst s x q r) p.
 Proof.
   intros.
@@ -763,6 +766,42 @@ Proof.
     + unfold inDom in Hs0. apply Hs0.
 Qed.
 
+Lemma build_subst_poly : forall s x q r,
+  is_poly_subst s ->
+  is_poly_subst (build_subst s x q r).
+Proof.
+  unfold build_subst.
+  unfold is_poly_subst.
+  intros.
+  destruct H0.
+  - inversion H0. auto.
+  - apply (H x0). auto.
+Qed.
+
+Lemma sveVars_poly_subst : forall xs p,
+  incl (vars p) xs ->
+  is_poly p ->
+  forall s, sveVars xs p = Some s ->
+  is_poly_subst s.
+Proof.
+  induction xs as [|x xs]; intros.
+  - simpl in H1. destruct p; inversion H1. unfold is_poly_subst.
+    intros x p [].
+  - intros.
+    assert (exists qr, div_by_var x p = qr) as [[q r] Hqr]. eauto.
+    simpl in H1.
+    rewrite Hqr in H1.
+    destruct (sveVars xs (build_poly q r)) eqn:Hs0; inversion H1.
+
+    assert (Hvars: incl (vars (build_poly q r)) xs).
+      apply (div_vars x xs p q r H0 H Hqr).
+
+    assert (Hpoly: is_poly (build_poly q r)).
+      apply build_poly_is_poly.
+
+    apply (IHxs _ Hvars Hpoly) in Hs0.
+    apply build_subst_poly; auto.
+Qed.
 
 Lemma sveVars_some :  forall (xs : list var) (p : poly),
   NoDup xs ->
@@ -795,8 +834,9 @@ Proof.
     assert (Hin: inDom x s0 = false).
       apply (sve_in_vars_in_unif _ _ _ Hdup0 Hvars Hpoly Hnin _ Hs0).
 
+    apply (sveVars_poly_subst _ _ Hvars Hpoly) in Hs0 as HpsS0.
     apply (IHxs _ Hdup0 Hvars Hpoly) in Hs0.
-    apply (reprod_build_subst _ _ _ _ _ H0 Hqr Hs0 Hin).
+    apply (reprod_build_subst _ _ _ _ _ H0 Hqr Hs0 Hin HpsS0).
 Qed.
 
 Lemma sveVars_none : forall (xs : list var) (p : poly),

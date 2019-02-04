@@ -99,29 +99,59 @@ Definition subst_comp (s t u : subst) : Prop :=
 Definition more_general (s t : subst) : Prop :=
   exists u, subst_comp s u t.
 
+Definition is_poly_subst (s : subst) : Prop :=
+  forall x p, In (x, p) s -> is_poly p.
 
 Definition mgu (s : subst) (p : poly) : Prop :=
   unifier s p /\
   forall t,
   unifier t p ->
+  is_poly_subst t ->
   more_general s t.
-
 
 Definition reprod_unif (s : subst) (p : poly) : Prop :=
   unifier s p /\
   forall t,
   unifier t p ->
+  is_poly_subst t ->
   subst_comp s t t.
 
-
-
-Lemma subst_comp_poly : forall s t u,
-  (forall x, substP t (substP s [[x]]) = substP u [[x]]) ->
-  forall p,
-  is_poly p ->
-  substP t (substP s p) = substP u p.
+Lemma appSubst_poly : forall x s,
+  is_poly_subst s ->
+  is_poly (appSubst s x).
 Proof.
 Admitted.
+
+Lemma subst_var : forall x s,
+  is_poly_subst s ->
+  substP s [[x]] = appSubst s x.
+Proof.
+  intros. simpl.
+  apply (appSubst_poly x s) in H.
+  rewrite mulPP_1r; auto.
+  rewrite addPP_0r; auto.
+Qed.
+
+Lemma subst_comp_poly : forall s t u,
+  is_poly_subst s ->
+  is_poly_subst u ->
+  (forall x, substP t (substP s [[x]]) = substP u [[x]]) ->
+  forall p,
+  substP t (substP s p) = substP u p.
+Proof.
+  intros. induction p.
+  - simpl. auto.
+  - simpl. rewrite substP_distr_addPP.
+    f_equal.
+    + induction a.
+      * simpl. auto.
+      * simpl. rewrite substP_distr_mulPP.
+        f_equal.
+        -- rewrite <- subst_var; auto.
+           rewrite <- subst_var; auto.
+        -- apply IHa.
+    + apply IHp.
+Qed.
 
 Lemma reprod_is_mgu : forall p s,
   reprod_unif s p ->
@@ -133,8 +163,7 @@ Proof.
   intros.
   exists t.
   intros.
-  apply H0.
-  auto.
+  apply H0; auto.
 Qed.
 
 Lemma empty_substM : forall (m : mono),
