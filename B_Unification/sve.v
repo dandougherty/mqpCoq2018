@@ -97,9 +97,11 @@ Proof.
   - simpl. apply NoDup_cons.
     + intro. apply in_map_iff in H. destruct H as [y []]. assert (y = a).
       * apply poly_cons in Hp. destruct Hp. unfold is_poly in H1. destruct H1.
-        apply H3 in H0. apply (remove_Sorted_eq _ var_eq_dec x lt); auto.
+        apply H3 in H0. apply (remove_Sorted_eq x); auto.
         -- apply NoDup_VarSorted in H0. auto.
         -- apply NoDup_VarSorted in H2. auto.
+        -- apply Sorted_VarSorted. apply H0.
+        -- apply Sorted_VarSorted. apply H2.
       * rewrite H1 in H0. unfold is_poly in Hp. destruct Hp.
         apply NoDup_MonoSorted in H2 as H4. apply NoDup_cons_iff in H4 as []. 
         contradiction.
@@ -570,13 +572,13 @@ Proof.
   rewrite mulPP_distr_addPP.
   rewrite mulPP_assoc.
   rewrite mulPP_p_p.
-  rewrite addPP_p_p.
+  rewrite addPP_p_p; auto.
   rewrite addPP_0; auto.
   rewrite <- substP_distr_mulPP.
   rewrite <- substP_distr_addPP.
   rewrite <- (mulPP_1r r) at 2; auto.
-  rewrite mulPP_comm.
-  rewrite (mulPP_comm r [[]]).
+  rewrite mulPP_comm; auto.
+  rewrite (mulPP_comm r [[]]); auto.
   rewrite <- mulPP_distr_addPP.
   rewrite addPP_comm; auto.
 Qed.
@@ -619,17 +621,17 @@ Proof.
     apply div_is_poly in Hdiv2 as [HpolyQ HpolyR]; auto.
     rewrite (subst_comp_poly s t t); auto.
     rewrite (subst_comp_poly s t t); auto.
-    rewrite mulPP_comm.
+    rewrite mulPP_comm; auto.
     rewrite mulPP_distr_addPP.
-    rewrite mulPP_comm.
+    rewrite mulPP_comm; auto.
     rewrite mulPP_1r; auto.
     rewrite (addPP_comm (substP t [[x]]) _); auto.
-    rewrite addPP_assoc.
+    rewrite addPP_assoc; auto.
     rewrite (addPP_comm (substP t [[x]]) _ ); auto.
-    rewrite <- addPP_assoc.
+    rewrite <- addPP_assoc; auto.
     rewrite <- substP_distr_mulPP.
     rewrite <- substP_distr_addPP.
-    rewrite mulPP_comm.
+    rewrite mulPP_comm; auto.
     rewrite <- Hdiv.
     unfold unifier in HunifT.
     rewrite HunifT.
