@@ -1,3 +1,10 @@
+Since 1/28/18:
+  Done:
+    - Worked with Matt to finish proving all the admitted lemmas in sve.v. This created more lemmas in poly.v.
+    - Proved most of the admitted lemmas in poly_unif.v.
+  Goals:
+    - Prove that substitions distribute over multiplication and addition (substP_distr_mulPP and substP_distr_addPP).
+
 Since 1/21/18:
   Done:
     - Proved reprod_build_subst which is the inductive step in the main sve function.
