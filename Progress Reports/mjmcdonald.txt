@@ -1,3 +1,16 @@
+For 2/4/19:
+	Done:
+		- Worked with Dylan to finish proving all admitted lemmas in sve.v
+		- Prove more of the admitted lemmas in poly.v
+	Problems:
+		- Stuck on a few smaller ones, but nothing major and I'm fairly
+		  confident we can make it through the rest of them!
+	To-Do:
+		- Finish poly_unif and poly
+		- A lot of refactoring, reorganizing files, and prose writing
+
+
+
 For 1/28/19:
 	Done:
 		- Proved a lot more hard lemmas about sorted lists, permutations, and other things needed for proving polynomial arithmetic 
