@@ -128,14 +128,6 @@ Proof.
     + apply Permutation_sym in p0. apply (Permutation_trans p0 H1).
 Qed.
 
-Lemma concat_map : forall {A B:Type} (f:A->B) (l:list A),
-  concat (map (fun a => [f a]) l) = map f l.
-Proof.
-  intros A B f l. induction l.
-  - auto.
-  - simpl. f_equal. apply IHl.
-Qed.
-
 Lemma NoDup_map_app : forall x l,
   is_poly l ->
   (forall m, In m l -> ~ In x m) ->
