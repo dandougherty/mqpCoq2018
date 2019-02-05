@@ -98,10 +98,6 @@ Proof.
     + intro. apply in_map_iff in H. destruct H as [y []]. assert (y = a).
       * apply poly_cons in Hp. destruct Hp. unfold is_poly in H1. destruct H1.
         apply H3 in H0. apply (remove_Sorted_eq x); auto.
-        -- apply NoDup_VarSorted in H0. auto.
-        -- apply NoDup_VarSorted in H2. auto.
-        -- apply Sorted_VarSorted. apply H0.
-        -- apply Sorted_VarSorted. apply H2.
       * rewrite H1 in H0. unfold is_poly in Hp. destruct Hp.
         apply NoDup_MonoSorted in H2 as H4. apply NoDup_cons_iff in H4 as []. 
         contradiction.
@@ -542,7 +538,7 @@ Proof.
   apply div_eq in Hdiv; auto.
 
   rewrite Hdiv.
-  rewrite substP_distr_addPP.
+  rewrite substP_distr_addPP; auto.
   rewrite substP_distr_mulPP.
   unfold build_subst.
   rewrite (substP_cons _ _ Hnq).
@@ -564,7 +560,7 @@ Proof.
     rewrite mulPP_1r; auto.
   rewrite Hsx.
 
-  rewrite substP_distr_addPP.
+  rewrite substP_distr_addPP; auto.
   rewrite substP_1.
   rewrite mulPP_distr_addPPr.
   rewrite mulPP_1r; auto.
@@ -575,7 +571,7 @@ Proof.
   rewrite addPP_p_p; auto.
   rewrite addPP_0; auto.
   rewrite <- substP_distr_mulPP.
-  rewrite <- substP_distr_addPP.
+  rewrite <- substP_distr_addPP; auto.
   rewrite <- (mulPP_1r r) at 2; auto.
   rewrite mulPP_comm; auto.
   rewrite (mulPP_comm r [[]]); auto.
@@ -613,10 +609,10 @@ Proof.
       rewrite addPP_0r; auto.
     rewrite H.
 
-    rewrite substP_distr_addPP.
+    rewrite substP_distr_addPP; auto.
     rewrite substP_distr_mulPP.
-    rewrite substP_distr_addPP.
-    rewrite substP_distr_addPP.
+    rewrite substP_distr_addPP; [auto|auto|admit].
+    rewrite substP_distr_addPP; auto.
     rewrite substP_1.
     assert (Hdiv2 := Hdiv).
     apply div_eq in Hdiv; auto.
@@ -631,8 +627,8 @@ Proof.
     rewrite addPP_assoc; auto.
     rewrite (addPP_comm (substP t [[x]]) _ ); auto.
     rewrite <- addPP_assoc; auto.
-    rewrite <- substP_distr_mulPP.
-    rewrite <- substP_distr_addPP.
+    rewrite <- substP_distr_mulPP; auto.
+    rewrite <- substP_distr_addPP; auto.
     rewrite mulPP_comm; auto.
     rewrite <- Hdiv.
     unfold unifier in HunifT.
@@ -640,7 +636,7 @@ Proof.
     rewrite addPP_0; auto.
     apply beq_nat_true in Hyx.
     rewrite Hyx.
-    reflexivity.
+    reflexivity. 
   - unfold build_subst.
     rewrite substP_cons; auto.
     intros.
@@ -651,7 +647,8 @@ Proof.
     apply Nat.eqb_eq in H1.
     rewrite Hyx in H1.
     inversion H1.
-Qed.
+Admitted.
+(* Qed. *)
 
 Lemma reprod_build_subst : forall x p q r s,
   is_poly p ->

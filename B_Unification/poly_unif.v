@@ -2,6 +2,8 @@ Require Import ListSet.
 Require Import List.
 Import ListNotations.
 Require Import Arith.
+Require Import Permutation.
+Require Import Sorting.
 
 Require Export poly.
 
@@ -27,19 +29,134 @@ Fixpoint substM (s : subst) (m : mono) : poly :=
   | x :: m => mulPP (appSubst s x) (substM s m)
   end.
 
+Lemma substM_is_poly : forall s m,
+  is_poly (substM s m).
+Proof.
+  intros s m. destruct m; simpl; auto.
+Qed.
+
 Fixpoint substP (s : subst) (p : poly) : poly :=
   match p with
   | [] => []
   | m :: p' => addPP (substM s m) (substP s p')
   end.
 
-Lemma substP_distr_mulPP : forall p q s,
-  substP s (mulPP p q) = mulPP (substP s p) (substP s q).
+Lemma substP_is_poly : forall s p,
+  is_poly (substP s p).
 Proof.
+  intros. unfold substP. destruct p; auto.
+Qed.
+
+Hint Resolve substP_is_poly substM_is_poly.
+
+Lemma substP_Sorted : forall s p,
+  Sorted (fun m n : list nat => lex Nat.compare m n = Lt) (substP s p).
+Proof.
+  intros s p. destruct p.
+  - simpl. auto.
+  - simpl. apply addPP_is_poly.
+Qed.
+
+Lemma make_poly_Permutation : forall p q,
+  Permutation p q ->
+  Permutation (make_poly p) (make_poly q).
+Proof.
+  intros p q H. unfold make_poly. apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (map make_mono p))).
+  - apply Permutation_sym. apply MonoSort.Permuted_sort.
+  - apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (map make_mono q))).
+    + apply nodup_cancel_Permutation. apply Permutation_map. apply H.
+    + apply MonoSort.Permuted_sort.
+Qed.
+
+Lemma substP_Permutation : forall s p q,
+  Permutation p q ->
+  Permutation (substP s p) (substP s q).
+Proof.
+  intros s p q H. induction H.
+  - simpl. auto.
+  - simpl. unfold addPP. apply make_poly_Permutation.
+    apply Permutation_app_head. apply IHPermutation.
+  - simpl. rewrite <- addPP_assoc; auto. rewrite <- addPP_assoc; auto.
+    rewrite (addPP_comm (substM _ _)). apply Permutation_refl.
+  - apply Permutation_trans with (l':=(substP s l')); auto.
+Qed.
+
+Lemma substP_sort_assoc : forall s p,
+  substP s (MonoSort.sort p) = MonoSort.sort (substP s p).
+Proof.
+  intros s p. apply Permutation_Sorted_eq.
+  - apply Permutation_trans with (l':=(substP s p)).
+    + apply substP_Permutation. apply Permutation_sym. apply MonoSort.Permuted_sort.
+    + apply MonoSort.Permuted_sort.
+  - apply Sorted_MonoSorted. apply substP_Sorted.
+  - apply MonoSort.LocallySorted_sort.
+Qed.
+
+Lemma substP_nodup_cancel_assoc : forall s p,
+  substP s (nodup_cancel mono_eq_dec p) = 
+  nodup_cancel mono_eq_dec (substP s p).
+Proof.
+  intros s p. apply Permutation_Sorted_eq.
+  - rewrite (no_nodup_cancel_NoDup _ _ (substP _ _)).
+    + induction p.
+      * auto.
+      * simpl. destruct Nat.even eqn:Hevn.
+        -- simpl. unfold addPP. unfold make_poly. apply Permutation_MonoSort_l.
+           apply Permutation_MonoSort_r. repeat rewrite no_map_make_mono.
+           admit.
+           intros m Hin. apply in_app_iff in Hin. destruct Hin.
+              apply (substM_is_poly s a); auto.
+              apply (substP_is_poly s p); auto.
+           intros m Hin. apply in_app_iff in Hin. destruct Hin.
+              apply (substM_is_poly s a); auto.
+              apply (substP_is_poly s (remove mono_eq_dec a (nodup_cancel mono_eq_dec p))); auto.
+        -- admit.
+    + pose (substP_is_poly s p). unfold is_poly in i. destruct i. apply NoDup_MonoSorted. auto.
+  - apply Sorted_MonoSorted. apply substP_Sorted.
+  - apply Sorted_nodup_cancel. apply MonoOrder_Transitive.
+    apply Sorted_MonoSorted. apply substP_Sorted.
 Admitted.
 
+Lemma substP_make_poly_assoc : forall s p,
+  (forall m, In m p -> is_mono m) ->
+  substP s (make_poly p) = make_poly (substP s p).
+Proof.
+  intros s p Hmono. destruct p as [|a].
+  - simpl. auto.
+  - simpl. rewrite (no_make_poly (addPP _ _)); auto. unfold addPP, make_poly in *.
+    repeat rewrite no_map_make_mono; auto. rewrite substP_sort_assoc.
+    apply Permutation_sort_eq. rewrite substP_nodup_cancel_assoc. simpl.
+    unfold addPP, make_poly. rewrite sort_nodup_cancel_assoc.
+    rewrite no_nodup_cancel_NoDup. rewrite no_map_make_mono.
+    + apply nodup_cancel_Permutation. apply Permutation_sym. apply MonoSort.Permuted_sort.
+    + intros m Hin. apply in_app_or in Hin. destruct Hin.
+      * pose (substM_is_poly s a). unfold is_poly in i. destruct i. auto.
+      * pose (substP_is_poly s p). unfold is_poly in i. destruct i. auto.
+    + apply NoDup_nodup_cancel.
+    + intros m Hin. apply in_app_or in Hin. destruct Hin.
+      * pose (substM_is_poly s a). unfold is_poly in i. destruct i. auto.
+      * pose (substP_is_poly s p). unfold is_poly in i. destruct i. auto.
+Qed.
+
+Lemma substP_distr_app : forall p q s,
+  substP s (p ++ q) = addPP (substP s p) (substP s q).
+Proof.
+  intros p q s. induction p.
+  - simpl. rewrite addPP_0; auto.
+  - simpl. rewrite addPP_assoc; auto. rewrite IHp. auto.
+Qed.
+
 Lemma substP_distr_addPP : forall p q s,
+  is_poly p -> is_poly q ->
   substP s (addPP p q) = addPP (substP s p) (substP s q).
+Proof.
+  intros p q s Hp Hq. unfold addPP. rewrite substP_make_poly_assoc.
+  - rewrite substP_distr_app. apply no_make_poly. apply make_poly_is_poly.
+  - intros m Hin. apply in_app_or in Hin as []; [apply Hp | apply Hq]; auto.
+Qed.
+
+Lemma substP_distr_mulPP : forall p q s,
+  substP s (mulPP p q) = mulPP (substP s p) (substP s q).
 Proof.
 Admitted.
 
@@ -73,15 +190,6 @@ Lemma substP_1 : forall s,
 Proof.
   intros. simpl. rewrite addPP_0r; auto.
 Qed.
-
-Lemma substP_is_poly : forall s p,
-  is_poly (substP s p).
-Proof.
-  intros. unfold substP. destruct p; auto.
-Qed.
-
-Hint Resolve substP_is_poly.
-
 
 
 Definition unifier (s : subst) (p : poly) : Prop :=
@@ -141,7 +249,7 @@ Lemma subst_comp_poly : forall s t u,
 Proof.
   intros. induction p.
   - simpl. auto.
-  - simpl. rewrite substP_distr_addPP.
+  - simpl. rewrite substP_distr_addPP; auto.
     f_equal.
     + induction a.
       * simpl. auto.

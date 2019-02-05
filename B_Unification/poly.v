@@ -190,6 +190,7 @@ Hint Resolve NoDup_cons NoDup_nil Sorted_cons.
 
 Definition vars (p : poly) : list var :=
   nodup var_eq_dec (concat p).
+Hint Unfold vars.
 
 (* Lemma vars_nodup : forall x xs p,
   x :: xs = vars p ->
@@ -202,13 +203,6 @@ Lemma NoDup_vars : forall (p : poly),
 Proof.
   intros p. unfold vars. apply NoDup_nodup.
 Qed.
-
-Lemma no_vars_is_ground : forall p,
-  is_poly p ->
-  vars p = [] ->
-  p = [] \/ p = [[]].
-Proof.
-Admitted.
 
 Lemma in_mono_in_vars : forall x p,
   (forall m : mono, In m p -> ~ In x m) <-> ~ In x (vars p).
@@ -320,6 +314,25 @@ Proof.
   - apply Sorted_cons; auto.
   - intros m H. simpl in H; destruct H; inversion H.
     unfold is_mono. auto.
+Qed.
+
+Lemma no_vars_is_ground : forall p,
+  is_poly p ->
+  vars p = [] ->
+  p = [] \/ p = [[]].
+Proof.
+  intros p H H0. induction p.
+  - auto.
+  - induction a.
+    + destruct IHp.
+      * apply poly_cons in H. apply H.
+      * unfold vars in H0. simpl in H0. apply H0.
+      * rewrite H1. auto.
+      * rewrite H1 in H. unfold is_poly in H. destruct H. inversion H.
+        inversion H6. inversion H8.
+    + unfold vars in H0. simpl in H0. destruct in_dec in H0.
+      * rewrite <- nodup_In in i. rewrite H0 in i. inversion i.
+      * inversion H0.
 Qed.
 
 Hint Resolve mono_order mono_cons poly_order poly_cons nil_is_mono nil_is_poly
@@ -534,6 +547,20 @@ End MonoOrder.
 
 Module Import MonoSort := Sort MonoOrder.
 
+Lemma Permutation_MonoSort_r : forall p q,
+  Permutation p q -> Permutation p (sort q).
+Proof.
+  intros p q H. apply Permutation_trans with (l':=q).
+  apply H. apply Permuted_sort.
+Qed.
+
+Lemma Permutation_MonoSort_l : forall p q,
+  Permutation p q -> Permutation (sort p) q.
+Proof.
+  intros p q H. apply Permutation_sym. apply Permutation_MonoSort_r.
+  apply Permutation_sym. auto.
+Qed.
+  
 Lemma VarOrder_Transitive :
   Relations_1.Transitive (fun x y : nat => is_true (NatOrder.leb x y)).
 Proof.
@@ -577,20 +604,23 @@ Proof.
   - inversion H0.
   - inversion H.
   - inversion H0.
-  - (* destruct (a ?= n0) eqn:Han0.
+  - destruct (a ?= n0) eqn:Han0.
     + apply compare_eq_iff in Han0. rewrite Han0 in H. destruct (n ?= n0) eqn:Hn0.
       * rewrite compare_antisym in Hn0. unfold CompOpp in Hn0.
         destruct (n0?=n); try inversion Hn0. apply (IHx _ _ H H0).
-      * destruct (n0?=n); try inversion H. rewrite H2.  reflexivity.
+      * rewrite compare_antisym in Hn0. unfold CompOpp in Hn0.
+        destruct (n0?=n); try inversion Hn0. inversion H.
       * inversion H0.
-    + destruct (n ?= n0) eqn:Hn0.
-      * apply compare_eq_iff in Hn0. rewrite <- Hn0. rewrite Han. reflexivity.
-      * apply compare_lt_iff in Han. apply compare_lt_iff in Hn0.
-        apply (lt_trans a n n0 Han) in Hn0. apply compare_lt_iff in Hn0.
-        rewrite Hn0. reflexivity.
+    + auto.
+    + destruct (n ?= n0) eqn:Hnn0.
+      * apply compare_eq_iff in Hnn0. rewrite Hnn0 in H. rewrite Han0 in H.
+        inversion H.
+      * apply compare_lt_iff in Hnn0. apply compare_gt_iff in Han0.
+        apply lt_trans with (n:=n) in Han0; auto. apply compare_lt_iff in Han0.
+        rewrite compare_antisym in Han0. unfold CompOpp in Han0.
+        destruct (a?=n); try inversion Han0. inversion H.
       * inversion H0.
-    + inversion H. *)
-Admitted.
+Qed.
 
 Lemma Lt_Transitive :
   Relations_1.Transitive lt.
@@ -942,18 +972,6 @@ Proof.
     + apply H. intuition.
 Qed.
 
-Lemma NoDup_map_make_mono : forall p,
-  NoDup p ->
-  NoDup (map make_mono p).
-Proof.
-Admitted.
-
-Lemma Sorted_map_make_mono : forall Rel p,
-  Sorted Rel p ->
-  Sorted Rel (map make_mono p).
-Proof.
-Admitted.
-
 Lemma unsorted_poly : forall p,
   NoDup p ->
   (forall m, In m p -> is_mono m) ->
@@ -964,10 +982,10 @@ Proof.
 Qed.
 
 Lemma remove_Permutation : forall (A:Type) Aeq_dec a (l l':list A),
-  Permutation (remove Aeq_dec a l) (remove Aeq_dec a l') <->
-  Permutation l l'.
+  Permutation l l' ->
+  Permutation (remove Aeq_dec a l) (remove Aeq_dec a l').
 Proof.
-  intros A Aeq_dec a l. induction l; induction l'; intros.
+  (* intros A Aeq_dec a l. induction l; induction l'; intros.
   - simpl. split; auto.
   - admit.
   - admit.
@@ -992,7 +1010,7 @@ Proof.
       * rewrite e in *. apply Permutation_cons_inv in H. simpl. destruct (Aeq_dec a a1).
         -- apply IHl. auto.
         -- apply perm_skip. apply IHl. auto.
-      * admit.
+      * admit. *)
 Admitted.
 
 Lemma nodup_cancel_Permutation : forall (A:Type) Aeq_dec (l l':list A),
@@ -1022,17 +1040,14 @@ Proof.
 Admitted.
 
 Lemma remove_Sorted_eq : forall x (l l':mono),
-  NoDup l ->
-  NoDup l' ->
-  Sorted (fun n m => is_true (leb n m)) l ->
-  Sorted (fun n m => is_true (leb n m)) l' ->
+  is_mono l -> is_mono l' ->
   remove var_eq_dec x l = remove var_eq_dec x l' ->
   l = l'.
 Proof.
-  intros x l l' Hdl Hdl' Hsl Hsl' Hrem. apply Permutation_Sorted_mono_eq; auto.
+  intros x l l' Hl Hl' Hrem. apply Permutation_Sorted_mono_eq; auto.
   pose (Permutation_refl (remove var_eq_dec x l)). rewrite Hrem in p at 2.
-  rewrite <- remove_Permutation. apply p.
-Qed.
+  admit.
+Admitted.
 
 Lemma Permutation_Sorted_eq : forall (l m : list mono),
   Permutation l m ->
@@ -1102,10 +1117,10 @@ Proof.
   unfold make_poly, is_poly. intros m []. rewrite no_sort_MonoSorted.
   - rewrite no_nodup_cancel_NoDup.
     + apply no_map_make_mono. intros m0 Hin. apply H0. auto.
-    + apply NoDup_MonoSorted in H. apply NoDup_map_make_mono. apply H.
+    + apply NoDup_MonoSorted in H. rewrite no_map_make_mono; auto.
   - apply Sorted_nodup_cancel.
     + apply lex_Lt_Transitive.
-    + apply Sorted_map_make_mono. auto.
+    + rewrite no_map_make_mono; auto.
 Qed.
 
 Lemma sort_app_comm : forall l m,
@@ -1173,20 +1188,42 @@ Proof.
   intros p Hpoly. unfold addPP. rewrite app_nil_r. apply no_make_poly. auto.
 Qed.
 
+Lemma count_occ_app : forall (A:Type) a (l m:list A) Aeq_dec,
+  count_occ Aeq_dec (l++m) a = add (count_occ Aeq_dec l a) (count_occ Aeq_dec m a).
+Proof.
+  intros A a l m Aeq_dec. induction l.
+  - simpl. auto.
+  - simpl. destruct (Aeq_dec a0 a); simpl; auto.
+Qed.
+
+Lemma nodup_cancel_self : forall p,
+  nodup_cancel mono_eq_dec (p++p) = [].
+Proof.
+  intros p. induction p.
+  - auto.
+  - simpl. destruct even eqn:Hevn.
+    + rewrite count_occ_app in Hevn. destruct (count_occ mono_eq_dec p a) eqn:Hx.
+      * simpl in Hevn. destruct (mono_eq_dec a a); try contradiction.
+        rewrite Hx in Hevn. inversion Hevn.
+      * simpl in Hevn. destruct (mono_eq_dec a a); try contradiction.
+        rewrite Hx in Hevn. rewrite add_comm in Hevn.
+        simpl in Hevn. destruct (plus n n) eqn:Help. inversion Hevn.
+        replace (plus n n) with (plus 0 (2*n)) in Help.
+        pose (even_add_mul_2 0 n). pose (even_succ n0). rewrite <- Help in e1.
+        rewrite e0 in e1. simpl in e1. apply even_spec in Hevn. symmetry in e1.
+        apply odd_spec in e1. apply (Even_Odd_False _ Hevn) in e1. inversion e1.
+        simpl. auto.
+    + clear Hevn. Search remove. admit.
+Admitted.
+
 Lemma addPP_p_p : forall p,
   is_poly p ->
   addPP p p = [].
 Proof.
-  intros p Hp. unfold addPP. induction p.
-  - auto.
-  - simpl. unfold make_poly. rewrite no_map_make_mono.
-    + simpl. assert (even (count_occ mono_eq_dec (p ++ a :: p) a) = false).
-      * admit.
-      * rewrite H. admit.
-    + intros m Hin. unfold is_poly in Hp. destruct Hp. apply H0.
-      destruct Hin. rewrite H1. intuition. apply in_app_or in H1. destruct H1.
-      intuition. auto.
-Admitted.
+  intros p Hp. unfold addPP. unfold make_poly. rewrite no_map_make_mono.
+  - rewrite nodup_cancel_self. auto.
+  - intros m Hin. apply Hp. apply in_app_iff in Hin. intuition.
+Qed.
 
 Lemma addPP_assoc : forall p q r,
   is_poly p -> is_poly q -> is_poly r ->
