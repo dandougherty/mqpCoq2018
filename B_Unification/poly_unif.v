@@ -92,6 +92,32 @@ Proof.
   - apply MonoSort.LocallySorted_sort.
 Qed.
 
+Lemma count_occ_substP : forall s a p,
+  forall m, In m (substM s a) ->
+  count_occ mono_eq_dec (substP s (a::p)) m =
+  (count_occ mono_eq_dec (a::p) a + count_occ mono_eq_dec (a::p) m)%nat.
+Proof.
+Admitted.
+
+Definition list_parity_match (p q:poly) m : Prop :=
+  Nat.even (count_occ mono_eq_dec p m) = Nat.even (count_occ mono_eq_dec q m).
+
+Lemma incl_parity_Permutation : forall l m,
+  incl l m -> 
+  incl m l ->
+  (forall x, In x l -> list_parity_match l m x) ->
+  Permutation (nodup_cancel mono_eq_dec l) (nodup_cancel mono_eq_dec m).
+Proof.
+Admitted.
+
+Lemma incl_remove_nodup_cancel : forall s p a,
+  incl (substP s (remove mono_eq_dec a (nodup_cancel mono_eq_dec p))) (substP s p).
+Proof.
+  intros s p a m Hin. induction p.
+  - simpl. auto.
+  - simpl in *.
+Admitted.
+
 Lemma substP_nodup_cancel_assoc : forall s p,
   substP s (nodup_cancel mono_eq_dec p) = 
   nodup_cancel mono_eq_dec (substP s p).
@@ -103,14 +129,31 @@ Proof.
       * simpl. destruct Nat.even eqn:Hevn.
         -- simpl. unfold addPP. unfold make_poly. apply Permutation_MonoSort_l.
            apply Permutation_MonoSort_r. repeat rewrite no_map_make_mono.
-           admit.
-           intros m Hin. apply in_app_iff in Hin. destruct Hin.
+           apply incl_parity_Permutation.
+           ++ apply incl_app. intuition. apply incl_appr. unfold incl.
+              intros a0 Hin. 
+           ++ admit.
+           ++ admit.
+           ++ intros m Hin. apply in_app_iff in Hin. destruct Hin.
               apply (substM_is_poly s a); auto.
               apply (substP_is_poly s p); auto.
-           intros m Hin. apply in_app_iff in Hin. destruct Hin.
+           ++ intros m Hin. apply in_app_iff in Hin. destruct Hin.
               apply (substM_is_poly s a); auto.
               apply (substP_is_poly s (remove mono_eq_dec a (nodup_cancel mono_eq_dec p))); auto.
-        -- admit.
+        -- admit. (* destruct remove eqn:Hrem.
+           ++ admit.
+           ++ simpl. unfold addPP, make_poly. apply Permutation_MonoSort_r.
+              apply Permutation_MonoSort_l. repeat rewrite no_map_make_mono.
+              apply incl_parity_Permutation.
+              ** admit.
+              ** admit.
+              ** intros x Hin. admit.
+              ** intros m Hin. apply in_app_iff in Hin. destruct Hin.
+                 apply (substM_is_poly s a); auto.
+                 apply (substP_is_poly s p); auto.
+              ** intros m Hin. apply in_app_iff in Hin. destruct Hin.
+                 apply (substM_is_poly s l); auto.
+                 apply (substP_is_poly s l0); auto. *)
     + pose (substP_is_poly s p). unfold is_poly in i. destruct i. apply NoDup_MonoSorted. auto.
   - apply Sorted_MonoSorted. apply substP_Sorted.
   - apply Sorted_nodup_cancel. apply MonoOrder_Transitive.
