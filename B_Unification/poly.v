@@ -816,6 +816,8 @@ Proof.
     apply make_mono_is_mono.
 Qed.
 
+Hint Resolve make_poly_is_poly make_mono_is_mono.
+
 Lemma make_mono_In : forall x m,
   In x (make_mono m) -> In x m.
 Proof.
@@ -1213,7 +1215,7 @@ Proof.
         rewrite e0 in e1. simpl in e1. apply even_spec in Hevn. symmetry in e1.
         apply odd_spec in e1. apply (Even_Odd_False _ Hevn) in e1. inversion e1.
         simpl. auto.
-    + clear Hevn. Search remove. admit.
+    + clear Hevn. admit.
 Admitted.
 
 Lemma addPP_p_p : forall p,
@@ -1274,7 +1276,9 @@ Admitted.
 
 Lemma mulPP_is_poly : forall p q,
   is_poly (mulPP p q).
-Proof. Admitted.
+Proof.
+  intros p q. apply make_poly_is_poly.
+Qed.
 
 Lemma mulPP_mono_cons : forall x m,
   is_mono (x :: m) ->
@@ -1289,27 +1293,6 @@ Proof.
 Admitted.
 
 Hint Resolve addPP_is_poly mulPP_is_poly.
-
-(* Lemma mullPP_1 : forall p,
-  is_poly p -> mulPP [[]] p = p.
-Proof.
-  intros p H. unfold mulPP. rewrite mulMP_0. rewrite addPP_comm.
-  - apply addPP_0.
-  - split; auto.
-  - apply H.
-Qed. *)
-
-(* Lemma mulMP_is_poly : forall m p,
-  is_mono m /\ is_poly p -> is_poly (mulMP m p).
-Proof. Admitted.
-
-Hint Resolve mulMP_is_poly. *)
-
-(* Lemma mulPP_comm : forall p q,
-  mulPP p q = mulPP q p.
-Proof.
-  intros p q. unfold mulPP.
-Admitted. *)
 
 Lemma mulPP_addPP_1 : forall p q r,
   mulPP (addPP (mulPP p q) r) (addPP [[]] q) =
@@ -1387,16 +1370,43 @@ Proof. Admitted.
 
 Lemma incl_nil : forall {X:Type} (l:list X),
   incl l [] <-> l = [].
-Proof. Admitted.
+Proof.
+  intros X l. unfold incl. split; intro H.
+  - destruct l; [auto | destruct (H x); intuition].
+  - intros a Hin. destruct l; [auto | rewrite H in Hin; auto].
+Qed.
+
+Lemma partition_Permutation : forall {A:Type} f (p l r: list A),
+  partition f p = (l, r) ->
+  Permutation p (l++r).
+Proof.
+  intros A f p. induction p; intros.
+  - simpl in H. inversion H. auto.
+  - simpl in H. destruct (partition f p). destruct (f a); inversion H.
+    + simpl. apply perm_skip. apply IHp. f_equal. auto.
+    + apply Permutation_trans with (l':=(a::l1 ++ l)). apply perm_skip.
+      apply Permutation_trans with (l':=(l++l1)). apply IHp. f_equal.
+      auto. apply Permutation_app_comm. apply Permutation_app_comm with (l:=(a::l1)).
+Qed.
 
 Lemma part_add_eq : forall f p l r,
   is_poly p ->
   partition f p = (l, r) ->
   p = addPP l r.
 Proof.
-  intros f p l r Hpoly Hpart. induction l.
-  - rewrite addPP_0. unfold partition in Hpart. simpl.
-Admitted.
+  intros f p l r H H0. apply Permutation_Sorted_eq.
+  - generalize dependent l; generalize dependent r. induction p; intros.
+    + simpl in H0. inversion H0. auto.
+    + assert (H1:=H0); auto. apply partition_Permutation in H1. simpl in H0.
+      destruct (partition f p) as [g d]. apply Permutation_MonoSort_r.
+      rewrite unsorted_poly. destruct (f a); inversion H0.
+      * rewrite <- H3 in H1. apply H1.
+      * rewrite <- H4 in H1. apply H1.
+      * destruct H. apply NoDup_MonoSorted in H. apply (Permutation_NoDup H1 H).
+      * intros m Hin. apply H. apply Permutation_sym in H1. apply (Permutation_in _ H1 Hin).
+  - apply Sorted_MonoSorted. apply H.
+  - apply Sorted_MonoSorted. apply make_poly_is_poly.
+Qed.
 
 Lemma part_fst_true : forall X p (l t f : list X),
   partition p l = (t, f) ->
@@ -1423,14 +1433,54 @@ Proof.
     now rewrite <- Hf.
 Qed.
 
+Lemma Forall_HdRel : forall {X:Type} c a (p:list X),
+  Forall (c a) p -> HdRel c a p.
+Proof.
+  intros X c a p H. destruct p.
+  - apply HdRel_nil.
+  - apply HdRel_cons. apply Forall_inv in H. auto.
+Qed.
+
+Lemma Forall_incl : forall {X:Type} (c:X->X->Prop) a (p g:list X),
+  Forall (c a) p -> incl g p -> Forall (c a) g.
+Proof.
+  intros X c a p g H H0. induction g.
+  - apply Forall_nil.
+  - rewrite Forall_forall in H. apply Forall_forall. intros x Hin.
+    apply H. unfold incl in H0. apply H0. intuition.
+Qed.
+
 Lemma part_Sorted : forall {X:Type} (c:X->X->Prop) f p,
+  Relations_1.Transitive c ->
   Sorted c p -> 
   forall l r, partition f p = (l, r) ->
   Sorted c l /\ Sorted c r.
 Proof.
-  intros X c f p Hsort. induction p.
-  - simpl.
-Admitted.
+  intros X c f p Htran Hsort. induction p; intros.
+  - simpl in H. inversion H. auto.
+  - assert (H0:=H); auto. simpl in H. destruct (partition f p) as [g d].
+    destruct (f a); inversion H.
+    + assert (Forall (c a) g /\ Sorted c g /\ Sorted c r -> Sorted c (a::g) /\ Sorted c r).
+      * intros H4. split. apply Sorted_cons. apply H4. apply Forall_HdRel. apply H4. apply H4.
+      * apply H1. split.
+        -- apply Sorted_StronglySorted in Hsort; auto. apply StronglySorted_inv in Hsort as [].
+           apply (Forall_incl _ _ _ _ H5). apply partition_Permutation in H0.
+           rewrite <- H2 in H0. simpl in H0. apply Permutation_cons_inv in H0.
+           apply Permutation_incl in H0 as []. unfold incl. unfold incl in H6.
+           intros a0 Hin. apply H6. intuition.
+        -- apply IHp. apply Sorted_inv in Hsort; apply Hsort. f_equal. auto.
+    + assert (Forall (c a) d /\ Sorted c l /\ Sorted c d -> Sorted c l /\ Sorted c (a::d)).
+      * intros H4. split. apply H4. apply Sorted_cons. apply H4. apply Forall_HdRel. apply H4.
+      * apply H1. split.
+        -- apply Sorted_StronglySorted in Hsort; auto. apply StronglySorted_inv in Hsort as [].
+           apply (Forall_incl _ _ _ _ H5). apply partition_Permutation in H0.
+           rewrite <- H3 in H0. simpl in H0. apply Permutation_trans with (l'':=(a::d++l)) in H0.
+           apply Permutation_cons_inv in H0. apply Permutation_trans with (l'':=(l++d)) in H0.
+           apply Permutation_incl in H0 as []. unfold incl. unfold incl in H6.
+           intros a0 Hin. apply H6. intuition. apply Permutation_app_comm.
+           apply Permutation_app_comm with (l':=(a::d)).
+        -- apply IHp. apply Sorted_inv in Hsort; apply Hsort. f_equal. auto.
+Qed.
 
 Lemma part_is_poly : forall f p l r,
   is_poly p ->
@@ -1438,15 +1488,10 @@ Lemma part_is_poly : forall f p l r,
   is_poly l /\ is_poly r.
 Proof.
   intros f p l r Hpoly Hpart. destruct Hpoly. split; split.
-  - apply (part_Sorted _ _ _ H _ _ Hpart).
+  - apply (part_Sorted _ _ _ lex_Lt_Transitive H _ _ Hpart).
   - intros m Hin. apply H0. apply elements_in_partition with (x:=m) in Hpart.
     apply Hpart; auto.
-  - apply (part_Sorted _ _ _ H _ _ Hpart).
+  - apply (part_Sorted _ _ _ lex_Lt_Transitive H _ _ Hpart).
   - intros m Hin. apply H0. apply elements_in_partition with (x:=m) in Hpart.
     apply Hpart; auto.
 Qed.
-
-Lemma addPP_cons : forall (m:mono) (p:poly),
-  HdRel (fun m n => lex compare m n = Lt) m p ->
-  addPP [m] p = m :: p.
-Proof. Admitted.

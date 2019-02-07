@@ -131,7 +131,7 @@ Proof.
            apply Permutation_MonoSort_r. repeat rewrite no_map_make_mono.
            apply incl_parity_Permutation.
            ++ apply incl_app. intuition. apply incl_appr. unfold incl.
-              intros a0 Hin. 
+              apply incl_remove_nodup_cancel.
            ++ admit.
            ++ admit.
            ++ intros m Hin. apply in_app_iff in Hin. destruct Hin.
