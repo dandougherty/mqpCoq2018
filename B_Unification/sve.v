@@ -467,21 +467,29 @@ Proof.
   - simpl in Hincl. apply Hincl in Hin. destruct Hin; [contradiction | auto].
 Qed.
 
-Lemma incl_div : forall q r x,
-  forall p, is_poly p -> 
+Lemma incl_div : forall x p q r xs,
+  is_poly p -> 
   div_by_var x p = (q, r) ->
-  forall xs, incl (vars p) (x :: xs) ->
+  incl (vars p) (x :: xs) ->
   incl (vars q) xs /\ incl (vars r) xs.
 Proof.
-  intros q r x. intros p H Hp. apply (div_eq x p q r H) in Hp as Hp'.
-  intros xs Hxs. rewrite Hp' in Hxs. apply incl_vars_addPP in Hxs as [].
+  unfold div_by_var. intros x p. induction p; intros.
+  - unfold elim_var, make_poly, MonoSort.sort in H0; simpl in H0.
+    inversion H0. unfold vars. simpl. split; intros x0 Hin; inversion Hin.
+  - simpl in H0. destruct partition as [g d]. destruct has_var eqn:Hxa.
+    + admit.
+    + inversion H0. unfold vars in *. simpl. admit. Admitted. (* 
+   
+   apply (div_eq x p q r H) in Hp as Hp'.
+  intros xs Hxs. rewrite Hp' in Hxs. 
+    apply incl_vars_addPP in Hxs as [].
   apply incl_vars_mulPP in H0 as [].
   apply (incl_not_in _ _ _ _ var_eq_dec) in H2.
   apply (incl_not_in _ _ _ _ var_eq_dec) in H1.
   - split; auto.
   - apply div_var_not_in_qr in Hp as []. apply in_mono_in_vars in H4. auto.
   - apply div_var_not_in_qr in Hp as []. apply in_mono_in_vars in H3. auto.
-Qed.
+Qed. *)
 
 Lemma div_vars : forall x xs p q r,
   is_poly p -> 
@@ -493,7 +501,7 @@ Proof.
   apply div_var_not_in_qr in Hdiv as Hin. destruct Hin as [Hinq Hinr].
   apply in_mono_in_vars in Hinq. apply in_mono_in_vars in Hinr.
   apply incl_vars_mulPP. apply (incl_div _ _ _ _ H Hdiv) in Hincl. split.
-  - apply incl_vars_addPP. split.
+  - apply incl_vars_addPP; auto. apply div_is_poly in Hdiv as []; auto. split.
     + unfold vars. simpl. unfold incl. intros a [].
     + apply Hincl.
   - apply Hincl.

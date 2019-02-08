@@ -1360,13 +1360,25 @@ Proof.
   now rewrite H.
 Qed.
 
-Lemma incl_vars_addPP : forall xs p q,
-  incl (vars p) xs /\ incl (vars q) xs <-> incl (vars (addPP p q)) xs.
-Proof. Admitted.
+Lemma incl_Permutation : forall {A:Type} (l l' m:list A),
+  Permutation l l' ->
+  incl l m ->
+  incl l' m.
+Proof.
+  intros A l l' m H H0. apply Permutation_incl in H as [].
+  apply incl_tran with (m:=l); auto.
+Qed.
+
+Lemma incl_vars_addPP : forall p q,
+  is_poly p -> is_poly q ->
+  forall xs, incl (vars p) xs /\ incl (vars q) xs -> incl (vars (addPP p q)) xs.
+Proof.
+Admitted.
 
 Lemma incl_vars_mulPP : forall xs p q,
-  incl (vars p) xs /\ incl (vars q) xs <-> incl (vars (mulPP p q)) xs.
-Proof. Admitted.
+  incl (vars p) xs /\ incl (vars q) xs -> incl (vars (mulPP p q)) xs.
+Proof.
+Admitted.
 
 Lemma incl_nil : forall {X:Type} (l:list X),
   incl l [] <-> l = [].
