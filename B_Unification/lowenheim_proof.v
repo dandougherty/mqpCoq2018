@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+Require Export lowenheim_formula.
+>>>>>>> 3c5efbf046cfd0d89020534241233a361107d0f2
 Require Export EqNat.
 Require Import List.
 Import ListNotations.
