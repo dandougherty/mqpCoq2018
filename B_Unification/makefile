@@ -65,20 +65,20 @@ VERBOSE ?=
 # Time the Coq process (set to non empty), and how (see default value)
 TIMED?=
 TIMECMD?=
-# Use /usr/bin/env time on linux, gtime on Mac OS
+# Use command time on linux, gtime on Mac OS
 TIMEFMT?="$* (real: %e, user: %U, sys: %S, mem: %M ko)"
 ifneq (,$(TIMED))
-ifeq (0,$(shell /usr/bin/env time -f $(TIMEFMT) true >/dev/null 2>/dev/null; echo $$?))
-STDTIME?=/usr/bin/env time -f $(TIMEFMT)
+ifeq (0,$(shell command time -f $(TIMEFMT) true >/dev/null 2>/dev/null; echo $$?))
+STDTIME?=command time -f $(TIMEFMT)
 else
 ifeq (0,$(shell gtime -f $(TIMEFMT) true >/dev/null 2>/dev/null; echo $$?))
 STDTIME?=gtime -f $(TIMEFMT)
 else
-STDTIME?=time
+STDTIME?=command time
 endif
 endif
 else
-STDTIME?=/usr/bin/env time -f $(TIMEFMT)
+STDTIME?=command time -f $(TIMEFMT)
 endif
 
 # Coq binaries
@@ -216,7 +216,7 @@ ifdef DSTROOT
 DESTDIR := $(DSTROOT)
 endif
 
-concat_path = $(if $(1),$(1)/$(subst $(COQMF_WINDRIVE),/,$(2)),$(2))
+concat_path = $(if $(1),$(1)/$(if $(COQMF_WINDRIVE),$(subst $(COQMF_WINDRIVE),/,$(2)),$(2)),$(2))
 
 COQLIBINSTALL = $(call concat_path,$(DESTDIR),$(COQLIB)user-contrib)
 COQDOCINSTALL = $(call concat_path,$(DESTDIR),$(DOCDIR)user-contrib)
@@ -337,12 +337,12 @@ print-pretty-timed-diff::
 	$(HIDE)$(COQMAKE_BOTH_TIME_FILES) --sort-by=$(TIMING_SORT_BY) $(TIME_OF_BUILD_BEFORE_FILE) $(TIME_OF_BUILD_AFTER_FILE) $(TIME_OF_PRETTY_BOTH_BUILD_FILE) $(TIME_OF_PRETTY_BUILD_EXTRA_FILES)
 ifeq (,$(BEFORE))
 print-pretty-single-time-diff::
-	@echo 'Error: Usage: $(MAKE) print-pretty-single-time-diff BEFORE=path/to/file.v.before-timing AFTER=path/to/file.v.after-timing'
+	@echo 'Error: Usage: $(MAKE) print-pretty-single-time-diff AFTER=path/to/file.v.after-timing BEFORE=path/to/file.v.before-timing'
 	$(HIDE)false
 else
 ifeq (,$(AFTER))
 print-pretty-single-time-diff::
-	@echo 'Error: Usage: $(MAKE) print-pretty-single-time-diff BEFORE=path/to/file.v.before-timing AFTER=path/to/file.v.after-timing'
+	@echo 'Error: Usage: $(MAKE) print-pretty-single-time-diff AFTER=path/to/file.v.after-timing BEFORE=path/to/file.v.before-timing'
 	$(HIDE)false
 else
 print-pretty-single-time-diff::
@@ -371,7 +371,7 @@ real-all: $(VOFILES) $(if $(USEBYTE),bytefiles,optfiles)
 .PHONY: real-all
 
 real-all.timing.diff: $(VOFILES:.vo=.v.timing.diff)
-.PHONE: real-all.timing.diff
+.PHONY: real-all.timing.diff
 
 bytefiles: $(CMOFILES) $(CMAFILES)
 .PHONY: bytefiles

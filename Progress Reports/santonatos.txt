@@ -1,3 +1,80 @@
+For Monday 1/28:
+
+Things I worked on:
+ - modified the definition of var_set_create_unique to make it more efficient and clean and proved lemmas for it
+  like distribution.
+ - completed the core proof (book's proof for the builder):
+   + using classical logic, proved mgu for all x, filling in any important admitted lemmas related to it (2-3)
+   + filled in  a lot of small helper admitted lemmas used for the proof (4-5) and added and proved
+     more used for these (another 4-5) (made the proof for unique vars, not only vars)
+     
+Things to work on:
+ - start working on the extension of the proof for the main function 
+ 
+
+
+
+
+For Monday 1/21:
+
+Things I worked on:
+- made a draft extension of the mgu proof to include the Main Lowenheim's function.
+- proved an important helper lemma for the "reproductive proof" of the builder, which is 
+  that applying lowenheim's substitution on a variable gives us the initial format of the replacement.
+  
+Plans:
+ - finish the helper lemmas for the lownheim_builder mgu proof.
+ - cut from the proof the case for which x is not in Var(t)
+ 
+ 
+-----------------------------------------------------------------------------
+
+
+During Christmas break :
+
+Things I worked on:
+
+- changed the format of our lowenheim builder to math the format of lemma 10.4.5
+- proved lemma 10.4.5 and then that our lowenheim builder unifies , having added 3 admitted helper lemmas
+- added property for rewrites within apply_subst, having added 1 admitted helper lemma
+- proved that our lowenheim builder gives a substitution that is reproductive, having added 2 admitted helper lemmas
+- proved that any reproductive unifier is also a most general unifier
+- proved that our lowenheim builder gives a most general unifier
+- fixed our apply_subst function to account for replacements that refer to each other (so that they do not get mixed up)
+and modifierd (reproved) all the lemmas that were already proved and involved apply_subst
+
+
+Plans:
+
+- reorganize the files by splitting our terms.v files
+- clean up our existing files by removing unused coq code and developement
+- add more writing
+- start filling in helper admitted leamms
+
+
+
+
+----------------------------------------------------------------------------------------------------------------
+
+
+For Thursday 12/13 :
+
+Things I worked on:
+
+- added introductory subsections to the intro chapter of the report
+- worked on 10.4.5 , but after failing to keep the current format and solve the existing problem
+by adding the extra l, decided to try a new apporach by changing how the lemma is formed, but that still in the works 
+(adding a list of vars and changing the proposition equivalence to a list of replacements) - more like professor's version
+. Still admitted though and working on it.
+-finally merged lowenheim_dev with the rest of the team.
+
+Plans/ problems
+- finish 10.4.5 !!!
+- finish the other two proofs based on 10.4.5 (one of them is done but if 10.4.5 's format changes, it needs to change too)
+
+
+------------------------------------------------------------------------------------------------------
+
 For Monday 12 / 9 :
 
 Things I worked on:

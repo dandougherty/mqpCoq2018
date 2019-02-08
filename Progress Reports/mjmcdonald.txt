@@ -1,3 +1,32 @@
+For 2/4/19:
+	Done:
+		- Worked with Dylan to finish proving all admitted lemmas in sve.v
+		- Prove more of the admitted lemmas in poly.v
+	Problems:
+		- Stuck on a few smaller ones, but nothing major and I'm fairly
+		  confident we can make it through the rest of them!
+	To-Do:
+		- Finish poly_unif and poly
+		- A lot of refactoring, reorganizing files, and prose writing
+
+
+
+For 1/28/19:
+	Done:
+		- Proved a lot more hard lemmas about sorted lists, permutations, and other things needed for proving polynomial arithmetic 
+		  in the new make_poly setup
+		- Proved addPP_comm with 1 admitted lemma left
+	Problems:
+		- Stuck on proving facts about our nodup_cancel function, the only thing holding up the make_poly_is_poly and addPP_comm
+		  proofs from being 100%
+	To-Do:
+		- Work more with Dylan to wrap SVE up to 100%
+		- Solve nodup_cancel lemmas and prove more poly math facts
+		- Work on the poly_unif file
+		- Actually remember to post progress updates before every meeting
+
+
+
 For 12/06/18:
 	Done:
 		- Branched off from master and began working on ordered_polys. Redid polynomials and monomial definitions and
