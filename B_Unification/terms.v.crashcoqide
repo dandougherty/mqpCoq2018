@@ -851,6 +851,9 @@ Proof.
   intros. specialize (H H0). exists s' . intros.  specialize (H s' x).  specialize (H H1). apply H.
 Qed.
 
+
+
+
 Example mgu_ex1 :
   most_general_unifier (VAR 0 * VAR 1) ((0, VAR 0 * (T1 + VAR 1)) :: nil).
 Proof.

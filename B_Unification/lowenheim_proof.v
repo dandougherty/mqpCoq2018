@@ -1,11 +1,10 @@
-
 Require Export EqNat.
 Require Import List.
 Import ListNotations.
 Import Coq.Init.Tactics.
 Require Export Classical_Prop.
 
-
+Require Export lowenheim_formula.
 
 (*** 3. Lownheim's proof ***)
 
@@ -26,10 +25,9 @@ Definition sub_term (t : term) (t' : term) : Prop :=
 Lemma sub_term_id :
   forall (t : term),
   sub_term t t.
- Proof.
+Proof.
  intros. firstorder.
- Qed.
-
+Qed.
 
 Lemma term_vars_distr :
 forall (t1 t2 : term),
@@ -454,6 +452,16 @@ Lemma find_unifier_is_unifier:
  forall (t : term),
   (unifiable t) -> (unifier t (convert_to_subst (find_unifier t))).
 Proof.
+intros. induction t.
+{ 
+  simpl. unfold unifier. simpl. reflexivity.
+}
+{
+  simpl. inversion H. apply H0.
+}
+{
+  inversion H. 
+
 Admitted.
 
 
