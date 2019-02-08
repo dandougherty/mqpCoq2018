@@ -4,7 +4,7 @@
 ##   \VV/  #                                                                 ##
 ##    //   #                                                                 ##
 ###############################################################################
-## GNUMakefile for Coq 8.8.2
+## GNUMakefile for Coq 8.8.0
 
 # For debugging purposes (must stay here, don't move below)
 INITIAL_VARS := $(.VARIABLES)
@@ -176,7 +176,7 @@ COQDOCLIBS?=$(COQLIBS_NOML)
 # The version of Coq being run and the version of coq_makefile that
 # generated this makefile
 COQ_VERSION:=$(shell $(COQC) --print-version | cut -d " " -f 1)
-COQMAKEFILE_VERSION:=8.8.2
+COQMAKEFILE_VERSION:=8.8.0
 
 COQSRCLIBS?= $(foreach d,$(COQ_SRC_SUBDIRS), -I "$(COQLIB)$(d)")
 
@@ -334,7 +334,7 @@ make-pretty-timed make-pretty-timed-before make-pretty-timed-after::
 print-pretty-timed::
 	$(HIDE)$(COQMAKE_ONE_TIME_FILE) $(TIME_OF_BUILD_FILE) $(TIME_OF_PRETTY_BUILD_FILE) $(TIME_OF_PRETTY_BUILD_EXTRA_FILES)
 print-pretty-timed-diff::
-	$(HIDE)$(COQMAKE_BOTH_TIME_FILES) --sort-by=$(TIMING_SORT_BY) $(TIME_OF_BUILD_AFTER_FILE) $(TIME_OF_BUILD_BEFORE_FILE) $(TIME_OF_PRETTY_BOTH_BUILD_FILE) $(TIME_OF_PRETTY_BUILD_EXTRA_FILES)
+	$(HIDE)$(COQMAKE_BOTH_TIME_FILES) --sort-by=$(TIMING_SORT_BY) $(TIME_OF_BUILD_BEFORE_FILE) $(TIME_OF_BUILD_AFTER_FILE) $(TIME_OF_PRETTY_BOTH_BUILD_FILE) $(TIME_OF_PRETTY_BUILD_EXTRA_FILES)
 ifeq (,$(BEFORE))
 print-pretty-single-time-diff::
 	@echo 'Error: Usage: $(MAKE) print-pretty-single-time-diff AFTER=path/to/file.v.after-timing BEFORE=path/to/file.v.before-timing'
@@ -346,7 +346,7 @@ print-pretty-single-time-diff::
 	$(HIDE)false
 else
 print-pretty-single-time-diff::
-	$(HIDE)$(COQMAKE_BOTH_SINGLE_TIMING_FILES) --sort-by=$(TIMING_SORT_BY) $(AFTER) $(BEFORE) $(TIME_OF_PRETTY_BUILD_FILE) $(TIME_OF_PRETTY_BUILD_EXTRA_FILES)
+	$(HIDE)$(COQMAKE_BOTH_SINGLE_TIMING_FILES) --sort-by=$(TIMING_SORT_BY) $(BEFORE) $(AFTER) $(TIME_OF_PRETTY_BUILD_FILE) $(TIME_OF_PRETTY_BUILD_EXTRA_FILES)
 endif
 endif
 pretty-timed:

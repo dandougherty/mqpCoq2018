@@ -1,8 +1,9 @@
 -R . B_Unification
 
-terms.v
-poly.v
-poly_unif.v
 sve.v
-lowenheim_formula.v
+poly_unif.v
+poly.v
 lowenheim_proof.v
+lowenheim_formula.v
+terms.v
+intro.v
