@@ -222,18 +222,20 @@ Qed.
 Lemma sum_assoc_opp :
  forall x y z, x + (y + z) == (x + y) + z.
 Proof.
-Admitted.
+  intros. rewrite sum_assoc. reflexivity.
+Qed.
 
 Lemma mul_assoc_opp :
  forall x y z, x * (y * z) == (x * y) * z.
 Proof.
-Admitted.
+  intros. rewrite mul_assoc. reflexivity.
+Qed.
 
 Lemma distr_opp :
  forall x y z, x * y  +  x * z == x * ( y + z).
 Proof.
-Admitted.
-
+  intros. rewrite distr. reflexivity.
+Qed.
 
 (** * Variable Sets **)
 
@@ -600,8 +602,8 @@ intros. induction s.
 Qed.
 
 (**
-The last major thing to prove about substitutions is their distributivity and associativity. Again the importance of these proofs will not
-become apparent until we talk about unification.
+A fundamental property of substitutions is their distributivity and associativity across the summation and multiplication of terms.
+Again the importance of these proofs will not become apparent until we talk about unification.
 **)
 
 (* A useful lemma for showing the distributivity of substitutions across terms *)
@@ -636,13 +638,18 @@ Proof.
   apply subst_associative.
 Qed. 
 
-
 Lemma var_subst:
   forall (v : var) (ts : term) ,
   (apply_subst (VAR v) (cons (v , ts) nil) ) == ts.
 Proof.
-intros. simpl. destruct (beq_nat v v) eqn: e.
-Admitted.
+intros. simpl. destruct (beq_nat v v) eqn: e. apply beq_nat_true in e.
+reflexivity. apply beq_nat_false in e. firstorder.
+Qed.
+
+(**
+Given that we have a definition for identity substitutions, we should prove that identity substitutions do not modify
+a term.
+**)
 
 Lemma id_subst:
   forall (t : term) (l : var_set),
@@ -680,10 +687,37 @@ Qed.
 
 (** ** Examples **)
 
+(**
+Here are some examples showcasing the nature of applying substitutions to terms.
+**)
+
+Example subst_ex1 :
+  (apply_subst (T0 + T1) []) == T0 + T1.
+Proof.
+intros. reflexivity.
+Qed.
+
+Example subst_ex2 :
+  (apply_subst (VAR 0 * VAR 1) [(0, T0)]) == T0.
+Proof.
+intros. simpl. apply mul_T0_x.
+Qed.
 
 (** * Unification **)
 
+(**
+Now that we have established the concept of term substitutions in Coq, it is time for us to formally define the concept of 
+Boolean unification. Unification, in its most literal sense, refers to the act of applying a substitution to terms in order
+to make them equivalent to each other. In other words, to say that two terms are unifiable is to really say that there exists
+a substitution such that the two terms are equal. Interestingly enough, we can abstract this concept further to simply saying
+that a single term is unifiable if there exists a substitution such that the term will be equivalent to 0. By doing this 
+abstraction, we can prove that equation solving and unification are essentially the same fundamental problem.
+**)
 
+(**
+Below is the initial definition for unification, namely that two terms can be unified to be equivalent to one another. By starting
+here we will show each step towards abstracting unification to refer to a single term.
+**)
 
 (*
 Definition subst_idempotent (s : subst) : Prop :=
@@ -694,20 +728,22 @@ Definition subst_idempotent (s : subst) : Prop :=
 Definition unifies (a b : term) (s : subst) : Prop :=
   (apply_subst a s) == (apply_subst b s).
 
-(* Examples that prove the correctness of the unifies function on specific examples *)
+(**
+Here is a simple example demonstrating the concept of testing whether two terms are unified by a substitution.
+**)
+
+(* Examples that prove the correctness of the unifies definition *)
 
 Example ex_unif1 :
-  unifies (VAR 0) (VAR 1) ((0, T0) :: nil) -> False.
-Proof.
-intros. unfold unifies in H. simpl in H. 
-Admitted.
-
-Example ex_unif2 :
   unifies (VAR 0) (VAR 1) ((0, T1) :: (1, T1) :: nil).
 Proof.
 unfold unifies. simpl. reflexivity.
 Qed.
 
+(**
+Now we are going to show that moving both terms to one side of the equivalence relation through addition does not change the 
+concept of unification.
+**)
 
 (* Proposition that a given substitution makes equivalent the sum of two terms when the substitution 
   is applied to each of them, and ground term T0 *) 
@@ -736,30 +772,26 @@ intros. split.
 }
 Qed.
 
+(**
+Now we can define what it means for a substitution to be a unifier for a given term.
+**)
+
 (* Is 's' a unifier for t? *)
 (* Proposition that a given substitution unifies a given term, namely it makes it
  equivalent with T0. *)
 Definition unifier (t : term) (s : subst) : Prop :=
   (apply_subst t s) == T0.
 
-(* Examples that prove certain propositions that involve the unifier proposition *)
-Example unifier_ex1 :
-  ~(unifier (VAR 0) ((1, T1) :: nil)).
-Proof.
-unfold unifier. simpl. intuition.
-Admitted.
-
-Example unifier_ex2 :
-  ~(unifier (VAR 0) ((0, VAR 0) :: nil)).
-Proof.
-unfold unifier. simpl. intuition.
-Admitted.
-
-Example unifier_ex3 : 
+Example unifier_ex1 : 
   (unifier (VAR 0) ((0, T0) :: nil)).
 Proof.
 unfold unifier. simpl. reflexivity.
 Qed.
+
+(**
+To ensure our efforts were not in vain, let us now prove that this last abstraction of the unification problem is still 
+equivalent to the original.
+**)
 
 (* Lemma that proves that the unifier proposition can distributes over addition of terms *) 
 Lemma unifier_distribution : 
@@ -781,33 +813,26 @@ Qed.
 Lemma unifier_subset_imply_superset :
   forall s t r, unifier t s -> unifier t (r :: s).
 Proof.
-intros. induction s.
+intros. induction t.
 { 
-  unfold unifier in *. simpl in *.
+  unfold unifier in *. simpl. reflexivity.
+}
+{
+  unfold unifier in *. simpl in *. apply H.
+}
+{
+  unfold unifier in *. simpl in *. destruct beq_nat.
 Admitted.
+
+(**
+Lastly let us define a term to be unifiable if there exists a substitution that unifies it.
+**)
 
 (* Proposition that states when a term is unifiable *)
 Definition unifiable (t : term) : Prop :=
   exists s, unifier t s.
 
-
-(* Examples involving the unifiable proposition *)
 Example unifiable_ex1 :
-  unifiable (T1) -> False.
-Proof.
-intros. inversion H. unfold unifier in H0. rewrite ground_term_cannot_subst in H0.
-Admitted.
-
-Example unifiable_ex2 :
-  forall x, unifiable (x + x + T1) -> False.
-Proof.
-intros. unfold unifiable in H. unfold unifier in H.
-Admitted. 
-(*rewrite sum_x_x in H0. rewrite sum_id in H0.
-rewrite ground_term_cannot_subst in H0. inversion H0. reflexivity.
-Qed.*)
-
-Example unifiable_ex3 :
   exists x, unifiable (x + T1).
 Proof.
 exists (T1). unfold unifiable. unfold unifier. 
@@ -819,6 +844,9 @@ Qed.
 (* In this subsection we define propositions, lemmas and examples related 
   to the most general unifier *)
 
+(**
+
+**)
 
 (* substitution composition *)
 Definition substitution_composition (s s' delta : subst) (t : term) : Prop :=
@@ -850,15 +878,11 @@ Proof.
   intros. specialize (H H0). exists s' . intros.  specialize (H s' x).  specialize (H H1). apply H.
 Qed.
 
-Example mgu_ex1 :
-  most_general_unifier (VAR 0 * VAR 1) ((0, VAR 0 * (T1 + VAR 1)) :: nil).
-Proof.
-unfold most_general_unifier. unfold unifier. simpl. unfold more_general_substitution. simpl. 
-Admitted.
-
-
-
 (** * Auxilliary Computational Operations and Simplifications **)
+
+(**
+These functions below will come in handy later during the Lowenheim formula proof.
+**)
 
 (* alternate defintion of functions related to term operations and evaluations
    that take into consideration more sub-cases *)
