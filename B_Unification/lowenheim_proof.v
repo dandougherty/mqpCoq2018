@@ -437,12 +437,6 @@ Qed.
 (** 3.4 extension to include Main function and subst_option *)
 
 
-Definition subst_option_is_some (so : subst_option) : bool :=
-  match so with
-  | Some_subst s => true
-  | None_subst => false
-  end.
-
 Definition convert_to_subst (so : subst_option) : subst :=
   match so with
   | Some_subst s => s
@@ -454,16 +448,76 @@ Lemma find_unifier_is_unifier:
  forall (t : term),
   (unifiable t) -> (unifier t (convert_to_subst (find_unifier t))).
 Proof.
-intros. induction t.
-{ 
-  simpl. unfold unifier. simpl. reflexivity.
-}
-{
-  simpl. inversion H. apply H0.
-}
-{
-  inversion H. 
+intros. unfold unifier. unfold unifiable in H. simpl. unfold convert_to_subst.
 
+Admitted.
+
+
+Lemma T0_or_not_T0:
+ forall (t : term),
+ t == T0 \/ ~ (t == T0).
+Proof.
+ intros. pose proof classic. specialize (H (t == T0)). apply H.
+Qed.
+
+Lemma exists_subst:
+ forall (t : term) (sig : subst),
+ apply_subst t sig == T0 -> exists s, apply_subst t s == T0.
+Proof.
+ intros. exists sig. apply H.
+Qed.
+
+Lemma t_id_eqv :
+ forall (t : term),
+ t == t.
+Proof.
+ intros. reflexivity.
+Qed.
+
+
+Lemma not_unifiable_find_unifier_none_subst:
+ forall (t : term),
+  ~ (unifiable t) -> (find_unifier t) = None_subst.
+Proof.
+ intros. unfold unifiable in H. unfold not in H. 
+ unfold find_unifier. pose proof T0_or_not_T0.  
+ specialize (H0 (apply_subst t (rec_subst t (term_unique_vars t) []))).
+ destruct H0. 
+ - unfold unifier in H. pose proof exists_subst. specialize (H1 t (rec_subst t (term_unique_vars t) [])).
+   specialize (H1 H0). specialize (H H1). destruct H.
+ - destruct (apply_subst t (rec_subst t (term_unique_vars t) [])).
+  + unfold not in H0. 
+ unfold convert_to_subst. pose proof t_id_eqv. specialize (H1 T0). specialize (H0 H1).
+   destruct H0.
+  + reflexivity.
+  + reflexivity.
+  + reflexivity.
+  + reflexivity.
+Qed. 
+
+
+Lemma empty_subst_on_term:
+ forall (t : term),
+  apply_subst t [] == t.
+Proof.
+ intros. induction t.
+ - reflexivity.
+ - simpl. reflexivity.
+ - simpl. reflexivity.
+ - simpl. rewrite IHt1. rewrite IHt2. reflexivity.
+ - simpl. rewrite IHt1. rewrite IHt2. reflexivity.
+Qed.
+
+Lemma app_subst_T0:
+ forall (t : term),
+ apply_subst t [] == T0 -> t == T0.
+Proof.
+intros. rewrite empty_subst_on_term in H. apply H.
+Qed.
+
+Lemma most_general_unifier_compat : forall  (t t' : term),
+     t == t' -> forall (sigma: subst), (most_general_unifier t sigma) <-> (most_general_unifier t' sigma).
+Proof.
 Admitted.
 
 
@@ -472,14 +526,31 @@ Lemma builder_to_main:
 (unifiable t) -> most_general_unifier t (build_lowenheim_subst t (convert_to_subst (find_unifier t))) ->
  most_general_unifier t (convert_to_subst (Lowenheim_Main t)) .
 Proof.
-Admitted.
-
+intros. 
+pose proof lowenheim_most_general_unifier as H1. pose proof find_unifier_is_unifier as H2.
+specialize (H2 t H). specialize (H1 t (convert_to_subst (find_unifier t))). 
+specialize (H1 H2). unfold Lowenheim_Main. destruct (find_unifier t).
+ - simpl. simpl in H1. apply H1.
+ - simpl in H2. unfold unifier in H2. apply app_subst_T0 in H2. simpl. 
+   repeat simpl in H1. pose proof most_general_unifier_compat. 
+   specialize (H3 t T0 H2). specialize (H3 []).
+   rewrite H3. unfold most_general_unifier. intros. 
+   unfold more_general_substitution. exists s'. unfold substitution_composition. 
+   intros. simpl. reflexivity. 
+Qed.
 
 Lemma lowenheim_main_most_general_unifier:
  forall (t: term),
- (unifiable t) -> most_general_unifier t (convert_to_subst (Lowenheim_Main t)).
+ ((unifiable t) -> most_general_unifier t (convert_to_subst (Lowenheim_Main t)))
+ /\ 
+ (~(unifiable t) -> (Lowenheim_Main t) = None_subst ).
 Proof.
- intros. apply builder_to_main.
- -  apply H.
- - apply lowenheim_most_general_unifier. apply find_unifier_is_unifier. apply H.
+ intros. 
+ split. 
+ - intros. apply builder_to_main.
+  +  apply H.
+  + apply lowenheim_most_general_unifier. apply find_unifier_is_unifier. apply H.
+ - intros. pose proof not_unifiable_find_unifier_none_subst. 
+   specialize (H0 t H). unfold Lowenheim_Main. rewrite H0. reflexivity.
 Qed.
+
