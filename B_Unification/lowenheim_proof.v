@@ -474,6 +474,11 @@ Proof.
  intros. reflexivity.
 Qed.
 
+Lemma simplify_eqv :
+ forall (t : term),
+ simplify t == t.
+Proof.
+Admitted.
 
 Lemma not_unifiable_find_unifier_none_subst:
  forall (t : term),
@@ -491,8 +496,22 @@ Proof.
    destruct H0.
   + reflexivity.
   + reflexivity.
-  + reflexivity.
-  + reflexivity.
+  + remember (simplify (t0_1 + t0_2)). destruct t0.  
+    { pose proof simplify_eqv.  specialize (H1 (t0_1 + t0_2)). rewrite Heqt0 in H0.
+      rewrite H1 in H0. unfold not in H0. pose proof t_id_eqv. specialize (H2 (t0_1 + t0_2)).
+      specialize (H0 H2). destruct H0.  }
+    { reflexivity. }
+    { reflexivity. }
+    { reflexivity. }
+   { reflexivity. }      
+  + remember (simplify (t0_1 * t0_2)). destruct t0.
+   { pose proof simplify_eqv.  specialize (H1 (t0_1 * t0_2)). rewrite Heqt0 in H0.
+      rewrite H1 in H0. unfold not in H0. pose proof t_id_eqv. specialize (H2 (t0_1 * t0_2)).
+      specialize (H0 H2). destruct H0.  }
+    { reflexivity. }
+    { reflexivity. }
+    { reflexivity. }
+   { reflexivity. }    
 Qed. 
 
 
