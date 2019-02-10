@@ -1,0 +1,13 @@
+-R . "BooleanRings"
+
+SmolkaUtilities.v
+Utilities.v
+TheoryDef.v
+TermsUtilities.v
+Substitutions.v
+EvalGround.v
+Factoring.v
+EquivalenceAndUnifiability.v
+Lowenheim.v
+VarElim.v
+# Testing.v

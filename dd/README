@@ -1,0 +1,9 @@
+A Coq development on Boolean rings, with emphasis on unification.
+We have largely followed the development in the text Term Rewriting
+and All That, by Franz Baader and Tobias Nipkow.
+
+The current version (2019 Feb 10) is not well-documented, and rather
+naive, Coq-wise.  But it works...
+
+Dan Dougherty
+Worcester Polytechnic Institute
