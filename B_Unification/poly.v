@@ -1369,16 +1369,53 @@ Proof.
   apply incl_tran with (m:=l); auto.
 Qed.
 
-Lemma incl_vars_addPP : forall p q,
-  is_poly p -> is_poly q ->
-  forall xs, incl (vars p) xs /\ incl (vars q) xs -> incl (vars (addPP p q)) xs.
+(*Lemma make_poly_rem_vars : forall p x,
+  In x (vars (make_poly p)) ->
+  In x (vars p).
 Proof.
+Admitted.*)
+
+Lemma In_concat_exists : forall (A:Type) ll (a:A),
+  (exists l, In l ll /\ In a l) -> In a (concat ll).
+Proof.
+  intros A ll a. induction ll.
+  - admit.
+  - admit.
 Admitted.
 
-Lemma incl_vars_mulPP : forall xs p q,
-  incl (vars p) xs /\ incl (vars q) xs -> incl (vars (mulPP p q)) xs.
+Lemma incl_vars_addPP : forall p q xs,
+  incl (vars p) xs /\ incl (vars q) xs ->
+  incl (vars (addPP p q)) xs.
 Proof.
-Admitted.
+  unfold incl.
+  intros p q xs [HinP HinQ] x HinPQ.
+  apply HinP. apply nodup_In.
+  apply In_concat_exists.
+  exists (vars (addPP p q)).
+  auto.
+  (*unfold incl, addPP.
+  intros p q xs [HinP HinQ] x HinPQ.
+  apply make_poly_rem_vars in HinPQ.
+  unfold vars in HinPQ.
+  apply nodup_In in HinPQ.
+  rewrite concat_app in HinPQ.
+  apply in_app_or in HinPQ as [Hin | Hin].
+  - apply HinP. apply nodup_In. auto.
+  - apply HinQ. apply nodup_In. auto.*)
+Qed.
+
+Lemma incl_vars_mulPP : forall p q xs,
+  incl (vars p) xs /\ incl (vars q) xs ->
+  incl (vars (mulPP p q)) xs.
+Proof.
+  intros p q xs [HinP HinQ].
+  unfold incl. intros x HinPQ.
+  unfold incl in *.
+  apply HinP. apply nodup_In.
+  apply In_concat_exists.
+  exists (vars (mulPP p q)). intros.
+  auto.
+Qed.
 
 Lemma incl_nil : forall {X:Type} (l:list X),
   incl l [] <-> l = [].
