@@ -840,6 +840,66 @@ Definition addPP (p q : poly) : poly :=
 Definition distribute {A} (l m : list (list A)) : list (list A) :=
   concat (map (fun a:(list A) => (map (app a) l)) m).
 
+Lemma Permutation_incl : forall {A} (l m : list A),
+  Permutation l m -> incl l m /\ incl m l.
+Proof.
+  intros A l m H. apply Permutation_sym in H as H0. split.
+  + unfold incl. intros a. apply (Permutation_in _ H).
+  + unfold incl. intros a. apply (Permutation_in _ H0).
+Qed.
+
+Lemma incl_cons_inv : forall (A:Type) (a:A) (l m : list A),
+  incl (a :: l) m -> In a m /\ incl l m.
+Proof.
+  intros A a l m H. split.
+  - unfold incl in H. apply H. intuition.
+  - unfold incl in *. intros b Hin. apply H. intuition.
+Qed.
+
+Lemma Permutation_concat : forall {A} (l m:list (list A)),
+  Permutation l m ->
+  Permutation (concat l) (concat m).
+Proof.
+  intros A l m H. induction H.
+  - auto.
+  - simpl. apply Permutation_app_head. auto.
+  - simpl. apply Permutation_trans with (l':=(concat l ++ y ++ x)).
+    + rewrite app_assoc. apply Permutation_app_comm.
+    + apply Permutation_trans with (l':=(concat l ++ x ++ y)).
+      * apply Permutation_app_head. apply Permutation_app_comm.
+      * rewrite (app_assoc x y). apply Permutation_app_comm.
+  - apply Permutation_trans with (l':=(concat l')); auto.
+Qed.
+
+Lemma In_concat_exists : forall (A:Type) ll (a:A),
+  (exists l, In l ll /\ In a l) <-> In a (concat ll).
+Proof.
+  intros A ll a. split; intros H.
+  - destruct H as [l[]]. apply In_split in H. destruct H as [l1[l2 H]].
+    rewrite H. apply Permutation_in with (l:=(concat (l :: l1 ++ l2))).
+    + apply Permutation_concat. apply Permutation_middle.
+    + simpl. apply in_app_iff. auto.
+  - induction ll.
+    + inversion H.
+    + simpl in H. apply in_app_iff in H. destruct H.
+      * exists a0. split; intuition.
+      * destruct IHll; auto. exists x. intuition.
+Qed.
+
+Lemma In_distribute : forall (l m:poly) a,
+  In a (vars (distribute l m)) ->
+  In a (vars l) \/ In a (vars m).
+Proof.
+  intros l m a H. unfold distribute, vars in H. apply nodup_In in H.
+  apply In_concat_exists in H. destruct H as [ll[]].
+  apply In_concat_exists in H. destruct H as [ll1[]].
+  apply in_map_iff in H. destruct H as [x[]]. rewrite <- H in H1.
+  apply in_map_iff in H1. destruct H1 as [x0[]]. rewrite <- H1 in H0.
+  apply in_app_iff in H0. destruct H0.
+  - right. apply nodup_In. apply In_concat_exists. exists x. auto.
+  - left. apply nodup_In. apply In_concat_exists. exists x0. auto.
+Qed.
+
 Lemma concat_map : forall {A B:Type} (f:A->B) (l:list A),
   concat (map (fun a => [f a]) l) = map f l.
 Proof.
@@ -868,22 +928,6 @@ Proof.
   try (apply lex_rev_lt_gt in Hyx; rewrite Hxy in Hyx; inversion Hyx);
   try inversion H; try inversion H0.
   apply lex_eq in Hxy; auto.
-Qed.
-
-Lemma Permutation_incl : forall {A} (l m : list A),
-  Permutation l m -> incl l m /\ incl m l.
-Proof.
-  intros A l m H. apply Permutation_sym in H as H0. split.
-  + unfold incl. intros a. apply (Permutation_in _ H).
-  + unfold incl. intros a. apply (Permutation_in _ H0).
-Qed.
-
-Lemma incl_cons_inv : forall (A:Type) (a:A) (l m : list A),
-  incl (a :: l) m -> In a m /\ incl l m.
-Proof.
-  intros A a l m H. split.
-  - unfold incl in H. apply H. intuition.
-  - unfold incl in *. intros b Hin. apply H. intuition.
 Qed.
 
 Lemma Forall_In : forall (A:Type) (l:list A) a Rel,
@@ -1369,31 +1413,27 @@ Proof.
   apply incl_tran with (m:=l); auto.
 Qed.
 
-(*Lemma make_poly_rem_vars : forall p x,
+Lemma make_poly_rem_vars : forall p x,
   In x (vars (make_poly p)) ->
   In x (vars p).
 Proof.
-Admitted.*)
-
-Lemma In_concat_exists : forall (A:Type) ll (a:A),
-  (exists l, In l ll /\ In a l) -> In a (concat ll).
-Proof.
-  intros A ll a. induction ll.
-  - admit.
-  - admit.
-Admitted.
+  intros p x H. induction p.
+  - inversion H.
+  - unfold vars. simpl. apply nodup_In. apply in_app_iff.
+    unfold vars, make_poly in H. apply nodup_In in H.
+    apply In_concat_exists in H as [m []].
+    apply In_sorted in H. apply nodup_cancel_in in H.
+    apply in_map_iff in H as [n []]. destruct H1.
+    + left. apply make_mono_In. rewrite H1. rewrite H. auto.
+    + right. apply In_concat_exists. exists n. split; auto. apply make_mono_In.
+      rewrite H. auto.
+Qed.
 
 Lemma incl_vars_addPP : forall p q xs,
   incl (vars p) xs /\ incl (vars q) xs ->
   incl (vars (addPP p q)) xs.
 Proof.
-  unfold incl.
-  intros p q xs [HinP HinQ] x HinPQ.
-  apply HinP. apply nodup_In.
-  apply In_concat_exists.
-  exists (vars (addPP p q)).
-  auto.
-  (*unfold incl, addPP.
+  unfold incl, addPP.
   intros p q xs [HinP HinQ] x HinPQ.
   apply make_poly_rem_vars in HinPQ.
   unfold vars in HinPQ.
@@ -1401,20 +1441,19 @@ Proof.
   rewrite concat_app in HinPQ.
   apply in_app_or in HinPQ as [Hin | Hin].
   - apply HinP. apply nodup_In. auto.
-  - apply HinQ. apply nodup_In. auto.*)
+  - apply HinQ. apply nodup_In. auto.
 Qed.
 
 Lemma incl_vars_mulPP : forall p q xs,
   incl (vars p) xs /\ incl (vars q) xs ->
   incl (vars (mulPP p q)) xs.
 Proof.
-  intros p q xs [HinP HinQ].
-  unfold incl. intros x HinPQ.
-  unfold incl in *.
-  apply HinP. apply nodup_In.
-  apply In_concat_exists.
-  exists (vars (mulPP p q)). intros.
-  auto.
+  unfold incl, mulPP.
+  intros p q xs [HinP HinQ] x HinPQ.
+  apply make_poly_rem_vars in HinPQ.
+  apply In_distribute in HinPQ. destruct HinPQ.
+  - apply HinP. auto.
+  - apply HinQ. auto.
 Qed.
 
 Lemma incl_nil : forall {X:Type} (l:list X),

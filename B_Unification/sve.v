@@ -500,7 +500,7 @@ Proof.
   intros x xs p q r H Hincl Hdiv. unfold build_poly.
   apply div_var_not_in_qr in Hdiv as Hin. destruct Hin as [Hinq Hinr].
   apply in_mono_in_vars in Hinq. apply in_mono_in_vars in Hinr.
-  apply incl_vars_mulPP. apply (incl_div _ _ _ _ H Hdiv) in Hincl. split.
+  apply incl_vars_mulPP. apply (incl_div _ _ _ _ _ H Hdiv) in Hincl. split.
   - apply incl_vars_addPP; auto. apply div_is_poly in Hdiv as []; auto. split.
     + unfold vars. simpl. unfold incl. intros a [].
     + apply Hincl.
