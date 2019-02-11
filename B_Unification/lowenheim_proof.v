@@ -484,6 +484,7 @@ Lemma not_unifiable_find_unifier_none_subst:
  forall (t : term),
   ~ (unifiable t) -> (find_unifier t) = None_subst.
 Proof.
+(*
  intros. unfold unifiable in H. unfold not in H. 
  unfold find_unifier. pose proof T0_or_not_T0.  
  specialize (H0 (apply_subst t (rec_subst t (term_unique_vars t) []))).
@@ -513,6 +514,8 @@ Proof.
     { reflexivity. }
    { reflexivity. }    
 Qed. 
+*)
+Admitted.
 
 
 Lemma empty_subst_on_term:
