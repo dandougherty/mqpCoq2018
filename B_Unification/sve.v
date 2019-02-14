@@ -97,7 +97,8 @@ Proof.
   - simpl. apply NoDup_cons.
     + intro. apply in_map_iff in H. destruct H as [y []]. assert (y = a).
       * apply poly_cons in Hp. destruct Hp. unfold is_poly in H1. destruct H1.
-        apply H3 in H0. apply (remove_Sorted_eq x); auto.
+        apply H3 in H0 as H4. apply (remove_Sorted_eq x); auto. split; intro.
+        apply Hx. intuition. apply Hx. intuition.
       * rewrite H1 in H0. unfold is_poly in Hp. destruct Hp.
         apply NoDup_MonoSorted in H2 as H4. apply NoDup_cons_iff in H4 as []. 
         contradiction.
@@ -619,7 +620,8 @@ Proof.
 
     rewrite substP_distr_addPP; auto.
     rewrite substP_distr_mulPP.
-    rewrite substP_distr_addPP; [auto|auto|admit].
+    pose (div_is_poly _ _ _ _ HpolyP Hdiv); destruct a.
+    rewrite substP_distr_addPP; auto.
     rewrite substP_distr_addPP; auto.
     rewrite substP_1.
     assert (Hdiv2 := Hdiv).
@@ -644,7 +646,7 @@ Proof.
     rewrite addPP_0; auto.
     apply beq_nat_true in Hyx.
     rewrite Hyx.
-    reflexivity. 
+    reflexivity.
   - unfold build_subst.
     rewrite substP_cons; auto.
     intros.
@@ -655,8 +657,7 @@ Proof.
     apply Nat.eqb_eq in H1.
     rewrite Hyx in H1.
     inversion H1.
-Admitted.
-(* Qed. *)
+Qed.
 
 Lemma reprod_build_subst : forall x p q r s,
   is_poly p ->
