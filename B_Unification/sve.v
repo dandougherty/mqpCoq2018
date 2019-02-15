@@ -428,14 +428,15 @@ Proof.
   assert (exists sp, sp = substP s p) as [sp Hsp]. eauto.
   assert (exists sq1, sq1 = substP s q1) as [sq1 Hsq1]. eauto.
   rewrite <- Hsp in Hsp0.
-  apply (mulPP_l_r sp [] sq1) in Hsp0.
-  rewrite mulPP_0 in Hsp0.
-  rewrite <- Hsp0.
+  assert (mulPP sp sq1 = mulPP [] sq1).
+    rewrite Hsp0. auto.
+  rewrite mulPP_0 in H.
+  rewrite <- H.
   rewrite Hsp, Hsq1.
   rewrite Hp, Hq1.
   rewrite <- substP_distr_mulPP.
   f_equal.
-  
+
   assert (HMx: is_mono [x]). auto.
   apply (div_is_poly x p q r HPp) in HD.
   destruct HD as [HPq HPr].

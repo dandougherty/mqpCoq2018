@@ -834,6 +834,40 @@ Definition addPP (p q : poly) : poly :=
 Definition distribute {A} (l m : list (list A)) : list (list A) :=
   concat (map (fun a:(list A) => (map (app a) l)) m).
 
+Lemma distribute_nil : forall {A:Type} (p:list (list A)),
+  distribute [] p = [].
+Proof.
+  intros A p. induction p.
+  - auto.
+  - unfold distribute in *. simpl in *. auto.
+Qed.
+
+Lemma distribute_nil_r : forall {A:Type} (p:list (list A)),
+  distribute p [] = [].
+Proof.
+  intros A p. induction p.
+  - auto.
+  - unfold distribute in *. simpl in *. auto.
+Qed.
+
+Lemma distribute_one : forall {A:Type} (p:list (list A)),
+  distribute p [[]] = p.
+Proof.
+  intros A p. induction p.
+  - auto.
+  - unfold distribute in *. simpl in *. rewrite map_id. rewrite app_nil_r.
+    auto.
+Qed.
+
+Lemma distribute_one_r : forall {A:Type} (p:list (list A)),
+  distribute [[]] p = p.
+Proof.
+  intros A p. induction p.
+  - auto.
+  - unfold distribute in *. simpl in *. rewrite app_nil_r. f_equal.
+    apply IHp.
+Qed.
+
 Lemma Permutation_incl : forall {A} (l m : list A),
   Permutation l m -> incl l m /\ incl m l.
 Proof.
@@ -904,6 +938,46 @@ Qed.
 
 Definition mulPP (p q : poly) : poly :=
   make_poly (distribute p q).
+
+Definition mulMP (p : poly) (m : mono) : poly := 
+  map (app m) p.
+
+Definition mulPP' (p q : poly) : poly :=
+  make_poly (concat (map (mulMP p) q)).
+
+Definition mulMP' (p : poly) (m : mono) : poly :=
+  map make_mono (map (app m) p).
+
+Definition mulPP'' (p q : poly) : poly :=
+  make_poly (concat (map (mulMP' p) q)).
+
+Lemma mulPP_mulPP' : forall (p q : poly),
+  mulPP p q = mulPP' p q.
+Proof.
+  intros p q. unfold mulPP, mulPP'. induction q.
+  - auto.
+  - simpl. unfold distribute. simpl. unfold mulMP. auto.
+Qed.
+
+Lemma mulPP''_refold : forall p q,
+  make_poly (concat (map (mulMP' p) q)) =
+  mulPP'' p q.
+Proof.
+  auto.
+Qed.
+
+Lemma mulPP'_REFOLD : forall p q,
+  make_poly (concat (map (mulMP p) q)) =
+  mulPP' p q.
+Proof.
+  auto.
+Qed.
+
+Lemma addPP_REFOLD : forall p q,
+  make_poly (p ++ q) = addPP p q.
+Proof.
+  auto.
+Qed.
 
 Lemma addPP_is_poly : forall p q,
   is_poly (addPP p q).
@@ -1010,6 +1084,18 @@ Proof.
   - simpl. rewrite no_make_mono.
     + f_equal. apply IHp. intros m Hin. apply H. intuition.
     + apply H. intuition.
+Qed.
+
+Lemma map_make_mono_pointless : forall p q,
+  make_poly (map make_mono p ++ q) =
+  make_poly (p ++ q).
+Proof.
+  intros p q. destruct p.
+  - auto.
+  - simpl. unfold make_poly. simpl map. rewrite (no_make_mono (make_mono l)); auto.
+    rewrite map_app. rewrite map_app. rewrite (no_map_make_mono (map _ _)).
+    auto. intros m Hin. apply in_map_iff in Hin. destruct Hin as [x[]].
+    rewrite <- H. auto.
 Qed.
 
 Lemma unsorted_poly : forall p,
@@ -1225,6 +1311,14 @@ Proof.
   - apply Sorted_MonoSorted. auto.
 Qed.
 
+Lemma make_poly_app_comm : forall p q,
+  make_poly (p ++ q) = make_poly (q ++ p).
+Proof.
+  intros p q. apply Permutation_sort_eq.
+  apply nodup_cancel_Permutation. apply Permutation_map.
+  apply Permutation_app_comm.
+Qed.
+
 Lemma no_make_poly : forall p,
   is_poly p ->
   make_poly p = p.
@@ -1274,19 +1368,10 @@ Qed.
 
 Hint Unfold addPP mulPP.
 
-Lemma mulPP_l_r : forall p q r,
-  p = q ->
-  mulPP p r = mulPP q r.
-Proof.
-  intros p q r H. rewrite H. reflexivity.
-Qed.
-
 Lemma mulPP_0 : forall p,
   mulPP [] p = [].
 Proof.
-  intros p. unfold mulPP, distribute. simpl. induction p.
-  - simpl. auto.
-  - simpl. apply IHp.
+  intros p. unfold mulPP. rewrite (@distribute_nil var). auto.
 Qed.
 
 Lemma addPP_0 : forall p,
@@ -1401,18 +1486,40 @@ Proof.
   - simpl. rewrite Heq. f_equal. apply IHp.
 Qed.
 
-Lemma count_occ_nodup_cancel : forall a p,
+Lemma count_occ_nodup_cancel : forall p a,
   even (count_occ mono_eq_dec (nodup_cancel mono_eq_dec p) a) =
   even (count_occ mono_eq_dec p a).
 Proof.
-Admitted.
+  intros p a. induction p as [|b]; auto. simpl.
+  destruct (even (count_occ mono_eq_dec p b)) eqn:Hb.
+  - simpl. destruct (mono_eq_dec b a).
+    + rewrite e. rewrite count_occ_remove. rewrite e in Hb. repeat rewrite even_succ.
+      rewrite <- negb_odd in Hb. rewrite Bool.negb_true_iff in Hb. rewrite Hb. auto.
+    + rewrite count_occ_neq_remove; auto.
+  - simpl. destruct (mono_eq_dec b a).
+    + rewrite e. rewrite count_occ_remove. rewrite e in Hb. repeat rewrite even_succ.
+      rewrite <- negb_odd in Hb. rewrite Bool.negb_false_iff in Hb. rewrite Hb. auto.
+    + rewrite count_occ_neq_remove; auto.
+Qed.
 
 Lemma nodup_extra_remove : forall a p,
   even (count_occ mono_eq_dec p a) = true ->
   nodup_cancel mono_eq_dec p = 
   nodup_cancel mono_eq_dec (remove mono_eq_dec a p).
 Proof.
-Admitted.
+  intros a p H. induction p as [|b]; auto. simpl.
+  destruct (mono_eq_dec a b).
+  - rewrite e in H. simpl in H. destruct (mono_eq_dec b b); try contradiction.
+    rewrite even_succ in H. rewrite <- negb_even in H. rewrite Bool.negb_true_iff in H.
+    rewrite H. rewrite nodup_cancel_remove_assoc. rewrite e. auto.
+  - simpl. destruct (even (count_occ mono_eq_dec p b)) eqn:Hev.
+    + rewrite count_occ_neq_remove; auto. rewrite Hev. f_equal.
+      rewrite IHp. auto. simpl in H. destruct (mono_eq_dec);
+      try (symmetry in e; contradiction). auto.
+    + rewrite count_occ_neq_remove; auto. rewrite Hev. f_equal.
+      apply IHp. simpl in H. destruct (mono_eq_dec b a);
+      try (symmetry in e; contradiction). auto.
+Qed.
 
 Lemma nodup_cancel_pointless : forall p q,
   Permutation (nodup_cancel mono_eq_dec (nodup_cancel mono_eq_dec p ++ q))
@@ -1485,6 +1592,16 @@ Proof.
     apply In_sorted in H. apply nodup_cancel_in in H. intuition.
 Qed.
 
+Lemma mulPP'_mulPP'' : forall p q,
+  mulPP' p q = mulPP'' p q.
+Proof.
+  intros p q. unfold mulPP', mulPP''. induction q.
+  - auto.
+  - simpl. unfold mulMP, mulMP'. rewrite map_make_mono_pointless.  (*    (* 
+    rewrite (make_poly_app_comm _ (concat (map (fun m : mono => map make_mono (map (app m) p)) _))).
+    rewrite <- (make_poly_pointless (conca *))). *)
+Admitted.
+
 Lemma addPP_assoc : forall p q r,
   is_poly p -> is_poly q -> is_poly r ->
   addPP (addPP p q) r = addPP p (addPP q r).
@@ -1510,16 +1627,17 @@ Proof.
   - rewrite H0. rewrite map_id. apply no_make_poly. auto.
 Qed.
 
+Lemma mulPP_comm : forall p q,
+(*   is_poly p -> is_poly q -> *)
+  mulPP p q = mulPP q p.
+Proof.
+  intros p q. unfold mulPP.
+Admitted.
+
 Lemma mulPP_assoc : forall p q r,
   mulPP (mulPP p q) r = mulPP p (mulPP q r).
 Proof.
-Admitted.
-
-Lemma mulPP_comm : forall p q,
-  is_poly p -> is_poly q ->
-  mulPP p q = mulPP q p.
-Proof.
-  intros p q Hp Hq. unfold mulPP, distribute.
+  intros p q r.
 Admitted.
 
 Lemma mulPP_p_p : forall p,
@@ -1530,9 +1648,42 @@ Proof.
   - simpl. unfold make_poly.
 Admitted.
 
+Lemma mulMP_distr_addPP : forall p q a,
+  mulMP (addPP p q) a = mulMP p a ++ mulMP q a.
+Proof.
+Admitted.
+
 Lemma mulPP_distr_addPP : forall p q r,
   mulPP (addPP p q) r = addPP (mulPP p r) (mulPP q r).
 Proof.
+  intros p q r. induction r; auto. rewrite mulPP_mulPP'. unfold mulPP'. simpl.
+  rewrite mulPP_mulPP'. rewrite (mulPP_mulPP' q). rewrite make_poly_app_comm.
+  rewrite <- make_poly_pointless. rewrite make_poly_app_comm. rewrite mulPP'_REFOLD.
+  rewrite addPP_REFOLD. repeat unfold mulPP' at 2. simpl. unfold addPP at 4.
+  rewrite make_poly_pointless. rewrite addPP_REFOLD. rewrite (addPP_comm _ (make_poly _)).
+  unfold addPP at 4. rewrite make_poly_pointless. rewrite <- app_assoc.
+  rewrite make_poly_app_comm. rewrite <- app_assoc. rewrite <- make_poly_pointless.
+  rewrite mulPP'_REFOLD. rewrite <- app_assoc. rewrite app_assoc. rewrite make_poly_app_comm.
+  rewrite <- app_assoc. rewrite <- make_poly_pointless. rewrite mulPP'_REFOLD.
+  replace (make_poly (mulPP' p r ++ mulMP q a ++ mulPP' q r ++ mulMP p a))
+    with (make_poly ((mulPP' p r ++ mulPP' q r) ++ mulMP p a ++ mulMP q a)).
+  rewrite <- make_poly_pointless. rewrite (addPP_REFOLD (mulPP' _ _)).
+  rewrite make_poly_app_comm. rewrite addPP_REFOLD.
+  rewrite mulPP_mulPP', (mulPP_mulPP' p), (mulPP_mulPP' q) in IHr. rewrite <- IHr.
+  f_equal. apply mulMP_distr_addPP.
+  - (* easy *) admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
 Admitted.
 
 Lemma mulPP_distr_addPPr : forall p q r,
@@ -1540,7 +1691,7 @@ Lemma mulPP_distr_addPPr : forall p q r,
 Proof.
   intros p q r. rewrite mulPP_comm. rewrite (mulPP_comm r p).
   rewrite (mulPP_comm r q). apply mulPP_distr_addPP.
-Admitted.
+Qed.
 
 Lemma mulPP_is_poly : forall p q,
   is_poly (mulPP p q).
@@ -1552,13 +1703,27 @@ Lemma mulPP_mono_cons : forall x m,
   is_mono (x :: m) ->
   mulPP [[x]] [m] = [x :: m].
 Proof.
-Admitted.
+  intros x m H. unfold mulPP, distribute. simpl. apply Permutation_Sorted_eq.
+  - apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (map make_mono [m++[x]]))).
+    apply Permutation_sym. apply Permuted_sort. rewrite no_nodup_cancel_NoDup.
+    simpl. assert (make_mono (m++[x]) = x::m).
+    + rewrite <- no_make_mono; auto. apply Permutation_sort_mono_eq.
+      repeat rewrite no_nodup_NoDup. replace (x::m) with ([x]++m); auto; apply Permutation_app_comm.
+      apply NoDup_VarSorted; apply H. apply Permutation_NoDup with (l:=(x::m)).
+      replace (x::m) with ([x]++m); auto; apply Permutation_app_comm.
+      apply NoDup_VarSorted; apply H.
+    + rewrite H0. auto.
+    + apply NoDup_cons; auto.
+  - apply LocallySorted_sort.
+  - apply Sorted_cons; auto.
+Qed.
 
 Lemma addPP_poly_cons : forall m p,
   is_poly (m :: p) ->
   addPP [m] p = m :: p.
 Proof.
-Admitted.
+  intros m p H. unfold addPP. simpl. rewrite no_make_poly; auto.
+Qed.
 
 Hint Resolve addPP_is_poly mulPP_is_poly.
 
@@ -1566,8 +1731,11 @@ Lemma mulPP_addPP_1 : forall p q r,
   mulPP (addPP (mulPP p q) r) (addPP [[]] q) =
   mulPP (addPP [[]] q) r.
 Proof.
-  intros p q r. unfold mulPP.
-Admitted.
+  intros p q r. rewrite mulPP_distr_addPP.
+  rewrite mulPP_distr_addPPr. rewrite mulPP_1r; auto.
+  rewrite mulPP_assoc. rewrite mulPP_p_p. rewrite addPP_p_p; auto.
+  rewrite addPP_0; auto. rewrite mulPP_comm. auto.
+Qed.
 
 Lemma partition_filter_fst {X} p l :
   fst (partition p l) = @filter X p l.
