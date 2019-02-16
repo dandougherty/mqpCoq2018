@@ -1592,15 +1592,24 @@ Proof.
     apply In_sorted in H. apply nodup_cancel_in in H. intuition.
 Qed.
 
+Lemma concat_map_map : forall A B C l (f:B->C) (g:A->list B),
+  concat (map (fun a => map f (g a)) l) =
+  map f (concat (map g l)).
+Proof.
+  intros. induction l; auto.
+  simpl. rewrite map_app. f_equal. auto.
+Qed.
+
 Lemma mulPP'_mulPP'' : forall p q,
   mulPP' p q = mulPP'' p q.
 Proof.
-  intros p q. unfold mulPP', mulPP''. induction q.
-  - auto.
-  - simpl. unfold mulMP, mulMP'. rewrite map_make_mono_pointless.  (*    (* 
-    rewrite (make_poly_app_comm _ (concat (map (fun m : mono => map make_mono (map (app m) p)) _))).
-    rewrite <- (make_poly_pointless (conca *))). *)
-Admitted.
+  intros p q. unfold mulPP', mulPP'', mulMP, mulMP', make_poly.
+  rewrite concat_map_map.
+  rewrite (no_map_make_mono (map _ _)); auto.
+  intros. apply in_map_iff in H as [n []].
+  rewrite <- H.
+  auto.
+Qed.
 
 Lemma addPP_assoc : forall p q r,
   is_poly p -> is_poly q -> is_poly r ->
