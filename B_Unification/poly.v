@@ -966,14 +966,14 @@ Proof.
   auto.
 Qed.
 
-Lemma mulPP'_REFOLD : forall p q,
+Lemma mulPP'_refold : forall p q,
   make_poly (concat (map (mulMP p) q)) =
   mulPP' p q.
 Proof.
   auto.
 Qed.
 
-Lemma addPP_REFOLD : forall p q,
+Lemma addPP_refold : forall p q,
   make_poly (p ++ q) = addPP p q.
 Proof.
   auto.
@@ -1301,6 +1301,14 @@ Proof.
       apply (Permutation_trans H0) in p0. apply p0.
 Qed.
 
+Lemma make_poly_Permutation : forall p q,
+  Permutation p q -> make_poly p = make_poly q.
+Proof.
+  intros. unfold make_poly.
+  apply Permutation_sort_eq, nodup_cancel_Permutation, Permutation_map.
+  auto.
+Qed.
+
 Lemma no_sort_MonoSorted : forall p,
   Sorted (fun a b => lex compare a b = Lt) p ->
   MonoSort.sort p = p.
@@ -1611,6 +1619,12 @@ Proof.
   auto.
 Qed.
 
+Lemma mulPP_mulPP'' : forall p q,
+  mulPP p q = mulPP'' p q.
+Proof.
+  intros. rewrite mulPP_mulPP', mulPP'_mulPP''. auto.
+Qed.
+
 Lemma addPP_assoc : forall p q r,
   is_poly p -> is_poly q -> is_poly r ->
   addPP (addPP p q) r = addPP p (addPP q r).
@@ -1657,43 +1671,161 @@ Proof.
   - simpl. unfold make_poly.
 Admitted.
 
-Lemma mulMP_distr_addPP : forall p q a,
-  mulMP (addPP p q) a = mulMP p a ++ mulMP q a.
+Lemma mono_in_map_make_mono : forall p m,
+  In m (map make_mono p) -> is_mono m.
 Proof.
+  intros. apply in_map_iff in H as [x []]. rewrite <- H. auto.
+Qed.
+
+Lemma mono_in_concat_mulMP' : forall p q m,
+  In m (concat (map (mulMP' p) q)) -> is_mono m.
+Proof.
+  intros. unfold mulMP' in H. rewrite concat_map_map in H.
+  apply (mono_in_map_make_mono _ _ H).
+Qed.
+
+Lemma mono_in_mulMP' : forall p n m,
+  In m (mulMP' p n) -> is_mono m.
+Proof.
+  intros. unfold mulMP' in H. apply (mono_in_map_make_mono _ _ H).
+Qed.
+
+Lemma mono_in_make_poly : forall p m,
+  In m (make_poly p) -> is_mono m.
+Proof.
+  intros. unfold make_poly in H. apply In_sorted in H.
+  apply nodup_cancel_in in H. apply (mono_in_map_make_mono _ _ H).
+Qed.
+
+Lemma mono_in_mulPP'' : forall p q m,
+  In m (mulPP'' p q) -> is_mono m.
+Proof.
+ intros. unfold mulPP'' in H. apply (mono_in_make_poly _ _ H).
+Qed.
+
+Lemma mulMP'_refold : forall p m,
+  map make_mono (map (app m) p) = mulMP' p m.
+Proof.
+  auto.
+Qed.
+
+Lemma mulMP_mulMP' : forall p q m,
+  make_poly (mulMP p m ++ q) = make_poly (mulMP' p m ++ q).
+Proof.
+  intros. unfold make_poly, mulMP. rewrite map_app, mulMP'_refold.
+  rewrite map_app. rewrite (no_map_make_mono (mulMP' _ _)); auto.
+  apply mono_in_mulMP'.
+Qed.
+
+Lemma mulMP_1 : forall p,
+  mulMP p [] = p.
+Proof.
+  intros. unfold mulMP. simpl.
+  rewrite map_id. auto.
+Qed.
+
+Lemma mulMP'_1 : forall p,
+  is_poly p ->
+  mulMP' p [] = p.
+Proof.
+  intros. unfold mulMP'. simpl.
+  rewrite map_id. rewrite no_map_make_mono; auto.
+  apply H.
+Qed.
+
+Lemma Permutation_nodup : forall A Aeq_dec (l m:list A),
+  Permutation l m -> Permutation (nodup Aeq_dec l) (nodup Aeq_dec m).
+Proof.
+  intros.
+Admitted.
+
+Lemma mulMP'_cons : forall p m x,
+  mulMP' p (x :: m) = mulMP' (map (cons x) p) m.
+Proof.
+  intros. unfold mulMP'. simpl.
+  repeat rewrite map_map. f_equal. apply functional_extensionality.
+  intros. unfold make_mono. apply Permutation_sort_mono_eq.
+  apply Permutation_nodup. replace (x :: x0) with ([x] ++ x0); auto.
+  replace (x :: m ++ x0) with ([x] ++ m ++ x0); auto.
+  rewrite app_assoc. rewrite app_assoc.
+  apply Permutation_app_tail. apply Permutation_app_comm.
+Qed.
+
+Lemma mulMP'_distr_addPP : forall m p q,
+  mulMP' (addPP p q) m = addPP (mulMP' p m) (mulMP' q m).
+Proof.
+  induction m; intros.
+  - unfold addPP at 2. rewrite <- mulMP_mulMP'.
+    rewrite make_poly_app_comm. rewrite <- mulMP_mulMP'.
+    rewrite make_poly_app_comm. unfold addPP.
+    repeat rewrite mulMP_1. rewrite mulMP'_1; auto.
+  - repeat rewrite (mulMP'_cons). rewrite <- IHm. unfold mulMP'.
+    unfold addPP.
+ f_equal.
+Admitted.
+
+Lemma mulMP_distr_addPP : forall p q a,
+  mulMP (addPP p q) a = addPP (mulMP p a) (mulMP q a).
+Proof.
+  intros. induction a.
+  - repeat rewrite mulMP_1. auto.
+  - 
 Admitted.
 
 Lemma mulPP_distr_addPP : forall p q r,
   mulPP (addPP p q) r = addPP (mulPP p r) (mulPP q r).
 Proof.
-  intros p q r. induction r; auto. rewrite mulPP_mulPP'. unfold mulPP'. simpl.
-  rewrite mulPP_mulPP'. rewrite (mulPP_mulPP' q). rewrite make_poly_app_comm.
-  rewrite <- make_poly_pointless. rewrite make_poly_app_comm. rewrite mulPP'_REFOLD.
-  rewrite addPP_REFOLD. repeat unfold mulPP' at 2. simpl. unfold addPP at 4.
-  rewrite make_poly_pointless. rewrite addPP_REFOLD. rewrite (addPP_comm _ (make_poly _)).
+  intros p q r. induction r; auto. rewrite mulPP_mulPP''. unfold mulPP''. simpl.
+  rewrite mulPP_mulPP'', (mulPP_mulPP'' q), make_poly_app_comm.
+  rewrite <- make_poly_pointless. rewrite make_poly_app_comm.
+  rewrite mulPP''_refold.
+  rewrite addPP_refold. repeat unfold mulPP'' at 2. simpl. unfold addPP at 4.
+  rewrite make_poly_pointless. rewrite addPP_refold.
+  rewrite (addPP_comm _ (make_poly _)).
   unfold addPP at 4. rewrite make_poly_pointless. rewrite <- app_assoc.
-  rewrite make_poly_app_comm. rewrite <- app_assoc. rewrite <- make_poly_pointless.
-  rewrite mulPP'_REFOLD. rewrite <- app_assoc. rewrite app_assoc. rewrite make_poly_app_comm.
-  rewrite <- app_assoc. rewrite <- make_poly_pointless. rewrite mulPP'_REFOLD.
-  replace (make_poly (mulPP' p r ++ mulMP q a ++ mulPP' q r ++ mulMP p a))
-    with (make_poly ((mulPP' p r ++ mulPP' q r) ++ mulMP p a ++ mulMP q a)).
-  rewrite <- make_poly_pointless. rewrite (addPP_REFOLD (mulPP' _ _)).
-  rewrite make_poly_app_comm. rewrite addPP_REFOLD.
-  rewrite mulPP_mulPP', (mulPP_mulPP' p), (mulPP_mulPP' q) in IHr. rewrite <- IHr.
-  f_equal. apply mulMP_distr_addPP.
-  - (* easy *) admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-Admitted.
+  rewrite make_poly_app_comm. rewrite <- app_assoc.
+  rewrite <- make_poly_pointless.
+  rewrite mulPP''_refold. rewrite <- app_assoc. rewrite app_assoc.
+  rewrite make_poly_app_comm.
+  rewrite <- app_assoc. rewrite <- make_poly_pointless. rewrite mulPP''_refold.
+  replace (make_poly (mulPP'' p r ++ mulMP' q a ++ mulPP'' q r ++ mulMP' p a))
+    with (make_poly ((mulPP'' p r ++ mulPP'' q r) ++ mulMP' p a ++ mulMP' q a)).
+  rewrite <- make_poly_pointless. rewrite (addPP_refold (mulPP'' _ _)).
+  rewrite make_poly_app_comm. rewrite addPP_refold.
+  rewrite mulPP_mulPP'', (mulPP_mulPP'' p), (mulPP_mulPP'' q) in IHr.
+  rewrite <- IHr. unfold addPP at 1. rewrite <- mulMP_mulMP'.
+  rewrite addPP_refold. unfold addPP at 4.
+  rewrite <- make_poly_pointless. rewrite addPP_refold.
+  rewrite <- mulMP_mulMP'. rewrite make_poly_app_comm.
+  rewrite <- mulMP_mulMP'. rewrite make_poly_app_comm.
+  rewrite addPP_refold. f_equal. apply mulMP_distr_addPP.
+  - intros. apply in_app_iff in H as []; apply (mono_in_mulMP' _ _ _ H).
+  - apply mono_in_mulPP''.
+  - intros. apply in_app_iff in H as []; apply (mono_in_mulPP'' _ _ _ H).
+  - intros. apply in_app_iff in H as []; apply (mono_in_mulMP' _ _ _ H).
+  - apply make_poly_Permutation. rewrite <- app_assoc.
+    apply Permutation_app_head. rewrite app_assoc.
+    apply Permutation_trans with
+      (l':=mulMP' q a ++ mulPP'' q r ++ mulMP' p a).
+    apply Permutation_app_comm.
+    auto.
+  - apply mono_in_concat_mulMP'.
+  - intros. apply in_app_iff in H as []. apply (mono_in_mulMP' _ _ _ H).
+    apply in_app_iff in H as []. apply (mono_in_mulPP'' _ _ _ H).
+    apply (mono_in_mulMP' _ _ _ H).
+  - apply mono_in_concat_mulMP'.
+  - intros. repeat apply in_app_iff in H as []. apply (mono_in_mulMP' _ _ _ H).
+    apply (mono_in_concat_mulMP' _ _ _ H). apply (mono_in_mulMP' _ _ _ H).
+  - intros. apply in_app_iff in H as []. apply (mono_in_mulMP' _ _ _ H).
+    apply (mono_in_concat_mulMP' _ _ _ H).
+  - intros. apply in_app_iff in H as []. apply (mono_in_mulMP' _ _ _ H).
+    apply (mono_in_concat_mulMP' _ _ _ H).
+  - intros. apply in_app_iff in H as []. apply (mono_in_mulMP' _ _ _ H).
+    apply (mono_in_concat_mulMP' _ _ _ H).
+  - apply mono_in_make_poly.
+  - apply mono_in_concat_mulMP'.
+  - apply mono_in_mulMP'.
+Qed.
 
 Lemma mulPP_distr_addPPr : forall p q r,
   mulPP r (addPP p q) = addPP (mulPP r p) (mulPP r q).
