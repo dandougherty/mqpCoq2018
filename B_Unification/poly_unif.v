@@ -127,8 +127,8 @@ Proof.
     + induction p.
       * auto.
       * simpl. destruct Nat.even eqn:Hevn.
-        -- simpl. unfold addPP. unfold make_poly. apply Permutation_MonoSort_l.
-           apply Permutation_MonoSort_r. repeat rewrite no_map_make_mono.
+        -- simpl. unfold addPP. unfold make_poly. rewrite <- Permutation_MonoSort_l.
+           rewrite <- Permutation_MonoSort_r. repeat rewrite no_map_make_mono.
            apply incl_parity_Permutation.
            ++ apply incl_app. intuition. apply incl_appr. unfold incl.
               apply incl_remove_nodup_cancel.

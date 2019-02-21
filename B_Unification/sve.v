@@ -74,7 +74,7 @@ Proof.
   apply in_map_iff in H0 as [n []].
   rewrite <- H0.
   intro.
-  apply make_mono_In in H2.
+  rewrite make_mono_In in H2.
   apply remove_In in H2.
   auto.
 Qed.
@@ -442,8 +442,7 @@ Proof.
   destruct HD as [HPq HPr].
   assert (is_mono [x] /\ is_poly q). auto.
 
-  rewrite mulPP_addPP_1.
-  reflexivity.
+  rewrite mulPP_addPP_1; auto.
 Qed.
 
 Lemma div_by_var_nil : forall x q r,
@@ -457,16 +456,13 @@ Qed.
 Hint Unfold vars div_by_var elim_var make_poly MonoSort.sort.
 Hint Resolve div_by_var_nil.
 
-Lemma incl_not_in : forall A a (l m : list A) 
-  (Aeq_dec : forall (a b : A), {a = b}+{a <> b}), 
+Lemma incl_not_in : forall A a (l m : list A),
   incl l (a :: m) ->
   ~ In a l ->
   incl l m.
 Proof.
-  intros A a l m Aeq_dec Hincl Hnin. unfold incl in *. intros a0 Hin.
-  destruct (Aeq_dec a a0).
-  - rewrite e in Hnin. contradiction.
-  - simpl in Hincl. apply Hincl in Hin. destruct Hin; [contradiction | auto].
+  intros A a l m Hincl Hnin. unfold incl in *. intros a0 Hin.
+  simpl in Hincl. destruct (Hincl a0); auto. rewrite H in Hnin. contradiction.
 Qed.
 
 Lemma incl_div : forall x p q r xs,
@@ -475,23 +471,26 @@ Lemma incl_div : forall x p q r xs,
   incl (vars p) (x :: xs) ->
   incl (vars q) xs /\ incl (vars r) xs.
 Proof.
-  unfold div_by_var. intros x p. induction p; intros.
-  - unfold elim_var, make_poly, MonoSort.sort in H0; simpl in H0.
-    inversion H0. unfold vars. simpl. split; intros x0 Hin; inversion Hin.
-  - simpl in H0. destruct partition as [g d]. destruct has_var eqn:Hxa.
-    + admit.
-    + inversion H0. unfold vars in *. simpl. admit. Admitted. (* 
-   
-   apply (div_eq x p q r H) in Hp as Hp'.
-  intros xs Hxs. rewrite Hp' in Hxs. 
-    apply incl_vars_addPP in Hxs as [].
-  apply incl_vars_mulPP in H0 as [].
-  apply (incl_not_in _ _ _ _ var_eq_dec) in H2.
-  apply (incl_not_in _ _ _ _ var_eq_dec) in H1.
-  - split; auto.
-  - apply div_var_not_in_qr in Hp as []. apply in_mono_in_vars in H4. auto.
-  - apply div_var_not_in_qr in Hp as []. apply in_mono_in_vars in H3. auto.
-Qed. *)
+  intros. assert (Hdiv:=H0). unfold div_by_var in H0.
+  destruct partition as [qx r0] eqn:Hpart. apply partition_Permutation in Hpart.
+  apply Permutation_incl in Hpart as []. inversion H0. clear H2.
+  assert (incl (vars q) (vars p)). unfold incl, vars in *. intros a Hin.
+    apply nodup_In. apply nodup_In in Hin. apply In_concat_exists in Hin.
+    destruct Hin as [m[]]. rewrite <- H5 in H2. unfold elim_var in H2.
+    apply In_sorted in H2. apply nodup_cancel_in in H2. rewrite map_map in H2.
+    apply in_map_iff in H2. destruct H2 as [mx[]]. rewrite <- H2 in H4.
+    rewrite make_mono_In in H4. apply In_remove in H4. apply In_concat_exists.
+    exists mx. split; auto. apply H3. intuition.
+  assert (incl (vars r) (vars p)). rewrite H6 in H3. unfold incl, vars in *.
+    intros a Hin. apply nodup_In. apply nodup_In in Hin. apply In_concat_exists in Hin.
+    destruct Hin as [l[]]. apply In_concat_exists. exists l. split; auto.
+    apply H3. intuition.
+  split.
+  - rewrite H5. apply incl_tran with (n:=(x::xs)) in H2; auto. apply incl_not_in in H2; auto.
+    apply div_var_not_in_qr in Hdiv as [Hq _]. apply in_mono_in_vars in Hq. auto.
+  - apply incl_tran with (n:=(x::xs)) in H4; auto. apply incl_not_in in H4; auto.
+    apply div_var_not_in_qr in Hdiv as [_ Hr]. apply in_mono_in_vars in Hr. auto.
+Qed.
 
 Lemma div_vars : forall x xs p q r,
   is_poly p -> 
@@ -577,7 +576,7 @@ Proof.
   rewrite mulPP_distr_addPP.
   rewrite mulPP_distr_addPP.
   rewrite mulPP_assoc.
-  rewrite mulPP_p_p.
+  rewrite mulPP_p_p; auto.
   rewrite addPP_p_p; auto.
   rewrite addPP_0; auto.
   rewrite <- substP_distr_mulPP.
