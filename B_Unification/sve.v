@@ -571,10 +571,10 @@ Proof.
 
   rewrite substP_distr_addPP; auto.
   rewrite substP_1.
-  rewrite mulPP_distr_addPPr.
+  rewrite mulPP_distr_addPPr; auto.
   rewrite mulPP_1r; auto.
-  rewrite mulPP_distr_addPP.
-  rewrite mulPP_distr_addPP.
+  rewrite mulPP_distr_addPP; auto.
+  rewrite mulPP_distr_addPP; auto.
   rewrite mulPP_assoc.
   rewrite mulPP_p_p; auto.
   rewrite addPP_p_p; auto.
@@ -584,7 +584,7 @@ Proof.
   rewrite <- (mulPP_1r r) at 2; auto.
   rewrite mulPP_comm; auto.
   rewrite (mulPP_comm r [[]]); auto.
-  rewrite <- mulPP_distr_addPP.
+  rewrite <- mulPP_distr_addPP; auto.
   rewrite addPP_comm; auto.
 Qed.
 
@@ -630,7 +630,7 @@ Proof.
     rewrite (subst_comp_poly s t t); auto.
     rewrite (subst_comp_poly s t t); auto.
     rewrite mulPP_comm; auto.
-    rewrite mulPP_distr_addPP.
+    rewrite mulPP_distr_addPP; auto.
     rewrite mulPP_comm; auto.
     rewrite mulPP_1r; auto.
     rewrite (addPP_comm (substP t [[x]]) _); auto.
