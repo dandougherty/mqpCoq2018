@@ -563,10 +563,10 @@ Proof.
          (mulPP [[x]]
             (substP s (addPP [[]] q)))
          (substP s r))).
-    simpl. unfold inDom. simpl.
-    rewrite <- beq_nat_refl. simpl.
-    rewrite addPP_0r; auto.
-    rewrite mulPP_1r; auto.
+    unfold substP. simpl. unfold inDom. simpl.
+    rewrite <- beq_nat_refl.
+    rewrite mulPP_1r; auto. rewrite app_nil_r.
+    rewrite no_make_poly; auto.
   rewrite Hsx.
 
   rewrite substP_distr_addPP; auto.
@@ -612,10 +612,10 @@ Proof.
         ((x, addPP (mulPP [[x]] (substP s (addPP [[]] q))) (substP s r)) :: s)
           [[y]]) =
         (addPP (mulPP [[x]] (substP s (addPP [[]] q))) (substP s r))).
-      simpl substP. unfold inDom.
-      simpl existsb. rewrite Hyx. simpl.
-      rewrite mulPP_1r; auto.
-      rewrite addPP_0r; auto.
+      unfold substP. simpl.
+      rewrite Hyx.
+      rewrite mulPP_1r; auto. rewrite app_nil_r.
+      rewrite no_make_poly; auto.
     rewrite H.
 
     rewrite substP_distr_addPP; auto.

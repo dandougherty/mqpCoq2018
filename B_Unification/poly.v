@@ -2200,10 +2200,8 @@ Proof.
   - simpl. destruct mono_eq_dec.
     + rewrite e. destruct mono_eq_dec; try contradiction. apply le_n_S. auto.
       rewrite count_occ_remove. apply le_0_l.
-    + rewrite count_occ_neq_remove; auto. rewrite not_In_remove. destruct mono_eq_dec.
-      * apply le_S. auto.
-      * auto.
-      * apply not_in_nodup_cancel; auto.
+    + rewrite count_occ_neq_remove; auto. rewrite not_In_remove.
+      destruct mono_eq_dec; firstorder. apply not_in_nodup_cancel; auto.
   - destruct (mono_eq_dec b a) eqn:Hba.
     + rewrite e. rewrite count_occ_remove. apply le_0_l.
     + rewrite count_occ_neq_remove; auto. destruct (mono_eq_dec (f b) (f a)) eqn:Hfba.
