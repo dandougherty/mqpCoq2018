@@ -1978,27 +1978,159 @@ Qed.
 Definition parity_match (l m:poly) : Prop :=
   forall x, even (count_occ mono_eq_dec l x) = even (count_occ mono_eq_dec m x).
 
+Lemma nothing_in_empty : forall {A} (l:list A),
+  (forall a, ~ In a l) ->
+  l = [].
+Proof.
+  intros A l H. destruct l; auto. pose (H a). simpl in n. exfalso.
+  apply n. auto.
+Qed.
+
+Lemma even_nodup_cancel : forall p,
+  (forall x, even (count_occ mono_eq_dec p x) = true) ->
+  (forall x, ~ In x (nodup_cancel mono_eq_dec p)).
+Proof.
+  intros p H m. intro. induction p.
+  - inversion H0.
+  - simpl in *. pose (H m) as H1. symmetry in H1. destruct (mono_eq_dec a m).
+    + symmetry in H1. rewrite <- e in H1. rewrite even_succ in H1. rewrite <- negb_even in H1.
+      rewrite Bool.negb_true_iff in H1. rewrite H1 in H0. rewrite e in H0.
+      apply remove_In in H0. inversion H0.
+    + destruct (even (count_occ mono_eq_dec p a)).
+      * destruct H0; try contradiction. apply In_remove in H0. symmetry in H1.
+        apply not_in_nodup_cancel in H1. contradiction.
+      * apply In_remove in H0. symmetry in H1. apply not_in_nodup_cancel in H1.
+        contradiction.
+Qed.
+
 Lemma parity_match_empty : forall q,
   parity_match [] q ->
-  (forall x, even (count_occ mono_eq_dec q x) = true).
+  Permutation [] (nodup_cancel mono_eq_dec q).
 Proof.
-  intros q H x. unfold parity_match in H. rewrite <- H. auto.
+  intros q H. unfold parity_match in H. simpl in H.
+  symmetry in H. pose (even_nodup_cancel q H). apply nothing_in_empty in n.
+  rewrite n. auto.
+Qed.
+
+Lemma parity_match_refl : forall l,
+  parity_match l l.
+Proof.
+  intros l. unfold parity_match. auto.
+Qed.
+
+Lemma parity_match_sym : forall l m,
+  parity_match l m <-> parity_match m l.
+Proof.
+  intros l m. unfold parity_match. split; intros H x; auto.
+Qed.
+
+Lemma parity_match_trans : forall p q r,
+  parity_match p q ->
+  parity_match q r ->
+  parity_match p r.
+Proof.
+  intros p q r H H0. unfold parity_match in *. intros x.
+  rewrite H. rewrite H0. auto.
+Qed.
+
+Hint Resolve parity_match_refl parity_match_sym parity_match_trans.
+
+Lemma parity_match_cons : forall a l1 l2,
+  parity_match (a::l1) (a::l2) <->
+  parity_match l1 l2.
+Proof.
+  intros a l1 l2. unfold parity_match. split; intros H x.
+  - pose (H x). symmetry in e. simpl in e. destruct (mono_eq_dec a x); auto.
+    repeat rewrite even_succ in e. repeat rewrite <- negb_even in e.
+    apply Bool.negb_sym in e. rewrite Bool.negb_involutive in e. auto.
+  - simpl. destruct (mono_eq_dec a x); auto.
+    repeat rewrite even_succ. repeat rewrite <- negb_even.
+    apply Bool.negb_sym. rewrite Bool.negb_involutive. auto.
+Qed.
+
+Lemma parity_match_double : forall a l,
+  parity_match (a::a::l) l.
+Proof.
+  intros a l. unfold parity_match. intros x. simpl.
+  destruct (mono_eq_dec a x).
+  - rewrite even_succ. rewrite odd_succ. auto.
+  - auto.
+Qed.
+
+Lemma parity_match_cons_swap : forall a l1 l2,
+  parity_match (a::l1) l2 ->
+  parity_match l1 (a::l2).
+Proof.
+  intros a l1 l2 H. apply (parity_match_cons a) in H.
+  apply parity_match_sym in H. apply parity_match_trans with (r:=l1) in H.
+  apply parity_match_sym in H. auto. apply parity_match_double.
+Qed.
+
+Lemma parity_match_In : forall a l1 l2,
+  even (count_occ mono_eq_dec l1 a) = true ->
+  parity_match (a::l1) l2 ->
+  In a l2.
+Proof.
+  intros a l1 l2 H H0. apply parity_match_cons_swap in H0.
+  rewrite H0 in H. simpl in H. destruct (mono_eq_dec a a); try contradiction.
+  rewrite even_succ in H. rewrite <- negb_even in H. rewrite Bool.negb_true_iff in H.
+  assert (count_occ mono_eq_dec l2 a > 0). destruct count_occ. inversion H.
+  apply gt_Sn_O. apply count_occ_In in H1. auto.
+Qed.
+
+Lemma Permutation_parity_match : forall p q,
+  Permutation p q -> parity_match p q.
+Proof.
+  intros p q H. induction H.
+  - auto.
+  - apply parity_match_cons. auto.
+  - repeat apply parity_match_cons_swap. unfold parity_match. intros x0.
+    simpl. destruct mono_eq_dec; destruct mono_eq_dec;
+    repeat (rewrite even_succ; rewrite odd_succ); auto.
+  - apply parity_match_trans with (q:=l'); auto.
 Qed.
 
 Lemma parity_nodup_cancel_Permutation : forall p q,
   parity_match p q ->
   Permutation (nodup_cancel mono_eq_dec p) (nodup_cancel mono_eq_dec q).
 Proof.
-  intros p q H. generalize dependent q. induction p; induction q; intros; auto.
-  - pose (H a). simpl in e. symmetry in e. destruct (mono_eq_dec a a); try contradiction.
-    rewrite even_succ in e. rewrite <- negb_even in e. rewrite Bool.negb_true_iff in e.
-    simpl. rewrite e. replace [] with (remove mono_eq_dec a []); auto. apply remove_Permutation.
-    apply IHq. intros x. rewrite H. simpl. destruct (mono_eq_dec a x).
-    + simpl. admit.
-    + admit.
-  - admit.
-  - simpl nodup_cancel at 2. destruct even eqn:Hev. unfold parity_match in H.
-Admitted.
+  intros p q H. generalize dependent q. induction p; induction q; intros.
+  - auto.
+  - simpl nodup_cancel at 1. apply parity_match_empty. auto.
+  - simpl nodup_cancel at 2. apply Permutation_sym. apply parity_match_empty.
+    apply parity_match_sym. auto.
+  - clear IHq. destruct (mono_eq_dec a a0).
+    + rewrite e. simpl. rewrite e in H. apply parity_match_cons in H.
+      destruct even eqn:Hev; rewrite H in Hev; rewrite Hev.
+      * apply perm_skip. apply remove_Permutation. auto.
+      * apply remove_Permutation. auto.
+    + simpl nodup_cancel at 1. destruct even eqn:Hev.
+      * assert (Hev':=Hev). apply parity_match_In with (l2:=(a0::q)) in Hev; auto.
+        destruct Hev. symmetry in H0. contradiction. apply In_split in H0 as [l1[l2 H0]].
+        rewrite H0. apply Permutation_sym. apply Permutation_trans with (l':=(
+          nodup_cancel mono_eq_dec (a::l2++a0::l1))). apply nodup_cancel_Permutation.
+          rewrite app_comm_cons. apply (Permutation_app_comm).
+        simpl. rewrite H0 in H. apply parity_match_trans with (r:=(a::l2++a0::l1)) in H.
+        apply parity_match_cons in H. rewrite H in Hev'. rewrite Hev'.
+        apply perm_skip. apply remove_Permutation. apply Permutation_sym.
+        apply IHp. auto. rewrite app_comm_cons. apply Permutation_parity_match.
+        apply Permutation_app_comm.
+      * apply parity_match_cons_swap in H. rewrite H in Hev. assert (Hev2:=Hev).
+        rewrite count_occ_Permutation with (l':=(a::q++[a0])) in Hev. simpl in Hev.
+        destruct (mono_eq_dec a a); try contradiction. rewrite even_succ in Hev.
+        rewrite <- negb_even in Hev. rewrite Bool.negb_false_iff in Hev.
+        rewrite <- (not_In_remove _ mono_eq_dec a).
+        assert (forall l, remove mono_eq_dec a (nodup_cancel mono_eq_dec (l)) =
+          remove mono_eq_dec a (nodup_cancel mono_eq_dec (a::l))).
+          intros l. simpl. destruct (even (count_occ _ l a)).
+          simpl. destruct (mono_eq_dec a a); try contradiction.
+          rewrite (not_In_remove _ _ _(remove _ _ _)). auto. apply remove_In.
+          rewrite (not_In_remove _ _ _(remove _ _ _)). auto. apply remove_In.
+        rewrite (H0 (a0::q)). apply remove_Permutation. apply IHp. auto.
+        apply not_in_nodup_cancel. rewrite count_occ_Permutation with (l':=(a0::q)) in Hev.
+        auto. replace (a0::q) with ([a0]++q); auto. apply Permutation_app_comm.
+        apply perm_skip. replace (a0::q) with ([a0]++q); auto. apply Permutation_app_comm.
+Qed.
 
 Lemma count_occ_map_lt : forall p a f,
   count_occ mono_eq_dec p a <= count_occ mono_eq_dec (map f p) (f a).
@@ -2042,26 +2174,29 @@ Proof.
   - auto.
 Qed.
 
+Lemma f_equal_sum_lt : forall f a b p,
+  b <> a -> (f a) = (f b) ->
+  count_occ mono_eq_dec p b +
+  count_occ mono_eq_dec p a <=
+  count_occ mono_eq_dec (map f p) (f a).
+Proof.
+  intros f a b p Hne Hfe. induction p as [|c]; auto. simpl. destruct mono_eq_dec.
+  - rewrite e. destruct mono_eq_dec; try contradiction. rewrite Hfe.
+    destruct mono_eq_dec; try contradiction. simpl. apply le_n_S.
+    rewrite <- Hfe. auto.
+  - destruct mono_eq_dec.
+    + rewrite e. destruct mono_eq_dec; try contradiction. rewrite plus_comm.
+      simpl. rewrite plus_comm. apply le_n_S. auto.
+    + destruct mono_eq_dec.
+      * apply le_S. auto.
+      * auto.
+Qed.
+
 Lemma count_occ_nodup_map_lt : forall p f a,
   count_occ mono_eq_dec (nodup_cancel mono_eq_dec p) a <=
   count_occ mono_eq_dec (map f (nodup_cancel mono_eq_dec p)) (f a).
 Proof.
-  intros p f a. (* destruct (existsb (fun b => if (mono_eq_dec (f b) (f a)) then (if mono_eq_dec b a then false else true) else false) p) eqn:Hex.
-  - apply existsb_exists in Hex. destruct Hex as [b[Hin Hex]].
-    destruct mono_eq_dec; try inversion Hex. destruct mono_eq_dec; try inversion Hex.
-    clear Hex H0. admit.
-  - assert (forall b, In b p -> (f b) <> (f a) \/ b = a).
-    + intros b H. destruct (mono_eq_dec (f b) (f a)) eqn:H0; destruct (mono_eq_dec b a) eqn:H1; auto.
-      exfalso. rewrite <- Bool.negb_true_iff in Hex. apply (Bool.eq_true_false_abs _ Hex).
-      rewrite Bool.negb_false_iff. apply existsb_exists. exists b. split; auto.
-      rewrite H0. rewrite H1. auto.
-    + clear Hex. induction p as [|b]. auto. simpl. destruct even eqn:Hev.
-      * destruct (H b); intuition. simpl. destruct mono_eq_dec.
-        rewrite e in H0; contradiction. rewrite count_occ_neq_remove; auto.
-        destruct mono_eq_dec; try contradiction. *)
-      
-      
-  induction p as [|b]; auto. simpl. destruct even eqn:Hev.
+  intros p f a. induction p as [|b]; auto. simpl. destruct even eqn:Hev.
   - simpl. destruct mono_eq_dec.
     + rewrite e. destruct mono_eq_dec; try contradiction. apply le_n_S. auto.
       rewrite count_occ_remove. apply le_0_l.
@@ -2072,18 +2207,10 @@ Proof.
   - destruct (mono_eq_dec b a) eqn:Hba.
     + rewrite e. rewrite count_occ_remove. apply le_0_l.
     + rewrite count_occ_neq_remove; auto. destruct (mono_eq_dec (f b) (f a)) eqn:Hfba.
-      * rewrite <- e. rewrite count_occ_map_sub. rewrite e. apply le_add_le_sub_l. admit.
-        (* destruct (existsb (fun b => if (mono_eq_dec (f b) (f a)) then (if mono_eq_dec b a then false else true) else false) p) eqn:Hex.
-        -- apply existsb_exists in Hex as [c[]]. destruct (mono_eq_dec b c).
-           ++ admit.
-           ++ destruct (mono_eq_dec (f c) (f a)). destruct (mono_eq_dec c a). 
-              inversion H0.  rewrite <- e0 in H0. rewrite Hfba in H0. rewrite Hba in H0.
-        -- apply existsb_false_forall with (a0:=b) in Hex. rewrite Hfba in Hex.
-           rewrite Hba in Hex. inversion Hex. assert (count_occ mono_eq_dec p b > 0).
-             destruct (count_occ mono_eq_dec p b). inversion Hev. apply gt_Sn_O.
-           apply count_occ_In in H. auto. *)
+      * rewrite <- e. rewrite count_occ_map_sub. rewrite e. apply le_add_le_sub_l.
+        apply f_equal_sum_lt; auto.
       * rewrite count_occ_map_neq_remove; auto.
-Admitted.
+Qed.
 
 Lemma nodup_cancel_map : forall p f,
   Permutation
