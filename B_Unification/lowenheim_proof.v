@@ -537,12 +537,6 @@ Proof.
 intros. rewrite empty_subst_on_term in H. apply H.
 Qed.
 
-Lemma most_general_unifier_compat : forall  (t t' : term),
-     t == t' -> forall (sigma: subst), (most_general_unifier t sigma) <-> (most_general_unifier t' sigma).
-Proof.
-Admitted.
-
-
 Lemma builder_to_main:
  forall (t : term),
 (unifiable t) -> most_general_unifier t (build_lowenheim_subst t (convert_to_subst (find_unifier t))) ->

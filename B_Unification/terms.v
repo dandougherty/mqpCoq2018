@@ -119,7 +119,10 @@ Axiom term_product_symmetric :
   forall x y z, x == y <-> x * z == y * z.
 
 Axiom refl_comm :
-forall t1 t2, t1 == t2 -> t2 == t1.
+  forall t1 t2, t1 == t2 -> t2 == t1.
+
+Axiom T1_not_equiv_T0 :
+  ~(T1 == T0).
 
 Hint Resolve sum_comm sum_assoc sum_x_x sum_id distr
              mul_comm mul_assoc mul_x_x mul_T0_x mul_id.
@@ -560,10 +563,10 @@ given substitution is an identity substitution of a given term.
 **)
 
 Definition subst_equiv (s1 s2: subst) : Prop :=
-  forall r, In r s1 <-> In r s2.
+  forall t, apply_subst t s1 == apply_subst t s2.
 
 Definition subst_is_id_subst (t : term) (s : subst) : Prop :=
-  (subst_equiv (build_id_subst (term_vars t)) s).
+  (apply_subst t s) == t.
 
 (** ** Lemmas **)
 
@@ -572,9 +575,49 @@ Having now outlined the functionality of a subsitution, let us now begin to anal
 lemmas.
 **)
 
+(**
+Given that we have a definition for identity substitutions, we should prove that identity substitutions do not modify
+a term.
+**)
+
+Lemma id_subst:
+  forall (t : term) (l : var_set),
+  apply_subst t (build_id_subst l) == t.
+Proof.
+intros. induction t.
+{
+  simpl. reflexivity.
+}
+{
+  simpl. reflexivity.
+}
+{
+  simpl. induction l.
+  {
+    simpl. reflexivity.
+  }
+  {
+    simpl. destruct (beq_nat a v) eqn: e.
+    {
+      apply beq_nat_true in e. rewrite e. reflexivity.
+    }
+    {
+      apply IHl.
+    }
+  }
+}
+{
+  simpl. rewrite IHt1. rewrite IHt2. reflexivity.
+}
+{
+  simpl. rewrite IHt1. rewrite IHt2. reflexivity.
+}
+Qed.
+
 Lemma apply_subst_compat : forall  (t t' : term),
      t == t' -> forall (sigma: subst), (apply_subst t sigma) == (apply_subst t' sigma).
 Proof.
+intros.
 Admitted.
 
 Add Parametric Morphism : apply_subst with
@@ -644,45 +687,6 @@ Lemma var_subst:
 Proof.
 intros. simpl. destruct (beq_nat v v) eqn: e. apply beq_nat_true in e.
 reflexivity. apply beq_nat_false in e. firstorder.
-Qed.
-
-(**
-Given that we have a definition for identity substitutions, we should prove that identity substitutions do not modify
-a term.
-**)
-
-Lemma id_subst:
-  forall (t : term) (l : var_set),
-  apply_subst t (build_id_subst l) == t.
-Proof.
-intros. induction t.
-{
-  simpl. reflexivity.
-}
-{
-  simpl. reflexivity.
-}
-{
-  simpl. induction l.
-  {
-    simpl. reflexivity.
-  }
-  {
-    simpl. destruct (beq_nat a v) eqn: e.
-    {
-      apply beq_nat_true in e. rewrite e. reflexivity.
-    }
-    {
-      apply IHl.
-    }
-  }
-}
-{
-  simpl. rewrite IHt1. rewrite IHt2. reflexivity.
-}
-{
-  simpl. rewrite IHt1. rewrite IHt2. reflexivity.
-}
 Qed.
 
 (** ** Examples **)
@@ -808,21 +812,6 @@ intros. split.
 }
 Qed.
 
-(* Lemma that proves that a when a substitution unifies a term , then
-  a superset of its susbtitutions also unifies the term *)
-Lemma unifier_subset_imply_superset :
-  forall s t r, unifier t s -> unifier t (r :: s).
-Proof.
-intros. induction t.
-{ 
-  unfold unifier in *. simpl. reflexivity.
-}
-{
-  unfold unifier in *. simpl in *. apply H.
-}
-{
-  unfold unifier in *. simpl in *. destruct beq_nat.
-Admitted.
 
 (**
 Lastly let us define a term to be unifiable if there exists a substitution that unifies it.
@@ -877,6 +866,11 @@ Proof.
   unfold more_general_substitution . unfold substitution_composition.
   intros. specialize (H H0). exists s' . intros.  specialize (H s' x).  specialize (H H1). apply H.
 Qed.
+
+Lemma most_general_unifier_compat : forall  (t t' : term),
+     t == t' -> forall (sigma: subst), (most_general_unifier t sigma) <-> (most_general_unifier t' sigma).
+Proof.
+Admitted.
 
 (** * Auxilliary Computational Operations and Simplifications **)
 
