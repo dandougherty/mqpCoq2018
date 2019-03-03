@@ -526,20 +526,6 @@ Proof.
 Qed.
 
 
-Lemma eqv_eq_transp_compat : forall  (t t1 t2 : term),
-     t == t1 -> t  = t2 -> t1 = t2.
-Proof.
-Admitted.
-
-(*
-Add Parametric Morphism : eq with
-      signature eqv ==> eq ==> eq  as eqv_eq_transp_mor.
-Proof.
-  exact eqv_eq_transp_compat.
-Qed.
-*)
-
-
 Lemma contrapositive_opposite :
   forall p q,  (~p -> ~q) -> q ->p.
 Proof.
@@ -583,10 +569,9 @@ Proof.
     destruct t.
     + unfold update_term in Heqt. pose proof simplify_eqv.
       specialize (H (apply_subst (VAR v) (rec_subst (VAR v) (term_unique_vars (VAR v)) []))).
-      pose proof eqv_eq_transp_compat. specialize (H0 (simplify (apply_subst (VAR v) (rec_subst (VAR v) (term_unique_vars (VAR v)) []))) 
-       (apply_subst (VAR v) (rec_subst (VAR v) (term_unique_vars (VAR v)) []))
-       T0 ). symmetry in Heqt. specialize (H0 H Heqt).
-       apply eq_some_eq_subst in H1. rewrite H1 in H0. unfold unifier. rewrite H0. reflexivity.
+       symmetry in Heqt. apply eq_some_eq_subst in H1.
+      rewrite H1 in H. rewrite H1 in Heqt. 
+     rewrite Heqt in H. symmetry in H. apply H.
     + simpl in H1. inversion H1.
     + inversion H1.
     + inversion H1.
@@ -596,10 +581,9 @@ Proof.
   destruct t.
   + unfold update_term in Heqt. pose proof simplify_eqv.
     specialize (H (apply_subst (t1 + t2) (rec_subst (t1 + t2) (term_unique_vars (t1 + t2)) []))).
-    pose proof eqv_eq_transp_compat. specialize (H0 (simplify (apply_subst (t1 + t2) (rec_subst (t1 + t2) (term_unique_vars (t1 + t2)) []))) 
-       (apply_subst (t1 + t2) (rec_subst (t1 + t2) (term_unique_vars (t1 + t2)) []))
-       T0 ). symmetry in Heqt. specialize (H0 H Heqt).
-        apply eq_some_eq_subst in H1. rewrite H1 in H0. unfold unifier. rewrite H0. reflexivity.
+       symmetry in Heqt. apply eq_some_eq_subst in H1.
+      rewrite H1 in H. rewrite H1 in Heqt. 
+     rewrite Heqt in H. symmetry in H. apply H.
    + inversion H1.
    + inversion H1.
    + inversion H1.
@@ -609,10 +593,9 @@ Proof.
   destruct t.
   + unfold update_term in Heqt. pose proof simplify_eqv.
     specialize (H (apply_subst (t1 * t2) (rec_subst (t1 * t2) (term_unique_vars (t1 * t2)) []))).
-    pose proof eqv_eq_transp_compat. specialize (H0 (simplify (apply_subst (t1 * t2) (rec_subst (t1 * t2) (term_unique_vars (t1 * t2)) []))) 
-       (apply_subst (t1 * t2) (rec_subst (t1 * t2) (term_unique_vars (t1 * t2)) []))
-       T0 ). symmetry in Heqt. specialize (H0 H Heqt).
-        apply eq_some_eq_subst in H1. rewrite H1 in H0. unfold unifier. rewrite H0. reflexivity.
+       symmetry in Heqt. apply eq_some_eq_subst in H1.
+      rewrite H1 in H. rewrite H1 in Heqt. 
+     rewrite Heqt in H. symmetry in H. apply H.
    + inversion H1.
    + inversion H1.
    + inversion H1.
@@ -668,10 +651,9 @@ intros.
     destruct t.
   + unfold update_term in Heqt. pose proof simplify_eqv.
       specialize (H0 (apply_subst (VAR v) (rec_subst (VAR v) (term_unique_vars (VAR v)) []))).
-      pose proof eqv_eq_transp_compat. specialize (H1 (simplify (apply_subst (VAR v) (rec_subst (VAR v) (term_unique_vars (VAR v)) []))) 
-       (apply_subst (VAR v) (rec_subst (VAR v) (term_unique_vars (VAR v)) []))
-       T0 ). symmetry in Heqt. specialize (H1 H0 Heqt). apply eq_some_eq_subst in H.
-     symmetry in H. rewrite H. unfold unifier. rewrite H1. reflexivity.
+         symmetry in Heqt. apply eq_some_eq_subst in H.
+      rewrite H in H0. rewrite H in Heqt. 
+     rewrite Heqt in H0. symmetry in H0. apply H0.
   + inversion H.
   + inversion H.
   + inversion H.
@@ -680,10 +662,9 @@ intros.
     destruct t.
   + unfold update_term in Heqt. pose proof simplify_eqv.
       specialize (H0 (apply_subst (t1 + t2) (rec_subst (t1 + t2) (term_unique_vars (t1 + t2)) []))).
-      pose proof eqv_eq_transp_compat. specialize (H1 (simplify (apply_subst (t1 + t2) (rec_subst (t1 + t2) (term_unique_vars (t1 + t2)) []))) 
-       (apply_subst (t1 + t2) (rec_subst (t1 + t2) (term_unique_vars (t1 + t2)) []))
-       T0 ). symmetry in Heqt. specialize (H1 H0 Heqt). apply eq_some_eq_subst in H.
-     symmetry in H. rewrite H. unfold unifier. rewrite H1. reflexivity.
+       symmetry in Heqt. apply eq_some_eq_subst in H.
+      rewrite H in H0. rewrite H in Heqt. 
+     rewrite Heqt in H0. symmetry in H0. apply H0.
   + inversion H.
   + inversion H.
   + inversion H.
@@ -692,10 +673,9 @@ intros.
     destruct t.
   + unfold update_term in Heqt. pose proof simplify_eqv.
       specialize (H0 (apply_subst (t1 * t2) (rec_subst (t1 * t2) (term_unique_vars (t1 * t2)) []))).
-      pose proof eqv_eq_transp_compat. specialize (H1 (simplify (apply_subst (t1 * t2) (rec_subst (t1 * t2) (term_unique_vars (t1 * t2)) []))) 
-       (apply_subst (t1 * t2) (rec_subst (t1 * t2) (term_unique_vars (t1 * t2)) []))
-       T0 ). symmetry in Heqt. specialize (H1 H0 Heqt). apply eq_some_eq_subst in H.
-     symmetry in H. rewrite H. unfold unifier. rewrite H1. reflexivity.
+       symmetry in Heqt. apply eq_some_eq_subst in H.
+      rewrite H in H0. rewrite H in Heqt. 
+     rewrite Heqt in H0. symmetry in H0. apply H0.
   + inversion H.
   + inversion H.
   + inversion H.
@@ -766,6 +746,7 @@ intros.
  unfold unifier in H1.
  apply H1.
 Qed.
+
 
 
 
