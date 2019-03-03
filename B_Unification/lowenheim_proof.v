@@ -6,8 +6,6 @@ Import ListNotations.
 Import Coq.Init.Tactics.
 Require Export Classical_Prop.
 
-Require Export lowenheim_formula.
-
 (*** 3. Lownheim's proof ***)
 
 (* In this subsection we provide a proof that our lownheim substituion builder produces a substituion
@@ -434,8 +432,16 @@ Proof.
 intros. apply reproductive_is_mgu. apply lowenheim_reproductive.  apply H.
 Qed.
 
+
+
+
+
 (** 3.4 extension to include Main function and subst_option *)
 
+
+(** 3.4.a utilities *)
+
+(* Utility lemmas used in the final proof section*)
 
 Definition convert_to_subst (so : subst_option) : subst :=
   match so with
@@ -444,14 +450,26 @@ Definition convert_to_subst (so : subst_option) : subst :=
   end.
 
 
-Lemma find_unifier_is_unifier:
+
+
+Lemma empty_subst_on_term:
  forall (t : term),
-  (unifiable t) -> (unifier t (convert_to_subst (find_unifier t))).
+  apply_subst t [] == t.
 Proof.
-intros. unfold unifier. unfold unifiable in H. simpl. unfold convert_to_subst.
+ intros. induction t.
+ - reflexivity.
+ - simpl. reflexivity.
+ - simpl. reflexivity.
+ - simpl. rewrite IHt1. rewrite IHt2. reflexivity.
+ - simpl. rewrite IHt1. rewrite IHt2. reflexivity.
+Qed.
 
-Admitted.
-
+Lemma app_subst_T0:
+ forall (t : term),
+ apply_subst t [] == T0 -> t == T0.
+Proof.
+intros. rewrite empty_subst_on_term in H. apply H.
+Qed.
 
 Lemma T0_or_not_T0:
  forall (t : term),
@@ -480,62 +498,184 @@ Lemma simplify_eqv :
 Proof.
 Admitted.
 
-Lemma not_unifiable_find_unifier_none_subst:
- forall (t : term),
-  ~ (unifiable t) -> (find_unifier t) = None_subst.
+
+Lemma eq_some_eq_subst (s1 s2: subst) :
+  (Some_subst s1 = Some_subst s2) -> s1 = s2.
 Proof.
+  intros.   congruence.
+Qed.
+
+
+Lemma None_is_not_Some (t: term):
+  (find_unifier t) = None_subst -> (forall (sig: subst), ~ (find_unifier t) = Some_subst sig).
+Proof.
+  intros.
+  congruence.
+Qed.
+
+
+Lemma Some_is_not_None (sig: subst) (t: term):
+  (find_unifier t) = Some_subst sig -> ~ (find_unifier t = None_subst).
+Proof.
+  intros.
+  congruence.
+Qed.
+
+
+Lemma not_None_is_Some (t: term) :
+  ~ (find_unifier t = None_subst) -> exists sig : subst, (find_unifier t) = Some_subst sig.
+Proof.
+  intros H.
+  destruct (find_unifier t) as [ti | ].
+  - exists ti. firstorder.
+  - congruence.
+Qed.
+
+
+Lemma eqv_eq_transp_compat : forall  (t t1 t2 : term),
+     t == t1 -> t  = t2 -> t1 = t2.
+Proof.
+Admitted.
+
 (*
- intros. unfold unifiable in H. unfold not in H. 
- unfold find_unifier. pose proof T0_or_not_T0.  
- specialize (H0 (apply_subst t (rec_subst t (term_unique_vars t) []))).
- destruct H0. 
- - unfold unifier in H. pose proof exists_subst. specialize (H1 t (rec_subst t (term_unique_vars t) [])).
-   specialize (H1 H0). specialize (H H1). destruct H.
- - destruct (apply_subst t (rec_subst t (term_unique_vars t) [])).
-  + unfold not in H0. 
- unfold convert_to_subst. pose proof t_id_eqv. specialize (H1 T0). specialize (H0 H1).
-   destruct H0.
-  + reflexivity.
-  + reflexivity.
-  + remember (simplify (t0_1 + t0_2)). destruct t0.  
-    { pose proof simplify_eqv.  specialize (H1 (t0_1 + t0_2)). rewrite Heqt0 in H0.
-      rewrite H1 in H0. unfold not in H0. pose proof t_id_eqv. specialize (H2 (t0_1 + t0_2)).
-      specialize (H0 H2). destruct H0.  }
-    { reflexivity. }
-    { reflexivity. }
-    { reflexivity. }
-   { reflexivity. }      
-  + remember (simplify (t0_1 * t0_2)). destruct t0.
-   { pose proof simplify_eqv.  specialize (H1 (t0_1 * t0_2)). rewrite Heqt0 in H0.
-      rewrite H1 in H0. unfold not in H0. pose proof t_id_eqv. specialize (H2 (t0_1 * t0_2)).
-      specialize (H0 H2). destruct H0.  }
-    { reflexivity. }
-    { reflexivity. }
-    { reflexivity. }
-   { reflexivity. }    
-Qed. 
+Add Parametric Morphism : eq with
+      signature eqv ==> eq ==> eq  as eqv_eq_transp_mor.
+Proof.
+  exact eqv_eq_transp_compat.
+Qed.
 *)
+
+
+Lemma contrapositive_opposite :
+  forall p q,  (~p -> ~q) -> q ->p.
+Proof.
+  intros.
+  apply NNPP. firstorder.
+Qed.
+
+
+Lemma contrapositive :
+forall (p q : Prop),  (p -> q) -> ( ~q -> ~p).
+Proof.
+  intros.
+  firstorder.
+Qed.
+  
+
+
+
+
+
+(** 3.4.b actual final proof extension *)
+
+
+
+(* -- None_subst case -- *)
+
+
+
+(* Lemma to show that if find unifier returns Some, the term is unifiable *)
+Lemma some_subst_unifiable:
+ forall (t : term),
+  (exists sig, (find_unifier t) = Some_subst sig) -> (unifiable t).
+Proof.
+ intros.
+ destruct H as [sig1 H1].
+ induction t.
+ -  unfold unifiable . exists []. unfold unifier. simpl. reflexivity.
+ - simpl in H1. inversion H1.
+ - unfold unifiable. exists sig1. unfold find_unifier in H1.
+    remember (update_term (VAR v) (rec_subst (VAR v) (term_unique_vars (VAR v)) [])) in H1.
+    destruct t.
+    + unfold update_term in Heqt. pose proof simplify_eqv.
+      specialize (H (apply_subst (VAR v) (rec_subst (VAR v) (term_unique_vars (VAR v)) []))).
+      pose proof eqv_eq_transp_compat. specialize (H0 (simplify (apply_subst (VAR v) (rec_subst (VAR v) (term_unique_vars (VAR v)) []))) 
+       (apply_subst (VAR v) (rec_subst (VAR v) (term_unique_vars (VAR v)) []))
+       T0 ). symmetry in Heqt. specialize (H0 H Heqt).
+       apply eq_some_eq_subst in H1. rewrite H1 in H0. unfold unifier. rewrite H0. reflexivity.
+    + simpl in H1. inversion H1.
+    + inversion H1.
+    + inversion H1.
+    + inversion H1.
+ - unfold unifiable. exists sig1. unfold find_unifier in H1.
+   remember (update_term (t1 + t2) (rec_subst (t1 + t2) (term_unique_vars (t1 + t2)) [])) in H1.
+  destruct t.
+  + unfold update_term in Heqt. pose proof simplify_eqv.
+    specialize (H (apply_subst (t1 + t2) (rec_subst (t1 + t2) (term_unique_vars (t1 + t2)) []))).
+    pose proof eqv_eq_transp_compat. specialize (H0 (simplify (apply_subst (t1 + t2) (rec_subst (t1 + t2) (term_unique_vars (t1 + t2)) []))) 
+       (apply_subst (t1 + t2) (rec_subst (t1 + t2) (term_unique_vars (t1 + t2)) []))
+       T0 ). symmetry in Heqt. specialize (H0 H Heqt).
+        apply eq_some_eq_subst in H1. rewrite H1 in H0. unfold unifier. rewrite H0. reflexivity.
+   + inversion H1.
+   + inversion H1.
+   + inversion H1.
+   + inversion H1.
+ -  unfold unifiable. exists sig1. unfold find_unifier in H1.
+   remember (update_term (t1 * t2) (rec_subst (t1 * t2) (term_unique_vars (t1 * t2)) [])) in H1.
+  destruct t.
+  + unfold update_term in Heqt. pose proof simplify_eqv.
+    specialize (H (apply_subst (t1 * t2) (rec_subst (t1 * t2) (term_unique_vars (t1 * t2)) []))).
+    pose proof eqv_eq_transp_compat. specialize (H0 (simplify (apply_subst (t1 * t2) (rec_subst (t1 * t2) (term_unique_vars (t1 * t2)) []))) 
+       (apply_subst (t1 * t2) (rec_subst (t1 * t2) (term_unique_vars (t1 * t2)) []))
+       T0 ). symmetry in Heqt. specialize (H0 H Heqt).
+        apply eq_some_eq_subst in H1. rewrite H1 in H0. unfold unifier. rewrite H0. reflexivity.
+   + inversion H1.
+   + inversion H1.
+   + inversion H1.
+   + inversion H1.
+Qed.
+
+
+
+
+(* Lemma to show that if no subst makes find_unifier to return Some, the it returns None_susbt *)
+Lemma not_Some_is_None (t: term) :
+ ( ~ exists (sig : subst), (find_unifier t) = Some_subst sig) -> (find_unifier t) = None_subst.
+Proof.
+  apply contrapositive_opposite.
+  intros H.
+  apply not_None_is_Some in H.
+  tauto.
+Qed.
+
+
+(* Lemma to show that if a term is not unifiable, it returns None_subst *)
+Lemma not_unifiable_find_unifier_none_subst :
+forall (t : term),
+   ~ (unifiable t) -> (find_unifier t) = None_subst.
+Proof.
+intros.
+ pose proof some_subst_unifiable.
+ specialize (H0 t).
+ pose proof contrapositive.
+ specialize (H1 ((exists sig : subst, find_unifier t = Some_subst sig)) ((unifiable t))).
+ specialize (H1 H0). specialize (H1 H).
+ pose proof not_Some_is_None.
+ specialize (H2 t H1).
+ apply H2.
+Qed.
+
+
+
+(* -- Some_subst case -- *)
+
+
+(* Lemma to show that if a term is unifiable, then find_unifier returns a unifier *)
+Lemma find_unifier_is_unifier:
+ forall (t : term),
+  (unifiable t) -> (unifier t (convert_to_subst (find_unifier t))).
+Proof.
+intros. unfold unifier. unfold unifiable in H. simpl. unfold convert_to_subst.
+
 Admitted.
 
 
-Lemma empty_subst_on_term:
- forall (t : term),
-  apply_subst t [] == t.
-Proof.
- intros. induction t.
- - reflexivity.
- - simpl. reflexivity.
- - simpl. reflexivity.
- - simpl. rewrite IHt1. rewrite IHt2. reflexivity.
- - simpl. rewrite IHt1. rewrite IHt2. reflexivity.
-Qed.
 
-Lemma app_subst_T0:
- forall (t : term),
- apply_subst t [] == T0 -> t == T0.
-Proof.
-intros. rewrite empty_subst_on_term in H. apply H.
-Qed.
+
+
+
+(* ----- Gluing everything together for the final proof ------ *)
+
 
 Lemma builder_to_main:
  forall (t : term),
@@ -569,4 +709,3 @@ Proof.
  - intros. pose proof not_unifiable_find_unifier_none_subst. 
    specialize (H0 t H). unfold Lowenheim_Main. rewrite H0. reflexivity.
 Qed.
-
