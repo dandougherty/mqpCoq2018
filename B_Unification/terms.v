@@ -898,36 +898,28 @@ Fixpoint identical (a b: term) : bool :=
     | SUM x y, _ => false
   end.
     
-(* Basic addition fot terms *)
+
+(* Basic Addition for terms *)
 Definition plus_one_step (a b : term) : term :=
   match a, b with
-    | T0, _ => b
+    | T0, T0 => T0
+    | T0, T1 => T1
     | T1, T0 => T1
-    | T1, T1 => T0
-    | T1 , _  => SUM a b 
-    | VAR x , T0 => a
-    | VAR x , _ => if identical a b then T0 else SUM a b
-    | PRODUCT x y , T0 => a
-    | PRODUCT x y, _ => if identical a b then T0 else SUM a b
-    | SUM x y , T0 => a
-    | SUM x y, _ => if identical a b then T0 else SUM a b
+    | T1 , T1  => T0
+    | _ , _ => SUM a b
   end.
+
 
 (* Basic Multiplication for terms *)
 Definition mult_one_step (a b : term) : term :=
   match a, b with
-    | T0, _ => T0
-    | T1 , _  => b 
-    | VAR x , T0 => T0
-    | VAR x , T1 => a
-    | VAR x , _ => if identical a b then a else PRODUCT a b
-    | PRODUCT x y , T0 => T0
-    | PRODUCT x y , T1 => a
-    | PRODUCT x y, _ => if identical a b then a else PRODUCT a b
-    | SUM x y , T0 => T0
-    | SUM x y , T1 => a
-    | SUM x y, _ => if identical a b then a else PRODUCT a b
+    | T0, T0 => T0
+    | T0, T1 => T0
+    | T1, T0 => T0
+    | T1 , T1  => T1
+    | _ , _ => PRODUCT a b
   end.
+
 
 (* Simplifies a term in very apparent and basic ways *)
 Fixpoint simplify (t : term) : term :=
@@ -939,9 +931,78 @@ Fixpoint simplify (t : term) : term :=
     | SUM x y => plus_one_step (simplify x) (simplify y)
   end.
 
-(* apply the simplify function n times, in case more simplifications are needed. Needs correction, does not always correctly *)
-Fixpoint Simplify_N (t : term) (counter : nat): term :=
-  match counter with
-    | O => t
-    | S n' => (Simplify_N (simplify t) n')
-  end.
+
+Lemma pos_left_sum_compat : forall  (t t1 t2 : term),
+     t == t1 -> plus_one_step t1 t2 == plus_one_step t t2. 
+Proof.
+Admitted.
+
+
+Lemma pos_right_sum_compat : forall  (t t1 t2 : term),
+     t == t2 -> plus_one_step t1 t2 == plus_one_step t1 t. 
+Proof.
+Admitted.
+
+
+Lemma pos_left_mul_compat : forall  (t t1 t2 : term),
+     t == t1 -> mult_one_step t1 t2 == mult_one_step t t2. 
+Proof.
+Admitted.
+
+
+Lemma pos_right_mul_compat : forall  (t t1 t2 : term),
+     t == t2 -> mult_one_step t1 t2 == mult_one_step t1 t. 
+Proof.
+Admitted.
+
+Lemma simplify_eqv :
+ forall (t : term),
+ simplify t == t.
+Proof.
+ intros. induction t.
+ - simpl. reflexivity.
+ - simpl. reflexivity.
+ - simpl. reflexivity.
+ - simpl. pose proof pos_left_sum_compat. specialize (H t1 (simplify t1) (simplify t2)).
+   symmetry in IHt1. specialize (H IHt1). rewrite H.
+  pose proof pos_right_sum_compat. specialize (H0 (simplify t2) t1 t2).
+  specialize (H0 IHt2). symmetry in H0. rewrite H0.
+  induction t1.
+  + induction t2.
+    { simpl. rewrite sum_x_x. reflexivity. }
+    { simpl. rewrite sum_id. reflexivity. }
+    { simpl. reflexivity. }
+    { simpl. reflexivity. }
+    { simpl. reflexivity. }
+  + induction t2.
+    { simpl. rewrite sum_id_sym. reflexivity. }
+    { simpl. rewrite sum_x_x. reflexivity.  } 
+    { simpl. reflexivity. }
+    { simpl. reflexivity. }
+    { simpl. reflexivity.  } 
+  + simpl. reflexivity.
+  + simpl. reflexivity.
+  + simpl. reflexivity.
+ - simpl. pose proof pos_left_mul_compat. specialize (H t1 (simplify t1) (simplify t2)).
+   symmetry in IHt1. specialize (H IHt1). rewrite H.
+  pose proof pos_right_mul_compat. specialize (H0 (simplify t2) t1 t2).
+  specialize (H0 IHt2). symmetry in H0. rewrite H0.
+  induction t1.
+  + induction t2.
+    { simpl. rewrite mul_x_x. reflexivity. }
+    { simpl. rewrite mul_T0_x.  reflexivity. }
+    { simpl. reflexivity. }
+    { simpl. reflexivity. }
+    { simpl. reflexivity. }
+  + induction t2.
+    { simpl. rewrite mul_T0_x_sym. reflexivity. }
+    { simpl. rewrite mul_x_x. reflexivity.  } 
+    { simpl. reflexivity. }
+    { simpl. reflexivity. }
+    { simpl. reflexivity.  } 
+  + simpl. reflexivity.
+  + simpl. reflexivity.
+  + simpl. reflexivity.
+Qed.
+  
+
