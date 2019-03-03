@@ -492,12 +492,6 @@ Proof.
  intros. reflexivity.
 Qed.
 
-Lemma simplify_eqv :
- forall (t : term),
- simplify t == t.
-Proof.
-Admitted.
-
 
 Lemma eq_some_eq_subst (s1 s2: subst) :
   (Some_subst s1 = Some_subst s2) -> s1 = s2.
