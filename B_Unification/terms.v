@@ -1251,13 +1251,314 @@ Qed.
 Lemma pos_left_mul_compat : forall  (t t1 t2 : term),
      t == t1 -> mult_one_step t1 t2 == mult_one_step t t2. 
 Proof.
-Admitted.
-
+  intros. induction t1.
+  - induction t.
+    + reflexivity.
+    + apply T1_not_equiv_T0 in H. inversion H.
+    + induction t2.
+      { simpl. rewrite H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite H. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite H. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite H. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+  - induction t.
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. reflexivity. }
+      { simpl. reflexivity. }
+      { simpl. reflexivity. }
+      { simpl. reflexivity. }
+      { simpl. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite mul_comm. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite mul_comm. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite mul_comm. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+  - induction t.
+    + induction t2.
+      { simpl. rewrite H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite <- H. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite <- H. rewrite mul_comm. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. } 
+  - induction t.
+    + induction t2.
+      { simpl. rewrite <- H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite <- H. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite <- H. rewrite mul_comm. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+  - induction t.
+    + induction t2.
+      { simpl. rewrite <- H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite <- H. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite <- H. rewrite mul_comm. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+Qed.
 
 Lemma pos_right_mul_compat : forall  (t t1 t2 : term),
      t == t2 -> mult_one_step t1 t2 == mult_one_step t1 t. 
 Proof.
-Admitted.
+intros. induction t1.
+  - induction t.
+    + induction t2. 
+      { simpl. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite <- H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite <- H. rewrite mul_x_x. reflexivity. }
+    + induction t2.
+      { simpl. reflexivity. }
+      { simpl. reflexivity. }
+      { simpl. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite mul_T0_x. reflexivity. }
+    + induction t2.
+      { simpl. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite mul_T0_x. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite mul_T0_x. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite mul_T0_x. rewrite mul_T0_x. reflexivity. }
+    + induction t2.
+      { simpl. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite mul_T0_x. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite mul_T0_x. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite mul_T0_x. rewrite mul_T0_x. reflexivity. }
+    + induction t2.
+      { simpl. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite mul_T0_x. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite mul_T0_x. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite mul_T0_x. rewrite mul_T0_x. reflexivity. }
+  - induction t.
+    + induction t2. 
+      { simpl. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. rewrite mul_comm. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite <- H. rewrite mul_comm. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite <- H. rewrite mul_comm. rewrite mul_T0_x. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. reflexivity. }
+      { simpl. rewrite H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite <- H. rewrite mul_x_x. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite mul_comm. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite mul_comm. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite mul_comm. rewrite mul_T0_x. reflexivity. }
+      { simpl. rewrite H. rewrite mul_x_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+  - induction t.
+    + induction t2. 
+      { simpl. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+  - induction t.
+    + induction t2. 
+      { simpl. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+  - induction t.
+    + induction t2. 
+      { simpl. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+Qed.
 
 Lemma simplify_eqv :
  forall (t : term),
