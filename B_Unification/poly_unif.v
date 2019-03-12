@@ -346,15 +346,50 @@ Proof.
   - apply Permutation_trans with (l':=(substM s l')); auto.
 Qed.
 
+Lemma substM_Permutation_eq : forall s a b,
+  Permutation a b ->
+  substM s a = substM s b.
+Proof.
+  intros s a b H. induction H.
+  - auto.
+  - simpl. rewrite IHPermutation. auto.
+  - simpl. rewrite mulPP_comm. rewrite mulPP_assoc.
+    rewrite (mulPP_comm (substM s l)). auto.
+  - rewrite IHPermutation1. rewrite IHPermutation2. auto.
+Qed.
+
+Definition is_poly_subst (s : subst) : Prop :=
+  forall x p, In (x, p) s -> is_poly p.
+
+Lemma appSubst_poly : forall x s,
+  is_poly_subst s ->
+  is_poly (appSubst s x).
+Proof.
+  intros x s H. unfold is_poly_subst in H. induction s.
+  - simpl. auto.
+  - simpl. destruct a eqn:Ha. destruct (x =? v).
+    + apply (H v). intuition.
+    + apply IHs. intros x0 p0 H0. apply (H x0). intuition.
+Qed.
+
 Lemma substM_nodup_pointless : forall s m,
+  is_poly_subst s ->
   substM s (nodup var_eq_dec m) =
   substM s m.
 Proof.
-  intros s m. induction m. auto. simpl. destruct in_dec.
-  - 
-Admitted.
+  intros s m Hps. induction m. auto. simpl. destruct in_dec.
+  - apply in_split in i. destruct i as [l1[l2 H]].
+    assert (Permutation m (a :: l1 ++ l2)). rewrite H. apply Permutation_sym.
+      apply Permutation_middle.
+    apply substM_Permutation_eq with (s:=s) in H0. rewrite H0. simpl.
+    rewrite (mulPP_comm _ (substM _ _)). rewrite mulPP_comm. rewrite mulPP_assoc.
+    rewrite mulPP_p_p. rewrite mulPP_comm. rewrite IHm. rewrite H0.
+    simpl. auto. apply appSubst_poly. auto.
+  - simpl. rewrite IHm. auto.
+Qed.
 
 Lemma substM_distr_mulMP : forall m a s,
+  is_poly_subst s ->
   is_mono a ->
   Permutation 
     (nodup_cancel mono_eq_dec (map make_mono (substM s (make_mono 
@@ -362,7 +397,7 @@ Lemma substM_distr_mulMP : forall m a s,
     (nodup_cancel mono_eq_dec (map make_mono (concat (map (mulMP'' 
       (map make_mono (substM s m))) (map make_mono (substM s a)))))).
 Proof.
-  intros m a s H. rewrite (no_make_mono (make_mono (m ++ a))); auto.
+  intros m a s Hps H. rewrite (no_make_mono (make_mono (m ++ a))); auto.
   repeat rewrite (no_map_make_mono (substM s _)); auto. apply Permutation_trans
     with (l':=(nodup_cancel mono_eq_dec (substM s (nodup var_eq_dec (m ++ a))))).
     apply nodup_cancel_Permutation. apply substM_Permutation. unfold make_mono.
@@ -377,11 +412,11 @@ Proof.
   - simpl substM at 2. apply Permutation_sort_eq. rewrite make_poly_refold.
     rewrite mulPP'''_refold. rewrite <- mulPP_mulPP'''. rewrite mulPP_assoc.
     repeat rewrite mulPP_mulPP'''. apply Permutation_sort_eq.
-    rewrite substM_nodup_pointless. simpl. rewrite mulPP_mulPP'''.
+    rewrite substM_nodup_pointless; auto. simpl. rewrite mulPP_mulPP'''.
     unfold mulPP''' at 1. apply Permutation_sort_eq in IHm.
     rewrite make_poly_refold in IHm. rewrite mulPP'''_refold in IHm.
     rewrite no_nodup_cancel_NoDup in IHm. rewrite no_sort_MonoSorted in IHm.
-    rewrite <- substM_nodup_pointless. rewrite IHm. unfold make_poly.
+    rewrite <- substM_nodup_pointless; auto. rewrite IHm. unfold make_poly.
     apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (nodup_cancel
       mono_eq_dec (map make_mono (concat (map (mulMP'' (appSubst s a0)) (mulPP'''
       (substM s m) (substM s a)))))))). apply nodup_cancel_Permutation.
@@ -394,6 +429,7 @@ Proof.
 Qed.
 
 Lemma map_substM_distr_map_mulMP : forall m p s,
+  is_poly_subst s ->
   is_poly p ->
   Permutation
   (nodup_cancel mono_eq_dec (map make_mono (concat (map (substM s) (map make_mono (mulMP'' p m))))))
@@ -402,11 +438,12 @@ Lemma map_substM_distr_map_mulMP : forall m p s,
         (concat
            (map (mulMP'' (map make_mono (concat (map (substM s) p)))) (map make_mono (substM s m)))))).
 Proof.
-  intros m p s H. unfold mulMP'' at 1. apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec
-   (map make_mono (concat (map (substM s) (map make_mono (nodup_cancel mono_eq_dec
-   (map make_mono (map (app m) (p)))))))))). apply nodup_cancel_Permutation,
-   Permutation_map, Permutation_concat, Permutation_map, Permutation_map.
-   unfold make_poly. rewrite <- Permutation_MonoSort_l. auto.
+  intros m p s Hps H. unfold mulMP'' at 1. apply Permutation_trans with (l':=
+    (nodup_cancel mono_eq_dec (map make_mono (concat (map (substM s) (map 
+    make_mono (nodup_cancel mono_eq_dec (map make_mono (map (app m) (p)))))))))).
+    apply nodup_cancel_Permutation, Permutation_map, Permutation_concat,
+    Permutation_map, Permutation_map. unfold make_poly.
+    rewrite <- Permutation_MonoSort_l. auto.
   apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (map make_mono
     (concat (map (substM s) (map make_mono (map make_mono (map (app m)
     (p))))))))). repeat rewrite List.concat_map. rewrite map_map.
@@ -421,7 +458,7 @@ Proof.
       p)))))))). apply Permutation_sort_eq. repeat (rewrite make_poly_refold,
       mulPP'''_refold, <- mulPP_mulPP'''). apply mulPP_comm.
     repeat rewrite map_app. rewrite concat_app, map_app. apply Permutation_sym.
-    apply nodup_cancel_app_Permutation. apply substM_distr_mulMP. apply H. intuition.
+    apply nodup_cancel_app_Permutation. apply substM_distr_mulMP; auto. apply H. intuition.
     apply Permutation_sym. apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec
       (map make_mono (concat (map (mulMP'' (map make_mono (concat (map (substM s) p))))
       (map make_mono (substM s m))))))). apply Permutation_sort_eq.
@@ -431,10 +468,11 @@ Proof.
 Qed.
 
 Lemma substP_distr_mulPP : forall p q s,
+  is_poly_subst s ->
   is_poly p ->
   substP s (mulPP p q) = mulPP (substP s p) (substP s q).
 Proof.
-  intros p q s H. repeat rewrite mulPP_mulPP'''. unfold substP, mulPP'''.
+  intros p q s Hps H. repeat rewrite mulPP_mulPP'''. unfold substP, mulPP'''.
   apply Permutation_sort_eq. apply Permutation_trans with (l':=(nodup_cancel
     mono_eq_dec (map make_mono (concat (map (substM s) (nodup_cancel mono_eq_dec
     (map make_mono (concat (map (mulMP'' p) q))))))))). apply nodup_cancel_Permutation.
@@ -481,14 +519,14 @@ Proof.
   repeat rewrite map_app. repeat rewrite <- (nodup_cancel_pointless (map _ _)).
   repeat rewrite <- (nodup_cancel_pointless_r _ (map _ _)).
   apply nodup_cancel_Permutation. apply Permutation_app.
-  apply map_substM_distr_map_mulMP. apply H. apply IHq.
+  apply map_substM_distr_map_mulMP; auto. apply IHq.
 Qed.
 
 Definition unifier (s : subst) (p : poly) : Prop :=
   substP s p = [].
 
 Definition unifiable (p : poly) : Prop :=
-  exists s, unifier s p.
+  exists s, is_poly_subst s /\ unifier s p.
 
 
 Definition subst_comp (s t u : subst) : Prop :=
@@ -498,9 +536,6 @@ Definition subst_comp (s t u : subst) : Prop :=
 
 Definition more_general (s t : subst) : Prop :=
   exists u, subst_comp s u t.
-
-Definition is_poly_subst (s : subst) : Prop :=
-  forall x p, In (x, p) s -> is_poly p.
 
 Definition mgu (s : subst) (p : poly) : Prop :=
   unifier s p /\
@@ -516,17 +551,6 @@ Definition reprod_unif (s : subst) (p : poly) : Prop :=
   is_poly_subst t ->
   subst_comp s t t.
 
-Lemma appSubst_poly : forall x s,
-  is_poly_subst s ->
-  is_poly (appSubst s x).
-Proof.
-  intros x s H. unfold is_poly_subst in H. induction s.
-  - simpl. auto.
-  - simpl. destruct a eqn:Ha. destruct (x =? v).
-    + apply (H v). intuition.
-    + apply IHs. intros x0 p0 H0. apply (H x0). intuition.
-Qed.
-
 Lemma subst_var : forall x s,
   is_poly_subst s ->
   substP s [[x]] = appSubst s x.
@@ -538,6 +562,7 @@ Qed.
 
 Lemma subst_comp_poly : forall s t u,
   is_poly_subst s ->
+  is_poly_subst t ->
   is_poly_subst u ->
   (forall x, substP t (substP s [[x]]) = substP u [[x]]) ->
   forall p,
@@ -550,11 +575,11 @@ Proof.
     simpl. rewrite <- make_poly_pointless_r. rewrite addPP_refold. f_equal.
     + induction a.
       * simpl. auto.
-      * simpl. rewrite substP_distr_mulPP.
-        f_equal.
+      * simpl. rewrite substP_distr_mulPP; auto. f_equal.
         -- rewrite <- subst_var; auto.
            rewrite <- subst_var; auto.
         -- apply IHa.
+        -- apply appSubst_poly; auto.
     + rewrite substP_refold. apply IHp.
 Qed.
 

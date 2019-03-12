@@ -66,7 +66,7 @@ Fixpoint lex {T : Type} (cmp : T -> T -> comparison) (l1 l2 : list T)
     that are useful to prove. First, reflexivity: 
   *)
 
-Theorem lex_nat_refl : forall (l : list nat), lex compare l l = Eq.
+Lemma lex_nat_refl : forall (l : list nat), lex compare l l = Eq.
 Proof.
   intros.
   induction l.
@@ -79,7 +79,7 @@ Qed.
     comparison of two polynomials and reverse it. For example, a < b implies b > a.
   *)
 
-Theorem lex_nat_antisym : forall (l1 l2 : list nat),
+Lemma lex_nat_antisym : forall (l1 l2 : list nat),
   lex compare l1 l2 = CompOpp (lex compare l2 l1).
 Proof.
   intros l1.
@@ -159,7 +159,7 @@ Qed.
     chance the lists' comparison. 
   *)
 
-Theorem lex_nat_cons : forall (l1 l2 : list nat) n,
+Lemma lex_nat_cons : forall (l1 l2 : list nat) n,
   lex compare l1 l2 = lex compare (n::l1) (n::l2).
 Proof.
   intros. simpl. rewrite compare_refl. reflexivity.
@@ -532,7 +532,7 @@ Module MonoOrder <: TotalLeBool.
     | Gt => false
     end.
   Infix "<=m" := leb (at level 35).
-  Theorem leb_total : forall a1 a2, (a1 <=m a2 = true) \/ (a2 <=m a1 = true).
+  Lemma leb_total : forall a1 a2, (a1 <=m a2 = true) \/ (a2 <=m a1 = true).
   Proof.
     intros n m. unfold "<=m". destruct (lex compare n m) eqn:Hcomp; auto.
     apply lex_rev_lt_gt in Hcomp. rewrite Hcomp. auto.
