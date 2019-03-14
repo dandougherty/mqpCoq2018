@@ -87,130 +87,21 @@ Proof.
   apply make_poly_is_poly.
 Qed.
 
-Lemma NoDup_map_remove : forall x p,
-  is_poly p ->
-  (forall m, In m p -> In x m) ->
-  NoDup (map (remove var_eq_dec x) p).
-Proof.
-  intros x p Hp Hx. induction p.
-  - simpl. auto.
-  - simpl. apply NoDup_cons.
-    + intro. apply in_map_iff in H. destruct H as [y []]. assert (y = a).
-      * apply poly_cons in Hp. destruct Hp. unfold is_poly in H1. destruct H1.
-        apply H3 in H0 as H4. apply (remove_Sorted_eq x); auto. split; intro.
-        apply Hx. intuition. apply Hx. intuition.
-      * rewrite H1 in H0. unfold is_poly in Hp. destruct Hp.
-        apply NoDup_MonoSorted in H2 as H4. apply NoDup_cons_iff in H4 as []. 
-        contradiction.
-    + apply IHp.
-      * apply poly_cons in Hp. apply Hp.
-      * intros m H. apply Hx. intuition.
-Qed.
 
 Lemma elim_var_map_remove_Permutation : forall p x,
   is_poly p ->
   (forall m, In m p -> In x m) ->
-  Permutation (elim_var x p)
-              (map (remove var_eq_dec x) p).
+  Permutation (elim_var x p) (map (remove var_eq_dec x) p).
 Proof.
   intros p x H H0. destruct p as [|a p].
   - simpl. unfold elim_var, make_poly, MonoSort.sort. auto.
-  - simpl. unfold elim_var. simpl. unfold make_poly. pose (MonoSort.Permuted_sort (nodup_cancel mono_eq_dec (map make_mono (remove var_eq_dec x a :: map (remove var_eq_dec x) p)))).
-    assert (Permutation (nodup_cancel mono_eq_dec (map make_mono (remove var_eq_dec x a :: map (remove var_eq_dec x) p))) (remove var_eq_dec x a :: map (remove var_eq_dec x) p)).
-    + clear p0. rewrite unsorted_poly.
-      * apply Permutation_refl.
-      * rewrite <- map_cons. apply NoDup_map_remove; auto.
-      * apply poly_cons in H. intros m Hin. destruct Hin.
-        -- rewrite <- H1. apply remove_is_mono. apply H.
-        -- apply in_map_iff in H1 as [y []]. rewrite <- H1. apply remove_is_mono.
-           destruct H. unfold is_poly in H. destruct H. apply H4. auto.
-    + apply Permutation_sym in p0. apply (Permutation_trans p0 H1).
-Qed.
-
-Lemma NoDup_map_app : forall x l,
-  is_poly l ->
-  (forall m, In m l -> ~ In x m) ->
-  NoDup (map make_mono (map (fun a : list var => a ++ [x]) l)).
-Proof.
-  intros x l Hp Hin. induction l.
-  - simpl. auto.
-  - simpl. apply NoDup_cons.
-    + intros H. rewrite map_map in H. apply in_map_iff in H as [m []]. assert (a=m).
-      * apply poly_cons in Hp as []. apply Permutation_Sorted_mono_eq.
-        -- apply Permutation_sort_mono_eq in H. rewrite no_nodup_NoDup in H.
-           rewrite no_nodup_NoDup in H.
-           ++ pose (Permutation_cons_append m x). pose (Permutation_cons_append a x).
-              apply (Permutation_trans p) in H. apply Permutation_sym in p0.
-              apply (Permutation_trans H) in p0. apply Permutation_cons_inv in p0.
-              apply Permutation_sym. auto.
-           ++ apply Permutation_NoDup with (l:=(x::a)). apply Permutation_cons_append.
-              apply NoDup_cons. apply Hin. intuition. unfold is_mono in H2.
-              apply NoDup_VarSorted in H2. auto.
-           ++ apply Permutation_NoDup with (l:=(x::m)). apply Permutation_cons_append.
-              apply NoDup_cons. apply Hin. intuition. unfold is_poly in H1.
-              destruct H1. apply H3 in H0. unfold is_mono in H0.
-              apply NoDup_VarSorted in H0. auto.
-        -- unfold is_mono in H2. apply Sorted_VarSorted. auto.
-        -- unfold is_poly in H1. destruct H1. apply H3 in H0. apply Sorted_VarSorted. auto.
-      * rewrite <- H1 in H0. unfold is_poly in Hp. destruct Hp.
-        apply NoDup_MonoSorted in H2. apply NoDup_cons_iff in H2 as []. contradiction.
-    + apply IHl. apply poly_cons in Hp. apply Hp. intros m H. apply Hin. intuition.
-Qed.
-
-Lemma mulPP_Permutation : forall x a0 l,
-  is_poly (a0::l) ->
-  (forall m, In m (a0::l) -> ~ In x m) ->
-  Permutation (mulPP [[x]] (a0 :: l)) ((make_mono (a0++[x]))::(mulPP [[x]] l)).
-Proof.
-  intros x a0 l Hp Hx. unfold mulPP, distribute. simpl. unfold make_poly. 
-  pose (MonoSort.Permuted_sort (nodup_cancel mono_eq_dec
-        (map make_mono ((a0 ++ [x]) :: concat (map (fun a : list var => [a ++ [x]]) l))))).
-  apply Permutation_sym in p. apply (Permutation_trans p). simpl map.
-  rewrite no_nodup_cancel_NoDup; clear p.
-  - apply perm_skip. apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (map make_mono (concat (map (fun a : list var => [a ++ [x]]) l))))).
-    + rewrite no_nodup_cancel_NoDup; auto. rewrite concat_map. apply NoDup_map_app.
-      apply poly_cons in Hp. apply Hp. intros m H. apply Hx. intuition.
-    + apply MonoSort.Permuted_sort.
-  - rewrite <- map_cons. rewrite concat_map.
-    rewrite <- map_cons with (f:=(fun a : list var => a ++ [x])).
-    apply NoDup_map_app; auto.
-Qed.
-
-Lemma mulPP_map_app_permutation : forall (x:var) (l l' : poly),
-  is_poly l ->
-  (forall m, In m l -> ~ In x m) ->
-  Permutation l l' ->
-  Permutation (mulPP [[x]] l) (map (fun a => (make_mono(a ++ [x]))) l').
-Proof.
-  intros x l l' Hp H H0. generalize dependent l'. induction l; induction l'.
-  - intros. unfold mulPP, distribute, make_poly, MonoSort.sort. simpl. auto.
-  - intros. apply Permutation_nil_cons in H0. contradiction.
-  - intros. apply Permutation_sym in H0. apply Permutation_nil_cons in H0. contradiction.
-  - intros. clear IHl'. destruct (mono_eq_dec a a0).
-    + rewrite e in *. pose (mulPP_Permutation x a0 l Hp H). apply (Permutation_trans p). simpl.
-      apply perm_skip. apply IHl.
-      * clear p. apply poly_cons in Hp. apply Hp.
-      * intros m Hin. apply H. intuition.
-      * apply Permutation_cons_inv in H0. auto.
-    + apply Permutation_incl in H0 as H1. destruct H1. apply incl_cons_inv in H1 as [].
-      destruct H1; try (rewrite H1 in n; contradiction). apply in_split in H1.
-      destruct H1 as [l1 [l2]]. rewrite H1 in H0.
-      pose (Permutation_middle (a0::l1) l2 a). apply Permutation_sym in p.
-      simpl in p. apply (Permutation_trans H0) in p. 
-      apply Permutation_cons_inv in p. rewrite H1. simpl. rewrite map_app. simpl.
-      pose (Permutation_middle ((make_mono (a0 ++ [x]) :: map 
-        (fun a1 : list var => make_mono (a1 ++ [x])) l1)) (map 
-        (fun a1 : list var => make_mono (a1 ++ [x])) l2) (make_mono (a++[x]))).
-      simpl in p0. simpl. apply Permutation_trans with (l':=(make_mono (a ++ [x])
-      :: make_mono (a0 ++ [x])
-         :: map (fun a1 : list var => make_mono (a1 ++ [x])) l1 ++
-            map (fun a1 : list var => make_mono (a1 ++ [x])) l2)); auto. clear p0.
-      rewrite <- map_app. rewrite <- (map_cons (fun a1 : list var => make_mono (a1 ++ [x])) a0 (@app (list var) l1 l2)).
-      pose (mulPP_Permutation x a l Hp H). apply (Permutation_trans p0). apply perm_skip.
-      apply IHl.
-      * clear p0. apply poly_cons in Hp. apply Hp.
-      * intros m Hin. apply H. intuition.
-      * apply p.
+  - simpl. unfold elim_var. simpl. unfold make_poly.
+    rewrite <- Permutation_MonoSort_l. rewrite unsorted_poly; auto.
+    + rewrite <- map_cons. apply NoDup_map_remove; auto.
+    + apply poly_cons in H. intros m Hin. destruct Hin.
+      * rewrite <- H1. apply remove_is_mono. apply H.
+      * apply in_map_iff in H1 as [y []]. rewrite <- H1. apply remove_is_mono.
+        destruct H. unfold is_poly in H. destruct H. apply H4. auto.
 Qed.
 
 Lemma rebuild_map_permutation : forall p x,
@@ -223,41 +114,6 @@ Proof.
   - apply elim_var_poly.
   - apply (elim_var_not_in_rem x p); auto.
   - apply elim_var_map_remove_Permutation; auto.
-Qed.
-
-Lemma p_map_Permutation : forall p x,
-  is_poly p ->
-  (forall m, In m p -> In x m) ->
-  Permutation p (map (fun a => (make_mono(a ++ [x]))) (map (remove var_eq_dec x) p)).
-Proof.
-  intros p x H H0. rewrite map_map. induction p.
-  - auto.
-  - simpl. assert (make_mono (@app var (remove var_eq_dec x a) [x]) = a).
-    + unfold make_mono. rewrite no_nodup_NoDup.
-      * apply Permutation_Sorted_mono_eq.
-        -- apply Permutation_trans with (l':=(remove var_eq_dec x a ++ [x])).
-           apply Permutation_sym. apply VarSort.Permuted_sort.
-           pose (in_split x a). destruct e as [l1 [l2 e]]. apply H0. intuition.
-           rewrite e. apply Permutation_trans with (l':=(x::remove var_eq_dec x (l1++x::l2))).
-           apply Permutation_sym. apply Permutation_cons_append.
-           apply Permutation_trans with (l':=(x::l1++l2)). apply perm_skip.
-           rewrite remove_distr_app. replace (x::l2) with ([x]++l2); auto.
-           rewrite remove_distr_app. simpl. destruct (var_eq_dec x x); try contradiction.
-           rewrite app_nil_l. repeat rewrite not_In_remove; try apply Permutation_refl;
-           try (apply poly_cons in H as []; unfold is_mono in H1;
-           apply NoDup_VarSorted in H1; rewrite e in H1; apply NoDup_remove_2 in H1).
-           intros x2. apply H1. intuition. intros x1. apply H1. intuition.
-           apply Permutation_middle.
-        -- apply VarSort.LocallySorted_sort.
-        -- apply poly_cons in H as []. unfold is_mono in H1.
-           apply Sorted_VarSorted. auto.
-      * apply Permutation_NoDup with (l:=(x::remove var_eq_dec x a)).
-        apply Permutation_cons_append. apply NoDup_cons.
-        apply remove_In. apply NoDup_remove. apply poly_cons in H as [].
-        unfold is_mono in H1. apply NoDup_VarSorted. auto.
-    + rewrite H1. apply perm_skip. apply IHp.
-      * apply poly_cons in H. apply H.
-      * intros m Hin. apply H0. intuition.
 Qed.
 
 Lemma elim_var_permutation : forall p x, 
@@ -456,15 +312,6 @@ Qed.
 
 Hint Unfold vars div_by_var elim_var make_poly MonoSort.sort.
 Hint Resolve div_by_var_nil.
-
-Lemma incl_not_in : forall A a (l m : list A),
-  incl l (a :: m) ->
-  ~ In a l ->
-  incl l m.
-Proof.
-  intros A a l m Hincl Hnin. unfold incl in *. intros a0 Hin.
-  simpl in Hincl. destruct (Hincl a0); auto. rewrite H in Hnin. contradiction.
-Qed.
 
 Lemma incl_div : forall x p q r xs,
   is_poly p -> 
