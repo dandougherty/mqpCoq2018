@@ -1,4 +1,3 @@
-Require Import ListSet.
 Require Import List.
 Import ListNotations.
 Require Import Arith.
@@ -53,18 +52,6 @@ Proof.
   intros s p. apply substP_is_poly.
 Qed.
 
-Lemma make_poly_Permutation : forall p q,
-  Permutation p q ->
-  Permutation (make_poly p) (make_poly q).
-Proof.
-  intros p q H. unfold make_poly. apply Permutation_trans with (l':=(nodup_cancel 
-    mono_eq_dec (map make_mono p))).
-  - apply Permutation_sym. apply MonoSort.Permuted_sort.
-  - apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (map make_mono q))).
-    + apply nodup_cancel_Permutation. apply Permutation_map. apply H.
-    + apply MonoSort.Permuted_sort.
-Qed.
-
 Lemma substM_cons : forall x m,
   ~ In x m ->
   forall q s, substM ((x, q) :: s) m = substM s m.
@@ -110,8 +97,8 @@ Proof.
   intros s p q H. induction H.
   - simpl. auto.
   - unfold substP. simpl. repeat rewrite <- (make_poly_pointless_r _ (concat _)).
-    apply make_poly_Permutation. apply Permutation_app_head. apply IHPermutation.
-  - unfold substP. simpl. apply make_poly_Permutation. repeat rewrite app_assoc.
+    apply make_poly_Permutation'. apply Permutation_app_head. apply IHPermutation.
+  - unfold substP. simpl. apply make_poly_Permutation'. repeat rewrite app_assoc.
     apply Permutation_app_tail. apply Permutation_app_comm.
   - apply Permutation_trans with (l':=(substP s l')); auto.
 Qed.
@@ -125,137 +112,6 @@ Proof.
     + apply MonoSort.Permuted_sort.
   - apply Sorted_MonoSorted. apply substP_Sorted.
   - apply MonoSort.LocallySorted_sort.
-Qed.
-
-(* Lemma substP_make_poly_assoc : forall s p,
-  (forall m, In m p -> is_mono m) ->
-  substP s (make_poly p) = make_poly (substP s p).
-Proof.
-  intros s p Hmono. unfold substP. destruct p as [|a].
-  - simpl. auto.
-  - simpl. rewrite (no_make_poly (make_poly _)); auto. rewrite <- (app_nil_l (concat _)).
-    rewrite <- make_poly_pointless_r. simpl. unfold make_poly at 2.
-    repeat rewrite no_map_make_mono; auto. rewrite substP_sort_assoc.
-    apply Permutation_sort_eq. rewrite substP_nodup_cancel_assoc. simpl.
-    unfold addPP, make_poly. rewrite sort_nodup_cancel_assoc.
-    rewrite no_nodup_cancel_NoDup. rewrite no_map_make_mono.
-    + apply nodup_cancel_Permutation. apply Permutation_sym. apply MonoSort.Permuted_sort.
-    + intros m Hin. apply in_app_or in Hin. destruct Hin.
-      * pose (substM_is_poly s a). unfold is_poly in i. destruct i. auto.
-      * pose (substP_is_poly s p). unfold is_poly in i. destruct i. auto.
-    + apply NoDup_nodup_cancel.
-    + intros m Hin. apply in_app_or in Hin. destruct Hin.
-      * pose (substM_is_poly s a). unfold is_poly in i. destruct i. auto.
-      * pose (substP_is_poly s p). unfold is_poly in i. destruct i. auto.
-Qed.
-
-Lemma substP_distr_app : forall p q s,
-  substP s (p ++ q) = addPP (substP s p) (substP s q).
-Proof.
-  intros p q s. induction p.
-  - simpl. rewrite addPP_0; auto.
-  - unfold substP. simpl. rewrite <- make_poly_pointless_r. rewrite IHp. auto.
-Qed. *)
-
-Lemma n_le_1 : forall n,
-  n <= 1 -> n = 0 \/ n = 1.
-Proof.
-  intros n H. induction n; firstorder.
-Qed.
-
-Lemma count_occ_map_sub_not_in : forall f a p,
-  forall x, count_occ mono_eq_dec (f a) x = 0 ->
-  count_occ mono_eq_dec (concat (map f (remove mono_eq_dec a p))) x =
-  count_occ mono_eq_dec (concat (map f p)) x.
-Proof.
-  intros f a p x H. induction p as [|b]; auto. simpl.
-  rewrite count_occ_app. destruct mono_eq_dec.
-  - rewrite e in H. firstorder.
-  - simpl. rewrite count_occ_app. auto.
-Qed.
-
-Lemma count_occ_concat_map_lt : forall p a f x,
-  count_occ mono_eq_dec (f a) x  = 1 ->
-  count_occ mono_eq_dec p a <= count_occ mono_eq_dec (concat (map f p)) x.
-Proof.
-  intros p a f x H. induction p. auto. simpl. destruct mono_eq_dec.
-  - rewrite e. rewrite count_occ_app. rewrite H. simpl. firstorder.
-  - rewrite count_occ_app. induction (count_occ mono_eq_dec (f a0) x); firstorder.
-Qed.
-
-Lemma count_occ_map_sub_in : forall f a p,
-  forall x, count_occ mono_eq_dec (f a) x = 1 ->
-  count_occ mono_eq_dec (concat (map f (remove mono_eq_dec a p))) x =
-  count_occ mono_eq_dec (concat (map f p)) x - count_occ mono_eq_dec p a.
-Proof.
-  intros f a p x H. induction p as [|b]; auto. simpl. destruct mono_eq_dec.
-  - rewrite e. destruct mono_eq_dec; try contradiction. rewrite count_occ_app.
-    rewrite e in H. rewrite H. simpl. rewrite <- e. auto.
-  - simpl. destruct mono_eq_dec. symmetry in e. contradiction.
-    repeat rewrite count_occ_app. rewrite IHp. rewrite add_sub_assoc. auto.
-    apply count_occ_concat_map_lt; auto.
-Qed.
-
-Lemma f_equal_concat_sum_lt : forall f a b p x,
-  b <> a ->
-  (forall x, NoDup (f x)) ->
-  count_occ mono_eq_dec (f a) x = 1 ->
-  count_occ mono_eq_dec (f b) x = 1 ->
-  count_occ mono_eq_dec p b +
-  count_occ mono_eq_dec p a <=
-  count_occ mono_eq_dec (concat (map f p)) x.
-Proof.
-  intros f a b p x Hne Hnd Hfa Hfb. induction p as [|c]; auto. simpl.
-  destruct mono_eq_dec.
-  - rewrite e. destruct mono_eq_dec; try contradiction. rewrite count_occ_app.
-    firstorder.
-  - destruct mono_eq_dec.
-    + rewrite e. rewrite count_occ_app. firstorder.
-    + rewrite count_occ_app. pose (Hnd c). rewrite (NoDup_count_occ mono_eq_dec) in n1.
-      pose (n1 x). apply n_le_1 in l. clear n1. destruct l; firstorder.
-Qed.
-
-Lemma count_occ_nodup_concat_map_lt : forall p f a x,
-  (forall x, NoDup (f x)) ->
-  count_occ mono_eq_dec (f a) x = 1 ->
-  count_occ mono_eq_dec (nodup_cancel mono_eq_dec p) a <=
-  count_occ mono_eq_dec (concat (map f (nodup_cancel mono_eq_dec p))) x.
-Proof.
-  intros p f a x Hn H. induction p as [|b]; auto. simpl. destruct even eqn:Hev.
-  - simpl. destruct mono_eq_dec.
-    + rewrite e. rewrite count_occ_remove, count_occ_app. rewrite H. firstorder.
-    + rewrite count_occ_neq_remove; auto. rewrite not_In_remove.
-      rewrite count_occ_app. firstorder. apply not_in_nodup_cancel. auto.
-  - destruct (mono_eq_dec b a) eqn:Hba.
-    + rewrite e. rewrite count_occ_remove. firstorder.
-    + rewrite count_occ_neq_remove; auto. assert (Hn1:=(Hn b)). 
-      rewrite (NoDup_count_occ mono_eq_dec) in Hn1. assert (Hn2:=(Hn1 x)).
-      clear Hn1. apply n_le_1 in Hn2. destruct Hn2.
-      * rewrite count_occ_map_sub_not_in; auto.
-      * apply (count_occ_map_sub_in _ _ (nodup_cancel mono_eq_dec p)) in H0 as H1.
-        rewrite H1. apply le_add_le_sub_l. apply f_equal_concat_sum_lt; auto.
-Qed.
-
-Lemma nodup_cancel_concat_map : forall p f,
-  (forall x, NoDup (f x)) ->
-  Permutation
-    (nodup_cancel mono_eq_dec (concat (map f (nodup_cancel mono_eq_dec p))))
-    (nodup_cancel mono_eq_dec (concat (map f p))).
-Proof.
-  intros p f H. apply parity_nodup_cancel_Permutation. unfold parity_match.
-  intros x. induction p; auto. simpl. destruct (even (count_occ _ p a)) eqn:Hev.
-  - simpl. repeat rewrite count_occ_app. repeat rewrite even_add. rewrite not_In_remove.
-    rewrite IHp. auto. apply not_in_nodup_cancel. auto.
-  - assert (H0:=(H a)). rewrite (NoDup_count_occ mono_eq_dec) in H0.
-    assert (H1:=(H0 x)). clear H0. apply n_le_1 in H1. rewrite count_occ_app.
-    rewrite even_add. destruct H1.
-    + apply (count_occ_map_sub_not_in _ _ (nodup_cancel mono_eq_dec p)) in H0 as H1.
-      rewrite H0, H1, IHp. simpl.
-      destruct (even (count_occ _ (concat (map f p)) x)); auto.
-    + apply (count_occ_map_sub_in _ _ (nodup_cancel mono_eq_dec p)) in H0 as H1.
-      rewrite H0, H1, even_sub, IHp. simpl. rewrite count_occ_nodup_cancel. rewrite Hev.
-      destruct (even (count_occ _ (concat (map f p)) x)); auto.
-      apply count_occ_nodup_concat_map_lt; auto.
 Qed.
 
 Lemma substP_refold : forall s p,
@@ -323,23 +179,13 @@ Proof.
   apply mono_in_map_make_mono in H; auto.
 Qed.
 
-Lemma nodup_cancel_app_Permutation : forall a b c d,
-  Permutation (nodup_cancel mono_eq_dec a) (nodup_cancel mono_eq_dec b) ->
-  Permutation (nodup_cancel mono_eq_dec c) (nodup_cancel mono_eq_dec d) ->
-  Permutation (nodup_cancel mono_eq_dec (a ++ c)) (nodup_cancel mono_eq_dec (b ++ d)).
-Proof.
-  intros a b c d H H0. rewrite <- (nodup_cancel_pointless a), <- (nodup_cancel_pointless b),
-  <- (nodup_cancel_pointless_r _ c), <- (nodup_cancel_pointless_r _ d).
-  apply nodup_cancel_Permutation. apply Permutation_app; auto.
-Qed.
-
 Lemma substM_Permutation : forall s a b,
   Permutation a b ->
   Permutation (substM s a) (substM s b).
 Proof.
   intros s a b H. induction H.
   - simpl. auto.
-  - simpl. repeat rewrite mulPP_mulPP''. apply make_poly_Permutation.
+  - simpl. repeat rewrite mulPP_mulPP''. apply make_poly_Permutation'.
     apply Permutation_concat. apply Permutation_map. auto.
   - simpl. rewrite mulPP_comm. rewrite mulPP_assoc.
     rewrite (mulPP_comm (substM s l)). auto.
