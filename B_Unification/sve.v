@@ -1,5 +1,11 @@
+Require Import List.
+Import ListNotations.
+Require Import Arith.
+Require Import Permutation.
 
-(** * Intro *)
+Require Export poly_unif.
+
+(** * Introduction *)
 
 (** Here we implement the algorithm for successive variable elimination. The
     basic idea is to remove a variable from the problem, solve that simpler 
@@ -10,15 +16,6 @@
     without any need to substitute since there are no variables. From here, we
     begin the process of building up substitutions until we reach the original
     problem. *)
-
-Require Import List.
-Import ListNotations.
-Require Import Arith.
-Require Import Permutation.
-Require Import FunctionalExtensionality.
-
-Require Export poly_unif.
-
 
 
 (** * Eliminating Variables *)
@@ -270,14 +267,13 @@ Qed.
 Hint Resolve build_poly_is_poly.
 
 Lemma div_build_unif : forall x p q r s,
-  is_poly_subst s ->
   is_poly p ->
   div_by_var x p = (q, r) ->
   unifier s p ->
   unifier s (build_poly q r).
 Proof.
   unfold build_poly, unifier.
-  intros x p q r s Hps HPp HD Hsp0.
+  intros x p q r s HPp HD [Hps Hsp0].
   apply (div_eq _ _ _ _ HPp) in HD as Hp.
   (* multiply both sides of Hsp0 by s(q+1) *)
   assert (exists q1, q1 = addPP [[]] q) as [q1 Hq1]. eauto.
@@ -359,7 +355,7 @@ Definition build_subst (s : subst) (x : var) (q r : poly) : subst :=
   let xs  := (x, addPP (mulPP [[x]] q1s) rs) in
   xs :: s.
 
-Lemma build_subst_poly : forall s x q r,
+Lemma build_subst_is_poly : forall s x q r,
   is_poly_subst s ->
   is_poly_subst (build_subst s x q r).
 Proof.
@@ -372,16 +368,16 @@ Proof.
 Qed.
 
 Lemma build_subst_is_unif : forall x p q r s,
-  is_poly_subst s ->
   is_poly p ->
   div_by_var x p = (q, r) ->
   reprod_unif s (build_poly q r) ->
   unifier (build_subst s x q r) p.
 Proof.
-  intros x p q r s Hps Hpoly Hdiv Hreprod.
-  unfold unifier. unfold reprod_unif in Hreprod.
-  destruct Hreprod as [Hunif Hreprod].
-  unfold unifier in Hunif.
+  unfold reprod_unif, unifier.
+  intros x p q r s Hpoly Hdiv [[Hps Hunif] Hreprod].
+  assert (is_poly_subst (build_subst s x q r)).
+    apply build_subst_is_poly; auto.
+  split; auto.
   unfold build_poly in Hunif.
   assert (Hnqr := Hdiv).
   apply div_var_not_in_qr in Hnqr.
@@ -427,23 +423,20 @@ Proof.
   rewrite (mulPP_comm r [[]]); auto.
   rewrite <- mulPP_distr_addPP; auto.
   rewrite addPP_comm; auto.
-  apply build_subst_poly; auto.
 Qed.
 
 Lemma build_subst_is_reprod : forall x p q r s,
   is_poly p ->
   div_by_var x p = (q, r) ->
   reprod_unif s (build_poly q r) ->
-  is_poly_subst s ->
   forall t, unifier t p ->
-            is_poly_subst t ->
             subst_comp (build_subst s x q r) t t.
 Proof.
-  intros x p q r s HpolyP Hdiv Hreprod HpsS t HunifT HpsT.
+  unfold reprod_unif.
+  intros x p q r s HpolyP Hdiv [[HpsS HunifS] Hsub_comp] t HunifT.
   assert (HunifT' := HunifT).
-  apply (div_build_unif _ _ _ _ _ HpsT HpolyP Hdiv) in HunifT'.
-  unfold reprod_unif in Hreprod.
-  destruct Hreprod as [HunifS Hsub_comp].
+  destruct HunifT as [HpsT HunifT].
+  apply (div_build_unif _ _ _ _ _ HpolyP Hdiv) in HunifT'.
   unfold subst_comp in *.
   intros y.
   destruct (y =? x) eqn:Hyx.
@@ -501,7 +494,6 @@ Lemma reprod_build_subst : forall x p q r s,
   is_poly p ->
   div_by_var x p = (q, r) ->
   reprod_unif s (build_poly q r) ->
-  is_poly_subst s ->
   reprod_unif (build_subst s x q r) p.
 Proof.
   intros. unfold reprod_unif.
@@ -581,7 +573,7 @@ Proof.
     rewrite Hqr in H1.
     destruct (sveVars xs (build_poly q r)) eqn:Hs0; inversion H1.
     apply IHxs in Hs0; eauto.
-    apply build_subst_poly; auto.
+    apply build_subst_is_poly; auto.
 Qed.
 
 Lemma sveVars_some :  forall (xs : list var) (p : poly),
@@ -634,9 +626,8 @@ Proof.
     unfold not, unifiable in *.
     intros.
     apply Hs0.
-    destruct H2 as [s [Hps Hs]].
+    destruct H2 as [s Hu].
     exists s.
-    split; auto.
     apply (div_build_unif x p); auto.
 Qed.
 
