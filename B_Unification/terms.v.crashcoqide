@@ -119,7 +119,10 @@ Axiom term_product_symmetric :
   forall x y z, x == y <-> x * z == y * z.
 
 Axiom refl_comm :
-forall t1 t2, t1 == t2 -> t2 == t1.
+  forall t1 t2, t1 == t2 -> t2 == t1.
+
+Axiom T1_not_equiv_T0 :
+  ~(T1 == T0).
 
 Hint Resolve sum_comm sum_assoc sum_x_x sum_id distr
              mul_comm mul_assoc mul_x_x mul_T0_x mul_id.
@@ -222,18 +225,20 @@ Qed.
 Lemma sum_assoc_opp :
  forall x y z, x + (y + z) == (x + y) + z.
 Proof.
-Admitted.
+  intros. rewrite sum_assoc. reflexivity.
+Qed.
 
 Lemma mul_assoc_opp :
  forall x y z, x * (y * z) == (x * y) * z.
 Proof.
-Admitted.
+  intros. rewrite mul_assoc. reflexivity.
+Qed.
 
 Lemma distr_opp :
  forall x y z, x * y  +  x * z == x * ( y + z).
 Proof.
-Admitted.
-
+  intros. rewrite distr. reflexivity.
+Qed.
 
 (** * Variable Sets **)
 
@@ -363,7 +368,6 @@ Proof.
       { specialize (IHlvar H).  simpl. right. apply IHlvar. } }
 Qed.  
 
-Search nodup.
 (*
 Lemma decA: forall x y : var, {x = y} + {x <> y}.
 Proof.
@@ -559,10 +563,10 @@ given substitution is an identity substitution of a given term.
 **)
 
 Definition subst_equiv (s1 s2: subst) : Prop :=
-  forall r, In r s1 <-> In r s2.
+  forall t, apply_subst t s1 == apply_subst t s2.
 
 Definition subst_is_id_subst (t : term) (s : subst) : Prop :=
-  (subst_equiv (build_id_subst (term_vars t)) s).
+  (apply_subst t s) == t.
 
 (** ** Lemmas **)
 
@@ -571,79 +575,10 @@ Having now outlined the functionality of a subsitution, let us now begin to anal
 lemmas.
 **)
 
-Lemma apply_subst_compat : forall  (t t' : term),
-     t == t' -> forall (sigma: subst), (apply_subst t sigma) == (apply_subst t' sigma).
-Proof.
-Admitted.
-
-Add Parametric Morphism : apply_subst with
-      signature eqv ==> eq ==> eqv as apply_subst_mor.
-Proof.
-  exact apply_subst_compat.
-Qed.
-
 (**
-An easy thing to prove right off the bat is that ground terms, i.e. terms with no variables, cannot be modified by applying substitutions to 
-them. This will later prove to be very relevant when we begin to talk about unification.
+Given that we have a definition for identity substitutions, we should prove that identity substitutions do not modify
+a term.
 **)
-
-(* Helpful lemma for showing substitutions do not affect ground terms *)
-Lemma ground_term_cannot_subst :
-  forall x, (ground_term x) -> (forall s, apply_subst x s == x).
-Proof.
-intros. induction s. 
-  - apply ground_term_equiv_T0_T1 in H. destruct H.
-  + rewrite H. simpl. reflexivity.
-  + rewrite H. simpl. reflexivity.
-  - apply ground_term_equiv_T0_T1 in H. destruct H. rewrite H.
-    +  simpl. reflexivity.
-    + rewrite H. simpl. reflexivity.
-Qed.
-
-(**
-The last major thing to prove about substitutions is their distributivity and associativity. Again the importance of these proofs will not
-become apparent until we talk about unification.
-**)
-
-(* A useful lemma for showing the distributivity of substitutions across terms *)
-Lemma subst_distribution :
-  forall s x y, apply_subst x s + apply_subst y s == apply_subst (x + y) s.
-Proof.
-intro. induction s. simpl. intros. reflexivity. intros. simpl. reflexivity. 
-Qed.
-
-(* A lemma to prove the associativity of the apply_subst function *)
-Lemma subst_associative :
-  forall s x y, apply_subst x s * apply_subst y s == apply_subst (x * y) s.
-Proof.
-intro. induction s. intros. reflexivity. intros. simpl. reflexivity. 
-Qed.
-
-
-Lemma subst_sum_distr_opp :
-  forall s x y, apply_subst (x + y) s == apply_subst x s + apply_subst y s.
-Proof.
-  intros.
-  apply refl_comm.
-  apply subst_distribution.
-Qed. 
-
-
-Lemma subst_mul_distr_opp :
-  forall s x y, apply_subst (x * y) s == apply_subst x s * apply_subst y s.
-Proof.
-  intros.
-  apply refl_comm.
-  apply subst_associative.
-Qed. 
-
-
-Lemma var_subst:
-  forall (v : var) (ts : term) ,
-  (apply_subst (VAR v) (cons (v , ts) nil) ) == ts.
-Proof.
-intros. simpl. destruct (beq_nat v v) eqn: e.
-Admitted.
 
 Lemma id_subst:
   forall (t : term) (l : var_set),
@@ -679,12 +614,118 @@ intros. induction t.
 }
 Qed.
 
+Lemma apply_subst_compat : forall  (t t' : term),
+     t == t' -> forall (sigma: subst), (apply_subst t sigma) == (apply_subst t' sigma).
+Proof.
+intros. induction t.
+  - induction t'.
+    + simpl. reflexivity.
+    + simpl. apply H.
+    + simpl. rewrite H. 
+Admitted.
+
+Add Parametric Morphism : apply_subst with
+      signature eqv ==> eq ==> eqv as apply_subst_mor.
+Proof.
+  exact apply_subst_compat.
+Qed.
+
+(**
+An easy thing to prove right off the bat is that ground terms, i.e. terms with no variables, cannot be modified by applying substitutions to 
+them. This will later prove to be very relevant when we begin to talk about unification.
+**)
+
+(* Helpful lemma for showing substitutions do not affect ground terms *)
+Lemma ground_term_cannot_subst :
+  forall x, (ground_term x) -> (forall s, apply_subst x s == x).
+Proof.
+intros. induction s. 
+  - apply ground_term_equiv_T0_T1 in H. destruct H.
+  + rewrite H. simpl. reflexivity.
+  + rewrite H. simpl. reflexivity.
+  - apply ground_term_equiv_T0_T1 in H. destruct H. rewrite H.
+    +  simpl. reflexivity.
+    + rewrite H. simpl. reflexivity.
+Qed.
+
+(**
+A fundamental property of substitutions is their distributivity and associativity across the summation and multiplication of terms.
+Again the importance of these proofs will not become apparent until we talk about unification.
+**)
+
+(* A useful lemma for showing the distributivity of substitutions across terms *)
+Lemma subst_distribution :
+  forall s x y, apply_subst x s + apply_subst y s == apply_subst (x + y) s.
+Proof.
+intro. induction s. simpl. intros. reflexivity. intros. simpl. reflexivity. 
+Qed.
+
+(* A lemma to prove the associativity of the apply_subst function *)
+Lemma subst_associative :
+  forall s x y, apply_subst x s * apply_subst y s == apply_subst (x * y) s.
+Proof.
+intro. induction s. intros. reflexivity. intros. simpl. reflexivity. 
+Qed.
+
+
+Lemma subst_sum_distr_opp :
+  forall s x y, apply_subst (x + y) s == apply_subst x s + apply_subst y s.
+Proof.
+  intros.
+  apply refl_comm.
+  apply subst_distribution.
+Qed. 
+
+
+Lemma subst_mul_distr_opp :
+  forall s x y, apply_subst (x * y) s == apply_subst x s * apply_subst y s.
+Proof.
+  intros.
+  apply refl_comm.
+  apply subst_associative.
+Qed. 
+
+Lemma var_subst:
+  forall (v : var) (ts : term) ,
+  (apply_subst (VAR v) (cons (v , ts) nil) ) == ts.
+Proof.
+intros. simpl. destruct (beq_nat v v) eqn: e. apply beq_nat_true in e.
+reflexivity. apply beq_nat_false in e. firstorder.
+Qed.
+
 (** ** Examples **)
 
+(**
+Here are some examples showcasing the nature of applying substitutions to terms.
+**)
+
+Example subst_ex1 :
+  (apply_subst (T0 + T1) []) == T0 + T1.
+Proof.
+intros. reflexivity.
+Qed.
+
+Example subst_ex2 :
+  (apply_subst (VAR 0 * VAR 1) [(0, T0)]) == T0.
+Proof.
+intros. simpl. apply mul_T0_x.
+Qed.
 
 (** * Unification **)
 
+(**
+Now that we have established the concept of term substitutions in Coq, it is time for us to formally define the concept of 
+Boolean unification. Unification, in its most literal sense, refers to the act of applying a substitution to terms in order
+to make them equivalent to each other. In other words, to say that two terms are unifiable is to really say that there exists
+a substitution such that the two terms are equal. Interestingly enough, we can abstract this concept further to simply saying
+that a single term is unifiable if there exists a substitution such that the term will be equivalent to 0. By doing this 
+abstraction, we can prove that equation solving and unification are essentially the same fundamental problem.
+**)
 
+(**
+Below is the initial definition for unification, namely that two terms can be unified to be equivalent to one another. By starting
+here we will show each step towards abstracting unification to refer to a single term.
+**)
 
 (*
 Definition subst_idempotent (s : subst) : Prop :=
@@ -695,20 +736,22 @@ Definition subst_idempotent (s : subst) : Prop :=
 Definition unifies (a b : term) (s : subst) : Prop :=
   (apply_subst a s) == (apply_subst b s).
 
-(* Examples that prove the correctness of the unifies function on specific examples *)
+(**
+Here is a simple example demonstrating the concept of testing whether two terms are unified by a substitution.
+**)
+
+(* Examples that prove the correctness of the unifies definition *)
 
 Example ex_unif1 :
-  unifies (VAR 0) (VAR 1) ((0, T0) :: nil) -> False.
-Proof.
-intros. unfold unifies in H. simpl in H. 
-Admitted.
-
-Example ex_unif2 :
   unifies (VAR 0) (VAR 1) ((0, T1) :: (1, T1) :: nil).
 Proof.
 unfold unifies. simpl. reflexivity.
 Qed.
 
+(**
+Now we are going to show that moving both terms to one side of the equivalence relation through addition does not change the 
+concept of unification.
+**)
 
 (* Proposition that a given substitution makes equivalent the sum of two terms when the substitution 
   is applied to each of them, and ground term T0 *) 
@@ -737,30 +780,26 @@ intros. split.
 }
 Qed.
 
+(**
+Now we can define what it means for a substitution to be a unifier for a given term.
+**)
+
 (* Is 's' a unifier for t? *)
 (* Proposition that a given substitution unifies a given term, namely it makes it
  equivalent with T0. *)
 Definition unifier (t : term) (s : subst) : Prop :=
   (apply_subst t s) == T0.
 
-(* Examples that prove certain propositions that involve the unifier proposition *)
-Example unifier_ex1 :
-  ~(unifier (VAR 0) ((1, T1) :: nil)).
-Proof.
-unfold unifier. simpl. intuition.
-Admitted.
-
-Example unifier_ex2 :
-  ~(unifier (VAR 0) ((0, VAR 0) :: nil)).
-Proof.
-unfold unifier. simpl. intuition.
-Admitted.
-
-Example unifier_ex3 : 
+Example unifier_ex1 : 
   (unifier (VAR 0) ((0, T0) :: nil)).
 Proof.
 unfold unifier. simpl. reflexivity.
 Qed.
+
+(**
+To ensure our efforts were not in vain, let us now prove that this last abstraction of the unification problem is still 
+equivalent to the original.
+**)
 
 (* Lemma that proves that the unifier proposition can distributes over addition of terms *) 
 Lemma unifier_distribution : 
@@ -777,38 +816,16 @@ intros. split.
 }
 Qed.
 
-(* Lemma that proves that a when a substitution unifies a term , then
-  a superset of its susbtitutions also unifies the term *)
-Lemma unifier_subset_imply_superset :
-  forall s t r, unifier t s -> unifier t (r :: s).
-Proof.
-intros. induction s.
-{ 
-  unfold unifier in *. simpl in *.
-Admitted.
+
+(**
+Lastly let us define a term to be unifiable if there exists a substitution that unifies it.
+**)
 
 (* Proposition that states when a term is unifiable *)
 Definition unifiable (t : term) : Prop :=
   exists s, unifier t s.
 
-
-(* Examples involving the unifiable proposition *)
 Example unifiable_ex1 :
-  unifiable (T1) -> False.
-Proof.
-intros. inversion H. unfold unifier in H0. rewrite ground_term_cannot_subst in H0.
-Admitted.
-
-Example unifiable_ex2 :
-  forall x, unifiable (x + x + T1) -> False.
-Proof.
-intros. unfold unifiable in H. unfold unifier in H.
-Admitted. 
-(*rewrite sum_x_x in H0. rewrite sum_id in H0.
-rewrite ground_term_cannot_subst in H0. inversion H0. reflexivity.
-Qed.*)
-
-Example unifiable_ex3 :
   exists x, unifiable (x + T1).
 Proof.
 exists (T1). unfold unifiable. unfold unifier. 
@@ -820,6 +837,9 @@ Qed.
 (* In this subsection we define propositions, lemmas and examples related 
   to the most general unifier *)
 
+(**
+
+**)
 
 (* substitution composition *)
 Definition substitution_composition (s s' delta : subst) (t : term) : Prop :=
@@ -851,18 +871,16 @@ Proof.
   intros. specialize (H H0). exists s' . intros.  specialize (H s' x).  specialize (H H1). apply H.
 Qed.
 
-
-
-
-Example mgu_ex1 :
-  most_general_unifier (VAR 0 * VAR 1) ((0, VAR 0 * (T1 + VAR 1)) :: nil).
+Lemma most_general_unifier_compat : forall  (t t' : term),
+     t == t' -> forall (sigma: subst), (most_general_unifier t sigma) <-> (most_general_unifier t' sigma).
 Proof.
-unfold most_general_unifier. unfold unifier. simpl. unfold more_general_substitution. simpl. 
 Admitted.
 
-
-
 (** * Auxilliary Computational Operations and Simplifications **)
+
+(**
+These functions below will come in handy later during the Lowenheim formula proof.
+**)
 
 (* alternate defintion of functions related to term operations and evaluations
    that take into consideration more sub-cases *)
@@ -884,36 +902,28 @@ Fixpoint identical (a b: term) : bool :=
     | SUM x y, _ => false
   end.
     
-(* Basic addition fot terms *)
+
+(* Basic Addition for terms *)
 Definition plus_one_step (a b : term) : term :=
   match a, b with
-    | T0, _ => b
+    | T0, T0 => T0
+    | T0, T1 => T1
     | T1, T0 => T1
-    | T1, T1 => T0
-    | T1 , _  => SUM a b 
-    | VAR x , T0 => a
-    | VAR x , _ => if identical a b then T0 else SUM a b
-    | PRODUCT x y , T0 => a
-    | PRODUCT x y, _ => if identical a b then T0 else SUM a b
-    | SUM x y , T0 => a
-    | SUM x y, _ => if identical a b then T0 else SUM a b
+    | T1 , T1  => T0
+    | _ , _ => SUM a b
   end.
+
 
 (* Basic Multiplication for terms *)
 Definition mult_one_step (a b : term) : term :=
   match a, b with
-    | T0, _ => T0
-    | T1 , _  => b 
-    | VAR x , T0 => T0
-    | VAR x , T1 => a
-    | VAR x , _ => if identical a b then a else PRODUCT a b
-    | PRODUCT x y , T0 => T0
-    | PRODUCT x y , T1 => a
-    | PRODUCT x y, _ => if identical a b then a else PRODUCT a b
-    | SUM x y , T0 => T0
-    | SUM x y , T1 => a
-    | SUM x y, _ => if identical a b then a else PRODUCT a b
+    | T0, T0 => T0
+    | T0, T1 => T0
+    | T1, T0 => T0
+    | T1 , T1  => T1
+    | _ , _ => PRODUCT a b
   end.
+
 
 (* Simplifies a term in very apparent and basic ways *)
 Fixpoint simplify (t : term) : term :=
@@ -925,9 +935,378 @@ Fixpoint simplify (t : term) : term :=
     | SUM x y => plus_one_step (simplify x) (simplify y)
   end.
 
-(* apply the simplify function n times, in case more simplifications are needed. Needs correction, does not always correctly *)
-Fixpoint Simplify_N (t : term) (counter : nat): term :=
-  match counter with
-    | O => t
-    | S n' => (Simplify_N (simplify t) n')
-  end.
+
+Lemma pos_left_sum_compat : forall  (t t1 t2 : term),
+     t == t1 -> plus_one_step t1 t2 == plus_one_step t t2. 
+Proof.
+  intros. induction t1.
+  - induction t.
+    + reflexivity.
+    + apply T1_not_equiv_T0 in H. inversion H.
+    + induction t2.
+      { simpl. rewrite H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite H. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite H. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite H. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+  - induction t.
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. reflexivity. }
+      { simpl. reflexivity. }
+      { simpl. reflexivity. }
+      { simpl. reflexivity. }
+      { simpl. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite sum_comm. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite sum_comm. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite sum_comm. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+  - induction t.
+    + induction t2.
+      { simpl. rewrite H. rewrite sum_x_x. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite <- H. rewrite sum_comm. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. } 
+  - induction t.
+    + induction t2.
+      { simpl. rewrite <- H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite <- H. rewrite sum_id. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite <- H. rewrite sum_comm. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+ - induction t.
+    + induction t2.
+      { simpl. rewrite <- H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite <- H. rewrite sum_id. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite <- H. rewrite sum_comm. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+Qed.
+
+Lemma pos_right_sum_compat : forall  (t t1 t2 : term),
+     t == t2 -> plus_one_step t1 t2 == plus_one_step t1 t. 
+Proof.
+intros. induction t1.
+  - induction t.
+    + induction t2. 
+      { simpl. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. rewrite sum_x_x. apply H. }
+      { simpl. rewrite <- H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite <- H. rewrite sum_x_x. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. reflexivity. }
+      { simpl. rewrite H. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. rewrite sum_id. reflexivity. }
+      { simpl. rewrite <- H. rewrite sum_id. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite H. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. rewrite sum_id. reflexivity. }
+      { simpl. rewrite <- H. rewrite sum_id. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite H. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. rewrite sum_id. reflexivity. }
+      { simpl. rewrite <- H. rewrite sum_id. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite H. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. rewrite sum_id. reflexivity. }
+      { simpl. rewrite <- H. rewrite sum_id. reflexivity. }
+  - induction t.
+    + induction t2. 
+      { simpl. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. rewrite sum_comm. rewrite sum_id. reflexivity. }
+      { simpl. rewrite <- H. rewrite sum_comm. rewrite sum_id. reflexivity. }
+      { simpl. rewrite <- H. rewrite sum_comm. rewrite sum_id. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. reflexivity. }
+      { simpl. rewrite H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite <- H. rewrite sum_x_x. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite sum_comm. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite sum_comm. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. rewrite sum_comm. rewrite sum_id. reflexivity. }
+      { simpl. rewrite H. rewrite sum_x_x. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+  - induction t.
+    + induction t2. 
+      { simpl. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+  - induction t.
+    + induction t2. 
+      { simpl. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+  - induction t.
+    + induction t2. 
+      { simpl. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+    + induction t2.
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite H. reflexivity. }
+      { simpl. rewrite <- H. reflexivity. }
+Qed.
+
+Lemma pos_left_mul_compat : forall  (t t1 t2 : term),
+     t == t1 -> mult_one_step t1 t2 == mult_one_step t t2. 
+Proof.
+Admitted.
+
+
+Lemma pos_right_mul_compat : forall  (t t1 t2 : term),
+     t == t2 -> mult_one_step t1 t2 == mult_one_step t1 t. 
+Proof.
+Admitted.
+
+Lemma simplify_eqv :
+ forall (t : term),
+ simplify t == t.
+Proof.
+ intros. induction t.
+ - simpl. reflexivity.
+ - simpl. reflexivity.
+ - simpl. reflexivity.
+ - simpl. pose proof pos_left_sum_compat. specialize (H t1 (simplify t1) (simplify t2)).
+   symmetry in IHt1. specialize (H IHt1). rewrite H.
+  pose proof pos_right_sum_compat. specialize (H0 (simplify t2) t1 t2).
+  specialize (H0 IHt2). symmetry in H0. rewrite H0.
+  induction t1.
+  + induction t2.
+    { simpl. rewrite sum_x_x. reflexivity. }
+    { simpl. rewrite sum_id. reflexivity. }
+    { simpl. reflexivity. }
+    { simpl. reflexivity. }
+    { simpl. reflexivity. }
+  + induction t2.
+    { simpl. rewrite sum_id_sym. reflexivity. }
+    { simpl. rewrite sum_x_x. reflexivity.  } 
+    { simpl. reflexivity. }
+    { simpl. reflexivity. }
+    { simpl. reflexivity.  } 
+  + simpl. reflexivity.
+  + simpl. reflexivity.
+  + simpl. reflexivity.
+ - simpl. pose proof pos_left_mul_compat. specialize (H t1 (simplify t1) (simplify t2)).
+   symmetry in IHt1. specialize (H IHt1). rewrite H.
+  pose proof pos_right_mul_compat. specialize (H0 (simplify t2) t1 t2).
+  specialize (H0 IHt2). symmetry in H0. rewrite H0.
+  induction t1.
+  + induction t2.
+    { simpl. rewrite mul_x_x. reflexivity. }
+    { simpl. rewrite mul_T0_x.  reflexivity. }
+    { simpl. reflexivity. }
+    { simpl. reflexivity. }
+    { simpl. reflexivity. }
+  + induction t2.
+    { simpl. rewrite mul_T0_x_sym. reflexivity. }
+    { simpl. rewrite mul_x_x. reflexivity.  } 
+    { simpl. reflexivity. }
+    { simpl. reflexivity. }
+    { simpl. reflexivity.  } 
+  + simpl. reflexivity.
+  + simpl. reflexivity.
+  + simpl. reflexivity.
+Qed.
+  
+

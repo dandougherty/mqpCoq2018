@@ -327,6 +327,21 @@ Proof.
       * inversion H0.
 Qed.
 
+Lemma HdRel_le_lt : forall a m,
+  HdRel (fun n m => is_true (leb n m)) a m /\ NoDup (a::m) -> HdRel lt a m.
+Proof.
+  intros a m []. remember (fun n m => is_true (leb n m)) as le.
+  destruct m.
+  - apply HdRel_nil.
+  - apply HdRel_cons. apply HdRel_inv in H.
+    apply (NoDup_neq _ a n) in H0; intuition. rewrite Heqle in H.
+    unfold is_true in H. apply leb_le in H. destruct (a ?= n) eqn:Hcomp.
+    + apply compare_eq_iff in Hcomp. contradiction.
+    + apply compare_lt_iff in Hcomp. apply Hcomp.
+    + apply compare_gt_iff in Hcomp. apply leb_correct_conv in Hcomp.
+      apply leb_correct in H. rewrite H in Hcomp. inversion Hcomp.
+Qed.
+
 Lemma VarSort_Sorted : forall (m : mono),
   Sorted (fun n m => is_true (leb n m)) m /\ NoDup m -> Sorted lt m.
 Proof.

@@ -6,6 +6,10 @@ Require Import Sorting.
 Require Import Permutation.
 Require Import Omega.
 
+
+
+(* ========== lex ========== *)
+
 Fixpoint lex {T : Type} (cmp : T -> T -> comparison) (l1 l2 : list T)
               : comparison :=
   match l1, l2 with
@@ -125,50 +129,183 @@ Qed.
 
 Hint Resolve lex_nat_refl lex_nat_antisym lex_nat_cons.
 
-Lemma NoDup_neq : forall {X:Type} (m : list X) a b,
-  NoDup (a :: b :: m) -> 
-  a <> b.
-Proof.
-  intros X m a b Hdup. apply NoDup_cons_iff in Hdup as [].
-  apply NoDup_cons_iff in H0 as []. intro. apply H. simpl. auto.
-Qed.
 
-Lemma HdRel_le_lt : forall a m,
-  HdRel (fun n m => is_true (leb n m)) a m /\ NoDup (a::m) -> HdRel lt a m.
+
+(* ========== in ========== *)
+
+Lemma Permutation_not_In : forall (A:Type) a (l l':list A),
+  Permutation l l' ->
+  ~ In a l ->
+  ~ In a l'.
 Proof.
-  intros a m []. remember (fun n m => is_true (leb n m)) as le.
-  destruct m.
-  - apply HdRel_nil.
-  - apply HdRel_cons. apply HdRel_inv in H.
-    apply (NoDup_neq _ a n) in H0; intuition. rewrite Heqle in H.
-    unfold is_true in H. apply leb_le in H. destruct (a ?= n) eqn:Hcomp.
-    + apply compare_eq_iff in Hcomp. contradiction.
-    + apply compare_lt_iff in Hcomp. apply Hcomp.
-    + apply compare_gt_iff in Hcomp. apply leb_correct_conv in Hcomp.
-      apply leb_correct in H. rewrite H in Hcomp. inversion Hcomp.
+  intros A a l l' H H0. intro. apply H0. apply Permutation_sym in H.
+  apply (Permutation_in a) in H; auto.
 Qed.
 
 
 
+(* ========== distribute ========== *)
 
+Definition distribute {A} (l m : list (list A)) : list (list A) :=
+  concat (map (fun a:(list A) => (map (app a) l)) m).
 
-Fixpoint nodup_cancel {A} Aeq_dec (l : list A) : list A :=
-  match l with
-  | [] => []
-  | x::xs => 
-    let count := (count_occ Aeq_dec xs x) in 
-    let xs' := (remove Aeq_dec x (nodup_cancel Aeq_dec xs)) in
-    if (even count) then x::xs' else xs'
-  end.
-
-Lemma In_remove : forall {A:Type} Aeq_dec a b (l:list A),
-  In a (remove Aeq_dec b l) -> In a l.
+Lemma distribute_nil : forall {A:Type} (p:list (list A)),
+  distribute [] p = [].
 Proof.
-  intros A Aeq_dec a b l H. induction l as [|c l IHl].
-  - contradiction.
-  - destruct (Aeq_dec b c) eqn:Heq; simpl in H; rewrite Heq in H.
-    + right. auto.
-    + destruct H; [rewrite H; intuition | right; auto].
+  intros A p. induction p.
+  - auto.
+  - unfold distribute in *. simpl in *. auto.
+Qed.
+
+Lemma distribute_nil_r : forall {A:Type} (p:list (list A)),
+  distribute p [] = [].
+Proof.
+  intros A p. induction p.
+  - auto.
+  - unfold distribute in *. simpl in *. auto.
+Qed.
+
+
+
+(* ========== incl ========== *)
+
+Lemma incl_not_in : forall A a (l m : list A),
+  incl l (a :: m) ->
+  ~ In a l ->
+  incl l m.
+Proof.
+  intros A a l m Hincl Hnin. unfold incl in *. intros a0 Hin.
+  simpl in Hincl. destruct (Hincl a0); auto. rewrite H in Hnin. contradiction.
+Qed.
+
+Lemma Permutation_incl : forall {A} (l m : list A),
+  Permutation l m -> incl l m /\ incl m l.
+Proof.
+  intros A l m H. apply Permutation_sym in H as H0. split.
+  + unfold incl. intros a. apply (Permutation_in _ H).
+  + unfold incl. intros a. apply (Permutation_in _ H0).
+Qed.
+
+Lemma incl_cons_inv : forall (A:Type) (a:A) (l m : list A),
+  incl (a :: l) m -> In a m /\ incl l m.
+Proof.
+  intros A a l m H. split.
+  - unfold incl in H. apply H. intuition.
+  - unfold incl in *. intros b Hin. apply H. intuition.
+Qed.
+
+
+
+(* ========== count_occ ========== *)
+
+Lemma count_occ_Permutation : forall (A:Type) Aeq_dec a (l l':list A),
+  Permutation l l' ->
+  count_occ Aeq_dec l a = count_occ Aeq_dec l' a.
+Proof.
+  intros A Aeq_dec a l l' H. induction H.
+  - auto.
+  - simpl. destruct (Aeq_dec x a); auto.
+  - simpl. destruct (Aeq_dec y a); destruct (Aeq_dec x a); auto.
+  - rewrite <- IHPermutation2. rewrite IHPermutation1. auto.
+Qed.
+
+Lemma count_occ_app : forall (A:Type) a (l m:list A) Aeq_dec,
+  count_occ Aeq_dec (l++m) a = add (count_occ Aeq_dec l a) (count_occ Aeq_dec m a).
+Proof.
+  intros A a l m Aeq_dec. induction l.
+  - simpl. auto.
+  - simpl. destruct (Aeq_dec a0 a); simpl; auto.
+Qed.
+
+Lemma count_occ_remove : forall {A} Aeq_dec (a:A) p,
+  count_occ Aeq_dec (remove Aeq_dec a p) a = 0.
+Proof.
+  intros A Aeq_dec a p. induction p.
+  - simpl. auto.
+  - simpl. destruct (Aeq_dec a a0) eqn:Haa0.
+    + apply IHp.
+    + simpl. destruct (Aeq_dec a0 a); try (symmetry in e; contradiction).
+      apply IHp.
+Qed.
+
+Lemma count_occ_neq_remove : forall {A} Aeq_dec (a:A) b p,
+  a <> b ->
+  count_occ Aeq_dec (remove Aeq_dec a p) b =
+  count_occ Aeq_dec p b.
+Proof.
+  intros A Aeq_dec a b p H. induction p; simpl; auto. destruct (Aeq_dec a a0).
+  - destruct (Aeq_dec a0 b).
+    + rewrite <- e0 in H. rewrite e in H. contradiction.
+    + apply IHp.
+  - simpl. destruct (Aeq_dec a0 b); auto.
+Qed.
+
+
+
+(* ========== concat ========== *)
+
+Lemma Permutation_concat : forall {A} (l m:list (list A)),
+  Permutation l m ->
+  Permutation (concat l) (concat m).
+Proof.
+  intros A l m H. induction H.
+  - auto.
+  - simpl. apply Permutation_app_head. auto.
+  - simpl. apply Permutation_trans with (l':=(concat l ++ y ++ x)).
+    + rewrite app_assoc. apply Permutation_app_comm.
+    + apply Permutation_trans with (l':=(concat l ++ x ++ y)).
+      * apply Permutation_app_head. apply Permutation_app_comm.
+      * rewrite (app_assoc x y). apply Permutation_app_comm.
+  - apply Permutation_trans with (l':=(concat l')); auto.
+Qed.
+
+Lemma In_concat_exists : forall (A:Type) ll (a:A),
+  (exists l, In l ll /\ In a l) <-> In a (concat ll).
+Proof.
+  intros A ll a. split; intros H.
+  - destruct H as [l[]]. apply In_split in H. destruct H as [l1[l2 H]].
+    rewrite H. apply Permutation_in with (l:=(concat (l :: l1 ++ l2))).
+    + apply Permutation_concat. apply Permutation_middle.
+    + simpl. apply in_app_iff. auto.
+  - induction ll.
+    + inversion H.
+    + simpl in H. apply in_app_iff in H. destruct H.
+      * exists a0. split; intuition.
+      * destruct IHll; auto. exists x. intuition.
+Qed.
+
+Lemma concat_map : forall {A B:Type} (f:A->B) (l:list A),
+  concat (map (fun a => [f a]) l) = map f l.
+Proof.
+  intros A B f l. induction l.
+  - auto.
+  - simpl. f_equal. apply IHl.
+Qed.
+
+Lemma concat_map_nil : forall {A} (p:list A),
+  concat (map (fun x => []) p) = (@nil A).
+Proof.
+  induction p; auto.
+Qed.
+
+
+
+(* ========== forall ========== *)
+
+Lemma Forall_In : forall (A:Type) (l:list A) a Rel,
+  In a l -> Forall Rel l -> Rel a.
+Proof.
+  intros A l a Rel Hin Hfor. apply (Forall_forall Rel l); auto.
+Qed.
+
+Lemma existsb_false_forall : forall {A} f (l:list A),
+  existsb f l = false ->
+  (forall a, In a l -> (f a) = false).
+Proof.
+  intros A f l H a Hin. destruct (f a) eqn:Hfa.
+  - exfalso. rewrite <- Bool.negb_true_iff in H. apply (Bool.eq_true_false_abs _ H).
+    rewrite Bool.negb_false_iff. apply existsb_exists. exists a. split; auto.
+  - auto.
 Qed.
 
 Lemma Forall_cons_iff : forall (A:Type) Rel a (l:list A),
@@ -192,6 +329,20 @@ Proof.
     + apply Forall_cons_iff. split.
       * apply IHl. apply H.
       * apply H.
+Qed.
+
+
+
+(* ========== remove ========== *)
+
+Lemma In_remove : forall {A:Type} Aeq_dec a b (l:list A),
+  In a (remove Aeq_dec b l) -> In a l.
+Proof.
+  intros A Aeq_dec a b l H. induction l as [|c l IHl].
+  - contradiction.
+  - destruct (Aeq_dec b c) eqn:Heq; simpl in H; rewrite Heq in H.
+    + right. auto.
+    + destruct H; [rewrite H; intuition | right; auto].
 Qed.
 
 Lemma StronglySorted_remove : forall {A:Type} Aeq_dec Rel a (l:list A),
@@ -226,17 +377,56 @@ Proof.
     + simpl. f_equal. apply IHl.
 Qed.
 
-Lemma nodup_cancel_in : forall (A:Type) Aeq_dec a (l:list A),
-  In a (nodup_cancel Aeq_dec l) -> In a l.
+Lemma remove_Permutation : forall (A:Type) Aeq_dec a (l l':list A),
+  Permutation l l' ->
+  Permutation (remove Aeq_dec a l) (remove Aeq_dec a l').
 Proof.
-  intros A Aeq_dec a l H. induction l as [|b l IHl].
-  - contradiction.
-  - simpl in H. destruct (Aeq_dec a b).
-    + rewrite e. intuition.
-    + right. apply IHl. destruct (even (count_occ Aeq_dec l b)).
-      * simpl in H. destruct H. rewrite H in n. contradiction.
-        apply In_remove in H. auto.
-      * apply In_remove in H. auto.
+  intros A Aeq_dec a l l' H. induction H.
+  - auto.
+  - simpl. destruct (Aeq_dec a x); auto.
+  - simpl. destruct (Aeq_dec a y); destruct (Aeq_dec a x); auto.
+    apply perm_swap.
+  - apply Permutation_trans with (l':=(remove Aeq_dec a l')); auto.
+Qed.
+
+
+Lemma remove_remove : forall {A:Type} Aeq_dec (a b:A) p,
+  remove Aeq_dec a (remove Aeq_dec b p) = 
+  remove Aeq_dec b (remove Aeq_dec a p).
+Proof.
+  intros A Aeq_dec a b p. induction p as [|c]; simpl; auto.
+  destruct (Aeq_dec a b); destruct (Aeq_dec b c); destruct (Aeq_dec a c).
+  - auto.
+  - rewrite <- e0 in n. rewrite e in n. contradiction.
+  - rewrite <- e in n. rewrite e0 in n. contradiction.
+  - simpl. destruct (Aeq_dec a c); try contradiction.
+    destruct (Aeq_dec b c); try contradiction. rewrite IHp. auto.
+  - rewrite e in n. rewrite e0 in n. contradiction.
+  - simpl. destruct (Aeq_dec b c); try contradiction. auto.
+  - simpl. destruct (Aeq_dec a c); try contradiction. auto.
+  - simpl. destruct (Aeq_dec a c); try contradiction.
+    destruct (Aeq_dec b c); try contradiction. rewrite IHp. auto.
+Qed.
+
+Lemma remove_pointless : forall {A Aeq_dec} (a:A) p q,
+  remove Aeq_dec a (remove Aeq_dec a p ++ q) = 
+  remove Aeq_dec a (p ++ q).
+Proof.
+  intros A Aeq_dec a p q. induction p; auto. simpl. destruct (Aeq_dec a a0) eqn:Heq.
+  - apply IHp.
+  - simpl. rewrite Heq. f_equal. apply IHp.
+Qed.
+
+
+
+(* ========== nodup ========== *)
+
+Lemma NoDup_neq : forall {X:Type} (m : list X) a b,
+  NoDup (a :: b :: m) -> 
+  a <> b.
+Proof.
+  intros X m a b Hdup. apply NoDup_cons_iff in Hdup as [].
+  apply NoDup_cons_iff in H0 as []. intro. apply H. simpl. auto.
 Qed.
 
 Lemma NoDup_remove : forall (A:Type) Aeq_dec a (l:list A),
@@ -267,16 +457,6 @@ Proof.
   - auto.
 Qed.
 
-Lemma NoDup_nodup_cancel : forall (A:Type) Aeq_dec (l:list A),
-NoDup (nodup_cancel Aeq_dec l).
-Proof.
-  induction l as [|a l' Hrec]; simpl.
-  - constructor.
-  - destruct (even (count_occ Aeq_dec l' a)); simpl.
-    + apply NoDup_cons; [apply remove_In | apply NoDup_remove; auto].
-    + apply NoDup_remove; auto.
-Qed.
-
 Lemma no_nodup_NoDup : forall (A:Type) Aeq_dec (l:list A),
   NoDup l ->
   nodup Aeq_dec l = l.
@@ -285,18 +465,6 @@ Proof.
   - auto.
   - simpl. apply NoDup_cons_iff in H as []. destruct (in_dec Aeq_dec a l).
     contradiction. f_equal. auto.
-Qed.
-
-Lemma no_nodup_cancel_NoDup : forall (A:Type) Aeq_dec (l:list A),
-  NoDup l ->
-  nodup_cancel Aeq_dec l = l.
-Proof.
-  intros A Aeq_dec l H. induction l.
-  - auto.
-  - simpl. apply NoDup_cons_iff in H as []. assert (count_occ Aeq_dec l a = 0).
-    + apply count_occ_not_In. auto.
-    + rewrite H1. simpl. f_equal. rewrite not_In_remove. auto. intro.
-      apply nodup_cancel_in in H2. apply H. auto.
 Qed.
 
 Lemma Sorted_nodup : forall (A:Type) Aeq_dec Rel (l:list A),
@@ -315,6 +483,101 @@ Proof.
         apply H0. apply nodup_In in Hin. auto.
 Qed.
 
+Lemma NoDup_In_split : forall {A:Type} (x:A) l l1 l2,
+  l = l1 ++ x :: l2 ->
+  NoDup l ->
+  ~ In x l1 /\ ~ In x l2.
+Proof.
+  intros A x l l1 l2 H H0. rewrite H in H0.
+  apply NoDup_remove_2 in H0. split; intro; intuition.
+Qed.
+
+Lemma Permutation_nodup : forall A Aeq_dec (l m:list A),
+  Permutation l m -> Permutation (nodup Aeq_dec l) (nodup Aeq_dec m).
+Proof.
+  intros. induction H.
+  - auto.
+  - simpl. destruct (in_dec Aeq_dec x l).
+    + apply Permutation_in with (l':=l') in i; auto. destruct in_dec; try contradiction.
+      auto.
+    + assert (~ In x l'). intro. apply n. apply Permutation_in with (l':=l) in H0; auto.
+      apply Permutation_sym; auto. destruct in_dec; try contradiction.
+      apply perm_skip. auto.
+  - destruct (in_dec Aeq_dec y (x::l)). destruct i.
+    + rewrite H. simpl. destruct (Aeq_dec y y); try contradiction. destruct in_dec.
+      auto. apply perm_skip. auto.
+    + simpl. destruct (Aeq_dec x y). destruct in_dec; destruct (Aeq_dec y x);
+      try (symmetry in e; contradiction). rewrite e in i. destruct in_dec; try contradiction.
+      auto. assert (~ In y l). intro; apply n; rewrite e; auto.
+      destruct in_dec; try contradiction. destruct in_dec; try contradiction.
+      destruct in_dec; destruct (Aeq_dec y x); try (symmetry in e; contradiction).
+      auto. apply perm_skip. auto.
+    + simpl. destruct (Aeq_dec x y). destruct in_dec. destruct (Aeq_dec y x);
+      try (symmetry in e; contradiction). rewrite e0. destruct in_dec; try contradiction.
+      auto. destruct (Aeq_dec y x); try (symmetry in e; contradiction).
+      assert (~ In y l). intro; apply n0; rewrite e; auto. destruct in_dec; try contradiction.
+      rewrite e0. apply perm_skip; auto. assert (~ In y l). intro; apply n; intuition.
+      destruct in_dec; try contradiction. destruct in_dec; destruct (Aeq_dec y x);
+      try (symmetry in e; contradiction). auto. apply perm_swap.
+  - apply Permutation_trans with (l':=(nodup Aeq_dec l')); auto.
+Qed.
+
+Lemma nothing_in_empty : forall {A} (l:list A),
+  (forall a, ~ In a l) ->
+  l = [].
+Proof.
+  intros A l H. destruct l; auto. pose (H a). simpl in n. exfalso.
+  apply n. auto.
+Qed.
+
+
+
+(* ========== nodup_cancel ========== *)
+
+Fixpoint nodup_cancel {A} Aeq_dec (l : list A) : list A :=
+  match l with
+  | [] => []
+  | x::xs => 
+    let count := (count_occ Aeq_dec xs x) in 
+    let xs' := (remove Aeq_dec x (nodup_cancel Aeq_dec xs)) in
+    if (even count) then x::xs' else xs'
+  end.
+
+Lemma nodup_cancel_in : forall (A:Type) Aeq_dec a (l:list A),
+  In a (nodup_cancel Aeq_dec l) -> In a l.
+Proof.
+  intros A Aeq_dec a l H. induction l as [|b l IHl].
+  - contradiction.
+  - simpl in H. destruct (Aeq_dec a b).
+    + rewrite e. intuition.
+    + right. apply IHl. destruct (even (count_occ Aeq_dec l b)).
+      * simpl in H. destruct H. rewrite H in n. contradiction.
+        apply In_remove in H. auto.
+      * apply In_remove in H. auto.
+Qed.
+
+Lemma NoDup_nodup_cancel : forall (A:Type) Aeq_dec (l:list A),
+NoDup (nodup_cancel Aeq_dec l).
+Proof.
+  induction l as [|a l' Hrec]; simpl.
+  - constructor.
+  - destruct (even (count_occ Aeq_dec l' a)); simpl.
+    + apply NoDup_cons; [apply remove_In | apply NoDup_remove; auto].
+    + apply NoDup_remove; auto.
+Qed.
+
+Lemma no_nodup_cancel_NoDup : forall (A:Type) Aeq_dec (l:list A),
+  NoDup l ->
+  nodup_cancel Aeq_dec l = l.
+Proof.
+  intros A Aeq_dec l H. induction l.
+  - auto.
+  - simpl. apply NoDup_cons_iff in H as []. assert (count_occ Aeq_dec l a = 0).
+    + apply count_occ_not_In. auto.
+    + rewrite H1. simpl. f_equal. rewrite not_In_remove. auto. intro.
+      apply nodup_cancel_in in H2. apply H. auto.
+Qed.
+
 Lemma Sorted_nodup_cancel : forall (A:Type) Aeq_dec Rel (l:list A),
   Relations_1.Transitive Rel ->
   Sorted Rel l -> 
@@ -331,173 +594,20 @@ Proof.
     + apply StronglySorted_remove. apply IHl. apply H.
 Qed.
 
-Lemma count_occ_Permutation : forall (A:Type) Aeq_dec a (l l':list A),
-  Permutation l l' ->
-  count_occ Aeq_dec l a = count_occ Aeq_dec l' a.
+Lemma count_occ_nodup_cancel : forall {A Aeq_dec} p (a:A),
+  even (count_occ Aeq_dec (nodup_cancel Aeq_dec p) a) =
+  even (count_occ Aeq_dec p a).
 Proof.
-  intros A Aeq_dec a l l' H. induction H.
-  - auto.
-  - simpl. destruct (Aeq_dec x a); auto.
-  - simpl. destruct (Aeq_dec y a); destruct (Aeq_dec x a); auto.
-  - rewrite <- IHPermutation2. rewrite IHPermutation1. auto.
-Qed.
-
-Lemma incl_not_in : forall A a (l m : list A),
-  incl l (a :: m) ->
-  ~ In a l ->
-  incl l m.
-Proof.
-  intros A a l m Hincl Hnin. unfold incl in *. intros a0 Hin.
-  simpl in Hincl. destruct (Hincl a0); auto. rewrite H in Hnin. contradiction.
-Qed.
-
-Lemma Permutation_not_In : forall (A:Type) a (l l':list A),
-  Permutation l l' ->
-  ~ In a l ->
-  ~ In a l'.
-Proof.
-  intros A a l l' H H0. intro. apply H0. apply Permutation_sym in H.
-  apply (Permutation_in a) in H; auto.
-Qed.
-
-Lemma Forall_In : forall (A:Type) (l:list A) a Rel,
-  In a l -> Forall Rel l -> Rel a.
-Proof.
-  intros A l a Rel Hin Hfor. apply (Forall_forall Rel l); auto.
-Qed.
-
-Definition distribute {A} (l m : list (list A)) : list (list A) :=
-  concat (map (fun a:(list A) => (map (app a) l)) m).
-
-Lemma distribute_nil : forall {A:Type} (p:list (list A)),
-  distribute [] p = [].
-Proof.
-  intros A p. induction p.
-  - auto.
-  - unfold distribute in *. simpl in *. auto.
-Qed.
-
-Lemma distribute_nil_r : forall {A:Type} (p:list (list A)),
-  distribute p [] = [].
-Proof.
-  intros A p. induction p.
-  - auto.
-  - unfold distribute in *. simpl in *. auto.
-Qed.
-
-Lemma Permutation_incl : forall {A} (l m : list A),
-  Permutation l m -> incl l m /\ incl m l.
-Proof.
-  intros A l m H. apply Permutation_sym in H as H0. split.
-  + unfold incl. intros a. apply (Permutation_in _ H).
-  + unfold incl. intros a. apply (Permutation_in _ H0).
-Qed.
-
-Lemma incl_cons_inv : forall (A:Type) (a:A) (l m : list A),
-  incl (a :: l) m -> In a m /\ incl l m.
-Proof.
-  intros A a l m H. split.
-  - unfold incl in H. apply H. intuition.
-  - unfold incl in *. intros b Hin. apply H. intuition.
-Qed.
-
-Lemma Permutation_concat : forall {A} (l m:list (list A)),
-  Permutation l m ->
-  Permutation (concat l) (concat m).
-Proof.
-  intros A l m H. induction H.
-  - auto.
-  - simpl. apply Permutation_app_head. auto.
-  - simpl. apply Permutation_trans with (l':=(concat l ++ y ++ x)).
-    + rewrite app_assoc. apply Permutation_app_comm.
-    + apply Permutation_trans with (l':=(concat l ++ x ++ y)).
-      * apply Permutation_app_head. apply Permutation_app_comm.
-      * rewrite (app_assoc x y). apply Permutation_app_comm.
-  - apply Permutation_trans with (l':=(concat l')); auto.
-Qed.
-
-Lemma count_occ_app : forall (A:Type) a (l m:list A) Aeq_dec,
-  count_occ Aeq_dec (l++m) a = add (count_occ Aeq_dec l a) (count_occ Aeq_dec m a).
-Proof.
-  intros A a l m Aeq_dec. induction l.
-  - simpl. auto.
-  - simpl. destruct (Aeq_dec a0 a); simpl; auto.
-Qed.
-
-Lemma count_occ_remove : forall {A} Aeq_dec (a:A) p,
-  count_occ Aeq_dec (remove Aeq_dec a p) a = 0.
-Proof.
-  intros A Aeq_dec a p. induction p.
-  - simpl. auto.
-  - simpl. destruct (Aeq_dec a a0) eqn:Haa0.
-    + apply IHp.
-    + simpl. destruct (Aeq_dec a0 a); try (symmetry in e; contradiction).
-      apply IHp.
-Qed.
-
-Lemma count_occ_neq_remove : forall {A} Aeq_dec (a:A) b p,
-  a <> b ->
-  count_occ Aeq_dec (remove Aeq_dec a p) b =
-  count_occ Aeq_dec p b.
-Proof.
-  intros A Aeq_dec a b p H. induction p; simpl; auto. destruct (Aeq_dec a a0).
-  - destruct (Aeq_dec a0 b).
-    + rewrite <- e0 in H. rewrite e in H. contradiction.
-    + apply IHp.
-  - simpl. destruct (Aeq_dec a0 b); auto.
-Qed.
-
-Lemma In_concat_exists : forall (A:Type) ll (a:A),
-  (exists l, In l ll /\ In a l) <-> In a (concat ll).
-Proof.
-  intros A ll a. split; intros H.
-  - destruct H as [l[]]. apply In_split in H. destruct H as [l1[l2 H]].
-    rewrite H. apply Permutation_in with (l:=(concat (l :: l1 ++ l2))).
-    + apply Permutation_concat. apply Permutation_middle.
-    + simpl. apply in_app_iff. auto.
-  - induction ll.
-    + inversion H.
-    + simpl in H. apply in_app_iff in H. destruct H.
-      * exists a0. split; intuition.
-      * destruct IHll; auto. exists x. intuition.
-Qed.
-
-Lemma concat_map : forall {A B:Type} (f:A->B) (l:list A),
-  concat (map (fun a => [f a]) l) = map f l.
-Proof.
-  intros A B f l. induction l.
-  - auto.
-  - simpl. f_equal. apply IHl.
-Qed.
-
-Lemma remove_Permutation : forall (A:Type) Aeq_dec a (l l':list A),
-  Permutation l l' ->
-  Permutation (remove Aeq_dec a l) (remove Aeq_dec a l').
-Proof.
-  intros A Aeq_dec a l l' H. induction H.
-  - auto.
-  - simpl. destruct (Aeq_dec a x); auto.
-  - simpl. destruct (Aeq_dec a y); destruct (Aeq_dec a x); auto.
-    apply perm_swap.
-  - apply Permutation_trans with (l':=(remove Aeq_dec a l')); auto.
-Qed.
-
-Lemma remove_remove : forall {A:Type} Aeq_dec (a b:A) p,
-  remove Aeq_dec a (remove Aeq_dec b p) = 
-  remove Aeq_dec b (remove Aeq_dec a p).
-Proof.
-  intros A Aeq_dec a b p. induction p as [|c]; simpl; auto.
-  destruct (Aeq_dec a b); destruct (Aeq_dec b c); destruct (Aeq_dec a c).
-  - auto.
-  - rewrite <- e0 in n. rewrite e in n. contradiction.
-  - rewrite <- e in n. rewrite e0 in n. contradiction.
-  - simpl. destruct (Aeq_dec a c); try contradiction.
-    destruct (Aeq_dec b c); try contradiction. rewrite IHp. auto.
-  - rewrite e in n. rewrite e0 in n. contradiction.
-  - simpl. destruct (Aeq_dec b c); try contradiction. auto.
-  - simpl. destruct (Aeq_dec a c); try contradiction. auto.
-  - simpl. destruct (Aeq_dec a c); try contradiction.
-    destruct (Aeq_dec b c); try contradiction. rewrite IHp. auto.
+  intros A Aeq_dec p a. induction p as [|b]; auto. simpl.
+  destruct (even (count_occ Aeq_dec p b)) eqn:Hb.
+  - simpl. destruct (Aeq_dec b a).
+    + rewrite e. rewrite count_occ_remove. rewrite e in Hb. repeat rewrite even_succ.
+      rewrite <- negb_odd in Hb. rewrite Bool.negb_true_iff in Hb. rewrite Hb. auto.
+    + rewrite count_occ_neq_remove; auto.
+  - simpl. destruct (Aeq_dec b a).
+    + rewrite e. rewrite count_occ_remove. rewrite e in Hb. repeat rewrite even_succ.
+      rewrite <- negb_odd in Hb. rewrite Bool.negb_false_iff in Hb. rewrite Hb. auto.
+    + rewrite count_occ_neq_remove; auto.
 Qed.
 
 Lemma nodup_cancel_Permutation : forall (A:Type) Aeq_dec (l l':list A),
@@ -535,51 +645,6 @@ Proof.
     + rewrite Hevy. destruct (Aeq_dec y x); try (symmetry in e; contradiction).
       rewrite Hevx. rewrite remove_remove. auto.
   - apply Permutation_trans with (l':=(nodup_cancel Aeq_dec l')); auto.
-Qed.
-
-Lemma NoDup_In_split : forall {A:Type} (x:A) l l1 l2,
-  l = l1 ++ x :: l2 ->
-  NoDup l ->
-  ~ In x l1 /\ ~ In x l2.
-Proof.
-  intros A x l l1 l2 H H0. rewrite H in H0.
-  apply NoDup_remove_2 in H0. split; intro; intuition.
-Qed.
-
-Lemma concat_map_nil : forall {A} (p:list A),
-  concat (map (fun x => []) p) = (@nil A).
-Proof.
-  induction p; auto.
-Qed.
-
-Lemma Permutation_nodup : forall A Aeq_dec (l m:list A),
-  Permutation l m -> Permutation (nodup Aeq_dec l) (nodup Aeq_dec m).
-Proof.
-  intros. induction H.
-  - auto.
-  - simpl. destruct (in_dec Aeq_dec x l).
-    + apply Permutation_in with (l':=l') in i; auto. destruct in_dec; try contradiction.
-      auto.
-    + assert (~ In x l'). intro. apply n. apply Permutation_in with (l':=l) in H0; auto.
-      apply Permutation_sym; auto. destruct in_dec; try contradiction.
-      apply perm_skip. auto.
-  - destruct (in_dec Aeq_dec y (x::l)). destruct i.
-    + rewrite H. simpl. destruct (Aeq_dec y y); try contradiction. destruct in_dec.
-      auto. apply perm_skip. auto.
-    + simpl. destruct (Aeq_dec x y). destruct in_dec; destruct (Aeq_dec y x);
-      try (symmetry in e; contradiction). rewrite e in i. destruct in_dec; try contradiction.
-      auto. assert (~ In y l). intro; apply n; rewrite e; auto.
-      destruct in_dec; try contradiction. destruct in_dec; try contradiction.
-      destruct in_dec; destruct (Aeq_dec y x); try (symmetry in e; contradiction).
-      auto. apply perm_skip. auto.
-    + simpl. destruct (Aeq_dec x y). destruct in_dec. destruct (Aeq_dec y x);
-      try (symmetry in e; contradiction). rewrite e0. destruct in_dec; try contradiction.
-      auto. destruct (Aeq_dec y x); try (symmetry in e; contradiction).
-      assert (~ In y l). intro; apply n0; rewrite e; auto. destruct in_dec; try contradiction.
-      rewrite e0. apply perm_skip; auto. assert (~ In y l). intro; apply n; intuition.
-      destruct in_dec; try contradiction. destruct in_dec; destruct (Aeq_dec y x);
-      try (symmetry in e; contradiction). auto. apply perm_swap.
-  - apply Permutation_trans with (l':=(nodup Aeq_dec l')); auto.
 Qed.
 
 Lemma nodup_cancel_remove_assoc : forall {A} Aeq_dec (a:A) p,
@@ -620,49 +685,6 @@ Proof.
       simpl. destruct (Aeq_dec a a); try contradiction.
       rewrite <- remove_distr_app. rewrite <- nodup_cancel_remove_assoc.
       rewrite IHp. auto.
-Qed.
-
-Lemma nothing_in_empty : forall {A} (l:list A),
-  (forall a, ~ In a l) ->
-  l = [].
-Proof.
-  intros A l H. destruct l; auto. pose (H a). simpl in n. exfalso.
-  apply n. auto.
-Qed.
-
-Lemma existsb_false_forall : forall {A} f (l:list A),
-  existsb f l = false ->
-  (forall a, In a l -> (f a) = false).
-Proof.
-  intros A f l H a Hin. destruct (f a) eqn:Hfa.
-  - exfalso. rewrite <- Bool.negb_true_iff in H. apply (Bool.eq_true_false_abs _ H).
-    rewrite Bool.negb_false_iff. apply existsb_exists. exists a. split; auto.
-  - auto.
-Qed.
-
-Lemma remove_pointless : forall {A Aeq_dec} (a:A) p q,
-  remove Aeq_dec a (remove Aeq_dec a p ++ q) = 
-  remove Aeq_dec a (p ++ q).
-Proof.
-  intros A Aeq_dec a p q. induction p; auto. simpl. destruct (Aeq_dec a a0) eqn:Heq.
-  - apply IHp.
-  - simpl. rewrite Heq. f_equal. apply IHp.
-Qed.
-
-Lemma count_occ_nodup_cancel : forall {A Aeq_dec} p (a:A),
-  even (count_occ Aeq_dec (nodup_cancel Aeq_dec p) a) =
-  even (count_occ Aeq_dec p a).
-Proof.
-  intros A Aeq_dec p a. induction p as [|b]; auto. simpl.
-  destruct (even (count_occ Aeq_dec p b)) eqn:Hb.
-  - simpl. destruct (Aeq_dec b a).
-    + rewrite e. rewrite count_occ_remove. rewrite e in Hb. repeat rewrite even_succ.
-      rewrite <- negb_odd in Hb. rewrite Bool.negb_true_iff in Hb. rewrite Hb. auto.
-    + rewrite count_occ_neq_remove; auto.
-  - simpl. destruct (Aeq_dec b a).
-    + rewrite e. rewrite count_occ_remove. rewrite e in Hb. repeat rewrite even_succ.
-      rewrite <- negb_odd in Hb. rewrite Bool.negb_false_iff in Hb. rewrite Hb. auto.
-    + rewrite count_occ_neq_remove; auto.
 Qed.
 
 Lemma nodup_extra_remove : forall {A Aeq_dec} (a:A) p,
@@ -770,9 +792,6 @@ Proof.
       * apply In_remove in H0. auto.
 Qed.
 
-Definition parity_match {A} Aeq_dec (l m:list A) : Prop :=
-  forall x, even (count_occ Aeq_dec l x) = even (count_occ Aeq_dec m x).
-
 Lemma even_nodup_cancel : forall {A Aeq_dec} (p:list A),
   (forall x, even (count_occ Aeq_dec p x) = true) ->
   (forall x, ~ In x (nodup_cancel Aeq_dec p)).
@@ -789,6 +808,13 @@ Proof.
       * apply In_remove in H0. symmetry in H1. apply not_in_nodup_cancel in H1.
         contradiction.
 Qed.
+
+
+
+(* ========== parity_match ========== *)
+
+Definition parity_match {A} Aeq_dec (l m:list A) : Prop :=
+  forall x, even (count_occ Aeq_dec l x) = even (count_occ Aeq_dec m x).
 
 Lemma parity_match_empty : forall {A Aeq_dec} (q:list A),
   parity_match Aeq_dec [] q ->
@@ -919,6 +945,10 @@ Proof.
         apply perm_skip. replace (a0::q) with ([a0]++q); auto. apply Permutation_app_comm.
 Qed.
 
+
+
+(* ========== nodup_cancel and map ========== *)
+
 Lemma count_occ_map_lt : forall {A Aeq_dec} p (a:A) f,
   count_occ Aeq_dec p a <= count_occ Aeq_dec (map f p) (f a).
 Proof.
@@ -1005,6 +1035,10 @@ Proof.
       apply count_occ_nodup_map_lt.
     + rewrite count_occ_map_neq_remove; auto.
 Qed.
+
+
+
+(* ========== nodup_cancel and concat map ========== *)
 
 Lemma n_le_1 : forall n,
   n <= 1 -> n = 0 \/ n = 1.
@@ -1120,7 +1154,7 @@ Qed.
 
 
 
-(* Partition *) 
+(* ========== Partition =========== *) 
 
 Lemma partition_filter_fst {X} p l :
   fst (partition p l) = @filter X p l.
@@ -1132,7 +1166,6 @@ Proof.
     destruct (p a); now simpl.
 Qed.
 
-(* Just rearrange previous, to fit better with your lemma formulation *)
 Lemma partition_filter_fst' : forall {X} p (l t f : list X),
     partition p l = (t, f) ->
     t = @filter X p l .
