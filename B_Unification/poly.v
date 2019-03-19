@@ -976,13 +976,6 @@ Proof.
   auto.
 Qed.
 
-Lemma make_poly_Permutation' : forall p q,
-  Permutation p q ->
-  Permutation (make_poly p) (make_poly q).
-Proof.
-  intros p q H. rewrite (make_poly_Permutation p q); auto.
-Qed.
-
 Lemma no_sort_MonoSorted : forall p,
   Sorted mono_lt p ->
   MonoSort.sort p = p.
