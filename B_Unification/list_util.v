@@ -1458,9 +1458,31 @@ Qed.
 
 (** * Comparing Parity of Lists: [parity_match] *)
 (* ========== parity_match ========== *)
+(**
+    The final major definition over lists we wrote is [parity_match].
+    [parity_match] is closely related to [nodup_cancel], and allows us to
+    make statements about lists being equal after applying [nodup_cancel] to
+    them. Clearly, if an element appears an even number of times in both
+    lists, then it won't appear at all after [nodup_cancel], and if an element
+    appears an odd number of times in both lists, then it will appear once
+    after [nodup_cancel]. The ultimate goal of creating this definition is to
+    prove a lemma that if the parity of two lists matches, they are permutations
+    of each other after applying [nodup_cancel].
+
+    The definition simply states that for all elements, the parity of the
+    number of occurences in each list is equal.
+  *)
 
 Definition parity_match {A} Aeq_dec (l m:list A) : Prop :=
   forall x, even (count_occ Aeq_dec l x) = even (count_occ Aeq_dec m x).
+
+(**
+    A useful lemma in working towards this proof is that if the count of
+    every variable in a list is even, then there will be no variables
+    in the resulting list. This is relatively easy to prove, as we have
+    already proven [not_in_nodup_cancel] and can contradict away the other
+    cases.
+  *)
 
 Lemma even_nodup_cancel : forall {A Aeq_dec} (p:list A),
   (forall x, even (count_occ Aeq_dec p x) = true) ->
@@ -1479,6 +1501,12 @@ Proof.
         contradiction.
 Qed.
 
+(**
+    The above lemma can then be used in combination with [nothing_in_empty]
+    to easily prove [parity_match_empty], which will be useful in two cases
+    of our goal lemma.
+  *)
+
 Lemma parity_match_empty : forall {A Aeq_dec} (q:list A),
   parity_match Aeq_dec [] q ->
   Permutation [] (nodup_cancel Aeq_dec q).
@@ -1487,6 +1515,11 @@ Proof.
   symmetry in H. pose (even_nodup_cancel q H). apply nothing_in_empty in n.
   rewrite n. auto.
 Qed.
+
+(**
+    The [parity_match] definition is also reflexive, symmetric, and
+    transitive, and knowing this will make future proofs easier.
+  *)
 
 Lemma parity_match_refl : forall {A Aeq_dec} (l:list A),
   parity_match Aeq_dec l l.
@@ -1511,6 +1544,13 @@ Qed.
 
 Hint Resolve parity_match_refl parity_match_sym parity_match_trans.
 
+(**
+    There are also a few interesting facts that can be proved about elements
+    being consed onto lists in a [parity_match]. First is that if the parity
+    of two lists is equal, then the parities will also be equal after adding
+    another element to the front, and vice versa.
+  *)
+
 Lemma parity_match_cons : forall {A Aeq_dec} (a:A) l1 l2,
   parity_match Aeq_dec (a::l1) (a::l2) <->
   parity_match Aeq_dec l1 l2.
@@ -1524,6 +1564,11 @@ Proof.
     apply Bool.negb_sym. rewrite Bool.negb_involutive. auto.
 Qed.
 
+(**
+    Similarly, adding the same element twice to a list does not change
+    the parities of any elements in the list.
+  *)
+
 Lemma parity_match_double : forall {A Aeq_dec} (a:A) l,
   parity_match Aeq_dec (a::a::l) l.
 Proof.
@@ -1533,6 +1578,14 @@ Proof.
   - auto.
 Qed.
 
+(**
+    The last cons [parity_match] lemma states that if you remove an element
+    from one list and add it to the other, the parity will not be affected.
+    This follows because if they both had an even number of [a] before they
+    will both have an odd number after, and if it was odd before it will be
+    even after.
+  *)
+
 Lemma parity_match_cons_swap : forall {A Aeq_dec} (a:A) l1 l2,
   parity_match Aeq_dec (a::l1) l2 ->
   parity_match Aeq_dec l1 (a::l2).
@@ -1541,6 +1594,12 @@ Proof.
   apply parity_match_sym in H. apply parity_match_trans with (r:=l1) in H.
   apply parity_match_sym in H. auto. apply parity_match_double.
 Qed.
+
+(**
+    This next lemma states that if we know that some element [a] appears in
+    the _rest_ of the list an even number of times, than clearly it appears in
+    [l2] an odd number of times and must be in the list.
+  *)
 
 Lemma parity_match_In : forall {A Aeq_dec} (a:A) l1 l2,
   even (count_occ Aeq_dec l1 a) = true ->
@@ -1554,6 +1613,12 @@ Proof.
   apply gt_Sn_O. apply count_occ_In in H1. auto.
 Qed.
 
+(**
+    The last fact to prove before attempting the big lemma is that if two lists
+    are permutations of each other, then their parities must match because
+    they contain the same elements the same number of times.
+  *)
+
 Lemma Permutation_parity_match : forall {A Aeq_dec} (p q:list A),
   Permutation p q -> parity_match Aeq_dec p q.
 Proof.
@@ -1565,6 +1630,34 @@ Proof.
     repeat (rewrite even_succ; rewrite odd_succ); auto.
   - apply parity_match_trans with (q:=l'); auto.
 Qed.
+
+(**
+    Finally, the big one. The first three cases are straightforward, especially
+    now that we have already proven [parity_match_empty]. The third case is
+    more complicated. We begin by destructing if [a] and [a0] are equal. In the
+    case that they are, the proof is relatively straightforward;
+    [parity_match_cons], [perm_skip], and [remove_Permutation] take care of it.
+
+    In the case that they are not equal, we next destruct if the number of
+    occurences is even or not. If it is odd, we can use [parity_match_In] and
+    [In_split] to rewrite l2 in terms of [a]. From there, we use permutation
+    facts to rearrange [a] to be at the front, and the rest of the proof is
+    similar to the proof when [a] and [a0] are equal.
+
+    The final case is when they are not equal and the number of occurences is
+    even. After using [parity_match_cons_swap], we can get to a point where we
+    know that [a] appears in [q++a0] an even number of times. This means that
+    [a] will not be in [q++a0] after applying [nodup_cancel], so we can rewrite
+    with [not_In_remove] in the reverse direction to get the two sides of the
+    permutation goal to be more similar. Then, because it is wrapped in
+    [remove a], we can clearly add an [a] on the inside without it having any
+    effect. Then all that is left is to apply [remove_Permutation], and we end
+    up with a goal matching the induction hypothesis.
+
+    This lemma is very powerful, especially when dealing with [nodup_cancel]
+    with functions applied to the elements of a list. This will come into
+    play later in this file.
+  *)
 
 Lemma parity_nodup_cancel_Permutation : forall {A Aeq_dec} (p q:list A),
   parity_match Aeq_dec p q ->
@@ -1613,6 +1706,25 @@ Qed.
 (** * Combining nodup_cancel and Other Functions *)
 (** ** Using [nodup_cancel] over [map] *)
 (* ========== nodup_cancel and map ========== *)
+(**
+    Our next goal is to prove things about the relation between [nodup_cancel]
+    and [map] over lists. In particular, we want to prove a lemma similar to
+    [nodup_cancel_pointless], that allows us to remove redundant [nodup_cancel]s.
+
+    The challenging part of proving this lemma is that it is often hard to
+    reason about how, for example, the number of times [a] appears in [p]
+    relates to the number of times [f a] appears in [map f p]. Many of the
+    functions we map across lists in practice are not one-to-one, meaning that
+    there could be some [b] such that [f a = f b]. However, at the end of the
+    day, these repeated elements will cancel out with each other and the
+    parities will match, hence why [parity_nodup_cancel_Permutation] is
+    extremely useful.
+
+    To begin, we need to prove a couple facts comparing the number of occurences
+    of elements in a list. The first lemma states that the number of times some
+    [a] appears in [p] is less than or equal to the number of times [f a]
+    appears in [map f p].
+  *)
 
 Lemma count_occ_map_lt : forall {A Aeq_dec} p (a:A) f,
   count_occ Aeq_dec p a <= count_occ Aeq_dec (map f p) (f a).
@@ -1621,6 +1733,12 @@ Proof.
   - rewrite e. destruct Aeq_dec; try contradiction. simpl. apply le_n_S. auto.
   - destruct Aeq_dec; auto.
 Qed.
+
+(**
+    Building off this idea, the next lemma states that the number of times
+    [f a] appears in [map f p] with [a] removed is equal to the count of
+    [f a] in [map f p] minus the count of [a] in [p].
+  *)
 
 Lemma count_occ_map_sub : forall {A Aeq_dec} f (a:A) p,
   count_occ Aeq_dec (map f (remove Aeq_dec a p)) (f a) = 
@@ -1635,6 +1753,12 @@ Proof.
     + destruct Aeq_dec. symmetry in e; contradiction. auto.
 Qed.
 
+(**
+    It is also true that if there is some [x] that is _not_ equal to [f a],
+    then the count of that [x] in [map f p] is the same as the count of [x] in
+    [map f p] with [a] removed.
+  *)
+
 Lemma count_occ_map_neq_remove : forall {A Aeq_dec} f (a:A) p x,
   x <> (f a) ->
   count_occ Aeq_dec (map f (remove Aeq_dec a p)) x =
@@ -1645,6 +1769,12 @@ Proof.
     auto.
   - simpl. destruct Aeq_dec; auto.
 Qed.
+
+(**
+    The next lemma is similar to [count_occ_map_lt], except it involves some
+    [b] where [a] is not equal to [b], but [f a = f b]. Then clearly, the sum
+    of [a] in [p] and [b] in [p] is less than the count of [f a] in [map f p].
+  *)
 
 Lemma f_equal_sum_lt : forall {A Aeq_dec} f (a:A) b p,
   b <> a -> (f a) = (f b) ->
@@ -1664,6 +1794,13 @@ Proof.
       * auto.
 Qed.
 
+(**
+    For the next lemma, we once again try to compare the count of [a] to the
+    count of [f a], but also involve [nodup_cancel]. Clearly, there is no way
+    for there to be more [a]'s in [p] than [f a]'s in [map f p] even with
+    the addition of [nodup_cancel].
+  *)
+
 Lemma count_occ_nodup_map_lt : forall {A Aeq_dec} p f (a:A),
   count_occ Aeq_dec (nodup_cancel Aeq_dec p) a <=
   count_occ Aeq_dec (map f (nodup_cancel Aeq_dec p)) (f a).
@@ -1681,6 +1818,27 @@ Proof.
         apply f_equal_sum_lt; auto.
       * rewrite count_occ_map_neq_remove; auto.
 Qed.
+
+(**
+    All of these lemmas now come together for the core one, a variation of
+    [nodup_cancel_pointless] but involving [map f]. We begin by applying
+    [parity_nodup_cancel_Permutation], and destructing if [a] appears in
+    [p] an even number of times or not.
+
+    The even case is relatively easy to prove, and only involves using the usual
+    combination of [even_succ], [not_In_remove], and [not_in_nodup_cancel].
+
+    The odd case is trickier, and where we involve all of the newly proved
+    lemmas. If [x] and [f a] are not equal, the proof follows just from
+    [count_occ_map_neq_remove] and the induction hypothesis.
+
+    If they are equal, we begin by rewriting with [count_occ_map_sub] and
+    [even_sub]. After a few more rewrites, it becomes the case that we need to
+    prove that the boolean equivalence of the parities of [f a] in [map f p]
+    and [a] in [p] is equal to the negated parity of [f a] in [map f p].
+    Because we know that [a] appears in [p] an odd number of times from
+    destructing [even] earlier, this follows immediately.
+  *)
 
 Lemma nodup_cancel_map : forall {A Aeq_dec} (p:list A) f,
   Permutation
