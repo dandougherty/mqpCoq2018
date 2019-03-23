@@ -614,14 +614,125 @@ intros. induction t.
 }
 Qed.
 
+(* Helper lemmeas for proving apply_subst_compat *)
+
+Lemma sum_comm_compat t1 t2:
+  forall (sigma: subst), (apply_subst (t1 + t2) sigma) == (apply_subst (t2 + t1) sigma).
+Proof.
+  intros.
+  simpl.
+  auto.
+Qed.
+Hint Resolve sum_comm_compat.
+
+Lemma sum_assoc_compat t1 t2 t3:
+  forall (sigma: subst), (apply_subst ((t1 + t2) + t3) sigma) == (apply_subst (t1 + (t2 + t3)) sigma).
+Proof.
+  intros.
+  simpl.
+  auto.
+Qed.
+Hint Resolve sum_assoc_compat.
+
+Lemma sum_id_compat t:
+  forall (sigma: subst), (apply_subst (T0 + t) sigma) == (apply_subst t sigma).
+Proof.
+  intros.
+  simpl.
+  auto.
+Qed.
+Hint Resolve sum_id_compat.
+
+Lemma sum_x_x_compat t:
+  forall (sigma: subst), (apply_subst (t + t) sigma) == (apply_subst T0 sigma).
+Proof.
+  intros.
+  simpl.
+  auto.
+Qed.
+Hint Resolve sum_x_x_compat.
+
+Lemma mul_comm_compat t1 t2:
+  forall (sigma: subst), (apply_subst (t1 * t2) sigma) == (apply_subst (t2 * t1) sigma).
+Proof.
+  intros.
+  simpl.
+  auto.
+Qed.
+Hint Resolve mul_comm_compat.
+
+Lemma mul_assoc_compat t1 t2 t3:
+  forall (sigma: subst), (apply_subst ((t1 * t2) * t3) sigma) == (apply_subst (t1 * (t2 * t3)) sigma).
+Proof.
+  intros.
+  simpl.
+  auto.
+Qed.
+Hint Resolve mul_assoc_compat.
+
+Lemma mul_x_x_compat t:
+  forall (sigma: subst), (apply_subst (t * t) sigma) == (apply_subst t sigma).
+Proof.
+  intros sigma.
+  simpl.
+  auto.
+Qed.
+Hint Resolve mul_x_x_compat.
+
+Lemma mul_T0_x_compat t:
+  forall (sigma: subst), (apply_subst (T0 * t) sigma) == (apply_subst T0 sigma).
+Proof.
+  intros.
+  simpl.
+  auto.
+Qed.
+Hint Resolve mul_T0_x_compat.
+
+Lemma mul_id_compat t:
+  forall (sigma: subst), (apply_subst (T1 * t) sigma) == (apply_subst t sigma).
+Proof.
+  intros.
+  simpl.
+  auto.
+Qed.
+Hint Resolve mul_id_compat.
+
+Lemma distr_compat t1 t2 t3:
+  forall (sigma: subst), (apply_subst (t1 * (t2 + t3)) sigma) == (apply_subst ((t1 * t2) + (t1 * t3)) sigma).
+Proof.
+  intros.
+  simpl.
+  auto.
+Qed.
+Hint Resolve distr_compat.
+
+Lemma refl_comm_compat t1 t2:
+  forall (sigma: subst), (apply_subst t1 sigma) == (apply_subst t2 sigma) -> (apply_subst t2 sigma) == (apply_subst t1 sigma).
+Proof.
+  intros.
+  simpl.
+  auto.
+Qed.
+Hint Resolve refl_comm_compat.
+
+Lemma trans_compat t1 t2 t3 :
+  forall (sigma: subst),
+    (apply_subst t1 sigma) == (apply_subst t2 sigma) ->
+    (apply_subst t2 sigma) == (apply_subst t3 sigma) ->
+    (apply_subst t1 sigma) == (apply_subst t3 sigma) .
+Proof.
+  intros sigma H12 H23.
+  eauto.
+Qed.
+Hint Resolve trans_compat.
+
 Lemma apply_subst_compat : forall  (t t' : term),
      t == t' -> forall (sigma: subst), (apply_subst t sigma) == (apply_subst t' sigma).
 Proof.
-intros. induction t.
-  - induction t'.
-    + simpl. reflexivity.
-    + simpl. apply H.
-    + simpl. rewrite H. 
+intros. induction t, t'.
+- reflexivity.
+- simpl. apply H.
+- simpl.
 Admitted.
 
 Add Parametric Morphism : apply_subst with
