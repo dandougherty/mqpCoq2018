@@ -1454,6 +1454,26 @@ Proof.
   apply nodup_cancel_pointless.
 Qed.
 
+(**
+    An interesting side effect of [nodup_cancel_pointless] is that now we can
+    show that [nodup_cancel] almost "distributes" over [app]. More formally,
+    to prove that the [nodup_cancel] of two lists appended together is a
+    permutation of [nodup_cancel] applied to two other lists appended, it is
+    sufficient to show that the first of each and the second of each are
+    permutations after applying [nodup_cancel] to them individually.
+  *)
+
+Lemma nodup_cancel_app_Permutation : forall {A Aeq_dec} (a b c d:list A),
+  Permutation (nodup_cancel Aeq_dec a) (nodup_cancel Aeq_dec b) ->
+  Permutation (nodup_cancel Aeq_dec c) (nodup_cancel Aeq_dec d) ->
+  Permutation (nodup_cancel Aeq_dec (a ++ c)) (nodup_cancel Aeq_dec (b ++ d)).
+Proof.
+  intros A Aeq_dec a b c d H H0. rewrite <- (nodup_cancel_pointless a),
+  <- (nodup_cancel_pointless b), <- (nodup_cancel_pointless_r _ c),
+  <- (nodup_cancel_pointless_r _ d). apply nodup_cancel_Permutation.
+  apply Permutation_app; auto.
+Qed.
+
 
 
 (** * Comparing Parity of Lists: [parity_match] *)
@@ -1863,12 +1883,41 @@ Qed.
 
 (** * Using [nodup_cancel] over [concat map] *)
 (* ========== nodup_cancel and concat map ========== *)
+(**
+    Similarly to map, the same property of not needing repeated [nodup_cancel]s
+    applies when the lists are being concatenated and mapped over. This final
+    section of the file seeks to, in very much the same way as earlier, prove
+    this.
+
+    We begin with a simple lemma about math that will come into play soon -
+    if a number is less than or equal to 1, then it is either 0 or 1. This is
+    immediately solved with firstorder logic.
+  *)
 
 Lemma n_le_1 : forall n,
   n <= 1 -> n = 0 \/ n = 1.
 Proof.
   intros n H. induction n; firstorder.
 Qed.
+
+(**
+    The main difference between this section and the section about map is that
+    all of the functions being mapped will clearly be returning lists as their
+    output, and then being concatenated with the rest of the result. This makes
+    things slightly harder, as we can't reason about the number of times, for
+    example, some [f a] appears in a list. Instead, we have to reason about the
+    number of times that some [x] appears in a list, where [x] is one of the
+    elements of the list [f a].
+
+    In practice, these lemmas are only going to be applied in situations where
+    every [f a] has no duplicates in it. In other words, as the lemma above
+    states, there will be either 0 or 1 of each x in a list. The next two
+    lemmas prove some consequences of this.
+
+    First is that if the count of [x] in [f a] is 0, then clearly removing
+    [a] from some list [p] will not affect the count of [x] in the
+    concatenated version of the list.
+  *)
 
 Lemma count_occ_map_sub_not_in : forall {A Aeq_dec} f (a:A) p,
   forall x, count_occ Aeq_dec (f a) x = 0 ->
@@ -1880,6 +1929,17 @@ Proof.
   - rewrite e in H. rewrite H. firstorder.
   - simpl. rewrite count_occ_app. auto.
 Qed.
+
+(**
+    On the other hand, if the count of some [x] in [f a] is 1, then the
+    count of [a] in the original list must be less than or equal to the
+    count of [x] in the final list, depending on if some [b] exists such that
+    [f a] also contains [x]. More useful is the fact that if [x] appears once
+    in [f x], the count of [x] in the final list with [a] removed is equal
+    to the count of [x] in the final list minus the count of [a] in the list.
+    Both of these proofs are relatively straightforward, and mostly follow
+    from firstorder logic.
+  *)
 
 Lemma count_occ_concat_map_lt : forall {A Aeq_dec} p (a:A) f x,
   count_occ Aeq_dec (f a) x  = 1 ->
@@ -1903,6 +1963,16 @@ Proof.
     apply count_occ_concat_map_lt; auto.
 Qed.
 
+(**
+    Continuing the pattern of proving similar facts as we did during the
+    [map] proof, we now prove a version of [f_equal_sum_lt] involving [concat].
+    This lemma states that, if we know there will be no duplicates in [f x] for
+    all [x], and that there are some [a] and [b] such that they are not equal
+    but [x] in in both [f a] and [f b], then clearly the sum of the count of [a]
+    and the count of [b] is less than or equal to the count of [x] in the list
+    after applying the function and concatenating.
+  *)
+
 Lemma f_equal_concat_sum_lt : forall {A Aeq_dec} f (a:A) b p x,
   b <> a ->
   (forall x, NoDup (f x)) ->
@@ -1921,6 +1991,24 @@ Proof.
     + rewrite count_occ_app. pose (Hnd c). rewrite (NoDup_count_occ Aeq_dec) in n1.
       pose (n1 x). apply n_le_1 in l. clear n1. destruct l; firstorder.
 Qed.
+
+(**
+    The last step before we are able to prove [nodup_cancel_concat_map] is
+    to actually involve [nodup_cancel] rather than just [remove]. This lemma
+    states that given [f x] has no duplicates and [a] appears once in [f a],
+    the count of [a] in [p] after applying nodup_cancel is less than or equal
+    to the count of [x] after applying [concat map] and [nodup_cancel].
+
+    The first cases, when the count is even, are relatively straightforward.
+    The second cases, when the count is odd, are slightly more complicated. We
+    destruct if [a] and [b] (where [b] is our induction element) are equal. If
+    they are, then the proof is solved by firstorder logic. On the other hand,
+    if they are not, we make use of our [n_le_1] fact proved before to find out
+    how many times [x] appears in [f b]. If it is zero, then we rewrite with
+    the [0] fact proved earlier and are done. In the final case, we rewrite
+    with the [1] subtraction fact we proved earlier, and it follows from
+    [f_equal_concat_sum_lt].
+  *)
 
 Lemma count_occ_nodup_concat_map_lt : forall {A Aeq_dec} p f (a:A) x,
   (forall x, NoDup (f x)) ->
@@ -1943,6 +2031,22 @@ Proof.
         rewrite H1. apply le_add_le_sub_l. apply f_equal_concat_sum_lt; auto.
 Qed.
 
+(**
+    Finally, the proof we've been building up to. Once again, we begin the proof
+    by converting to a [parity_match] problem and then perform induction on the
+    list. The case where [a] appears an even number of times in the list is
+    easy, and follows from the same combination of [count_occ_app] and [even_add]
+    that we have used before.
+
+    The case where [a] appears an odd number of times is slightly more complex.
+    Once again, we apply [n_le_1] to determine how many times our [x] appears
+    in [f a]. If it is zero times, we use [count_occ_map_sub_not_in] like above,
+    and then the induction hypothesis solves it. If [x] appears once in [f a],
+    we instead use [count_occ_map_sub_in] combined with [even_sub]. Then, after
+    rewriting with the induction hypothesis, we can easily solve the lemma with
+    the use of [count_occ_nodup_cancel].
+  *)
+
 Lemma nodup_cancel_concat_map : forall {A Aeq_dec} (p:list A) f,
   (forall x, NoDup (f x)) ->
   Permutation
@@ -1963,15 +2067,4 @@ Proof.
       rewrite H0, H1, even_sub, IHp. simpl. rewrite count_occ_nodup_cancel. rewrite Hev.
       destruct (even (count_occ _ (concat (map f p)) x)); auto.
       apply count_occ_nodup_concat_map_lt; auto.
-Qed.
-
-Lemma nodup_cancel_app_Permutation : forall {A Aeq_dec} (a b c d:list A),
-  Permutation (nodup_cancel Aeq_dec a) (nodup_cancel Aeq_dec b) ->
-  Permutation (nodup_cancel Aeq_dec c) (nodup_cancel Aeq_dec d) ->
-  Permutation (nodup_cancel Aeq_dec (a ++ c)) (nodup_cancel Aeq_dec (b ++ d)).
-Proof.
-  intros A Aeq_dec a b c d H H0. rewrite <- (nodup_cancel_pointless a),
-  <- (nodup_cancel_pointless b), <- (nodup_cancel_pointless_r _ c),
-  <- (nodup_cancel_pointless_r _ d). apply nodup_cancel_Permutation.
-  apply Permutation_app; auto.
 Qed.
