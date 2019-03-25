@@ -104,9 +104,16 @@ that perform static analysis on the behavior of a system, or the correctness of 
 differs to dynamic analysis that uses simulation to evaluate the correctness of a system.
 *)
 
+(** More simply stated, formalt verification is the process of examining whether a system or a theory "does what it is supposed to do". 
+If it is a system, then scientistis formally verify that it satisfies its design requirements. Formal verification is also different to testing.
+Software testing is trying to detect "bugs" specific errors and requirements in the system, whereas verfification acts as a general safeguard
+that they system is always error-free. As Edsger Dijkstra stated, testing can be used to show the presence of bugs, but never to show their absence.
+If it a theory, scientists formally verify the correctness of the theory by formulating its proof using a formal language, axioms and inference rules.
+*)
+
 (** Formal verification is used because it does not have to evaluate 
 every possible case or state to determine if a system or theory meets all the preset logical 
-conditions and rerquirements. Moreover, as design and software systems sizes have increased 
+conditions and requirements. Moreover, as design and software systems sizes have increased 
 (along with their simulation times), verification teams have been looking 
 for alternative methods of proving or disproving the correctness of a system
 in order to reduce the required time to perform a correctness check or evaluation.
@@ -127,10 +134,29 @@ the formulation or proof of a theorem.
 
 (** ** Verifying Systems *)
 
+(** Formal verification is used in the industry to verify the correctness of software or hardware systems. When used to verify systems, 
+formal verification can be thought as a mathematical proof of the correctness of a design with respect to a formal specification. The actual system
+is represented by a formal model and then the formal verification happens on the model, based on the required specifications of the system.
+Unlike testing, formal verification is exhaustive and imporves the understanding of a system. Howeverm, it is difficult to make for 
+real-worls systems, time consuming and only as reliable as the actual model.
+
+*)
+
+
 
 
 (** ** Verifying Theories *)
 
+(** Formal verification is also used in to prove theorems. These theorems could be related to a computing system or just plain 
+mathematical abstract theorems. As in proving systems, when proving theorems one also needs a formal logic to formulate the
+theorem and prove it. A formal logic consists of a formal languge to express the theorems, a collection of formulas called axioms and 
+inference rules to derive new axioms based on existing ones. A theorem to be proven could be in a logical form, like DeMorgan's Law 
+or it could in another mathematical area; in trigonometry for example, it could be useful to prove that 
+sin(x + y) = sin(x) * cos(y) + cos(x) * sin(y) , formally, because that proof could be used as building block in a more complex system.
+Sometimes proving the corectness of a real world systems boils down to verifying mathemetical proofs like the previous one, so the two
+approaches are often linked together. 
+
+*)
 
 
 
