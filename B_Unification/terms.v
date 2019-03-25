@@ -111,13 +111,6 @@ Axiom distr : forall x y z, x * (y + z) == (x * y) + (x * z).
 Axiom term_sum_symmetric :
   forall x y z, x == y <-> x + z == y + z.
 
-(* 
-  Across all equations, multiplying an expression to both sides does not break
-  the equivalence of the relation
-*)
-Axiom term_product_symmetric :
-  forall x y z, x == y <-> x * z == y * z.
-
 Axiom refl_comm :
   forall t1 t2, t1 == t2 -> t2 == t1.
 
