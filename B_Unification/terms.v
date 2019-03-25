@@ -980,7 +980,7 @@ Admitted.
 
 (**
 These functions below will come in handy later during the Lowenheim formula proof.
-**)
+**) 
 
 (* alternate defintion of functions related to term operations and evaluations
    that take into consideration more sub-cases *)
