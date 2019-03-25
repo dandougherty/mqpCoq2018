@@ -9,21 +9,6 @@ Import Nat.
 Require Export list_util.
 Require Export terms.
 
-(** * Introduction *)
-
-(** Another way of representing the terms of a unification problem is as polynomials 
-    and monomials. A monomial is a set of variables multiplied together, and a polynomial 
-    is a set of monomials added together. By following the ten axioms set forth in 
-    B-unification, we can transform any term to this form. 
-
-    Since one of the rules is x * x = x, we can guarantee that there are no repeated 
-    variables in any given monomial. Similarly, because x + x = 0, we can guarantee 
-    that there are no repeated monomials in a polynomial. Because of these properties, as 
-    well as the commutativity of addition and multiplication, we can represent both 
-    monomials and polynomials as unordered sets of variables and monomials, respectively. 
-    This file serves to implement such a representation.  
-  *)
-
 
 
 (* ===== Polynomial Representation - Data Types ===== *)
@@ -39,15 +24,7 @@ Definition mono_eq_dec := (list_eq_dec Nat.eq_dec).
 Definition poly := list mono.
 
 (** ** Comparisons of monomials and polynomials *)
-(** 
-    For the sake of simplicity when comparing monomials and polynomials, we have opted
-    for a solution that maintains the lists as sorted. This allows us to simultaneously
-    ensure that there are no duplicates, as well as easily comparing the sets with the 
-    standard Coq equals operator over lists.
 
-    Ensuring that a list of nats is sorted is easy enough. In order to compare lists of
-    sorted lists, we'll need the help of another function: 
-  *)
 Definition mono_cmp := lex compare.
 
 Definition mono_lt m n := mono_cmp m n = Lt.
@@ -325,6 +302,21 @@ Proof.
         rewrite compare_antisym in Han0. unfold CompOpp in Han0.
         destruct (a?=n); try inversion Han0. inversion H.
       * inversion H0.
+Qed.
+
+Lemma HdRel_le_lt : forall a m,
+  HdRel (fun n m => is_true (leb n m)) a m /\ NoDup (a::m) -> HdRel lt a m.
+Proof.
+  intros a m []. remember (fun n m => is_true (leb n m)) as le.
+  destruct m.
+  - apply HdRel_nil.
+  - apply HdRel_cons. apply HdRel_inv in H.
+    apply (NoDup_neq _ a n) in H0; intuition. rewrite Heqle in H.
+    unfold is_true in H. apply leb_le in H. destruct (a ?= n) eqn:Hcomp.
+    + apply compare_eq_iff in Hcomp. contradiction.
+    + apply compare_lt_iff in Hcomp. apply Hcomp.
+    + apply compare_gt_iff in Hcomp. apply leb_correct_conv in Hcomp.
+      apply leb_correct in H. rewrite H in Hcomp. inversion Hcomp.
 Qed.
 
 Lemma VarSort_Sorted : forall (m : mono),
