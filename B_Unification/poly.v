@@ -14,41 +14,57 @@ Require Export terms.
 (* ===== Polynomial Representation - Data Types ===== *)
 (** * Monomials and Polynomials *)
 (** ** Data Type Definitions *)
-(** A monomial is simply a list of variables, with variables as defined in terms.v. *)
+(**
+    Now that we have defined those functions over lists and proven all of those
+    facts about them, we can begin to apply all of them to our specific project
+    of unification. The first step is to define the data structures we plan on
+    using.
+
+    As mentioned earlier, because of the ten axioms that hold true during
+    B-Unification, we can represent all possible terms with lists of lists of
+    numbers. The numbers represent variables, and a list of variables is a
+    monomial, where each variable is multiplied together. A polynomial, then, is
+    a list of monomials where each monomial is added together.
+
+    In this representation, the term 0 is represented as the empty polynomial,
+    and the term 1 is represented as the polynomial containing only the empty
+    monomial.
+
+    In addition to the definitions of [mono] and [poly], we also have a
+    definition for [mono_eq_dec]; this is a proof of decidability of monomials.
+    This makes use of a special Coq data structure that allows this to
+    be used as a comparison function - for example, we can [destruct (mono_eq_dec a b)]
+    to compare the two cases where a = b and a <> b. In addition to being useful
+    in some proofs, this is also needed by some functions, such as [remove]
+    and [count_occ], since they compare monomials.
+  *)
 
 Definition mono := list var.
 Definition mono_eq_dec := (list_eq_dec Nat.eq_dec).
 
-(** A polynomial, then, is a list of monomials. *)
-
 Definition poly := list mono.
 
 (** ** Comparisons of monomials and polynomials *)
+(**
+    In order to easily compare monomials, we make use of the [lex] function
+    we defined at the beginning of the [list_util] file. For convenience, we
+    also define [mono_lt], which is a proposition that states that some
+    monomial is less than another.
+  *)
 
 Definition mono_cmp := lex compare.
 
 Definition mono_lt m n := mono_cmp m n = Lt.
 
-(** ** Stronger Definitions *)
-(** 
-    Because as far as Coq is concerned any list of natural numbers is a monomial, 
-    it is necessary to define a few more predicates about monomials and polynomials
-    to ensure our desired properties hold. Using these in proofs will prevent any
-    random list from being used as a monomial or polynomial.
+(**
+    A simple but useful definition is [vars], which allows us to take any
+    polynomial and get a list of all the variables in it. This is simply done
+    by concatenating all of the monomials into one large list of variables and
+    removing any repeated variables.
+
+    Clearly then, there will never be any duplicates in the [vars] of some
+    polynomial.
   *)
-
-(** Monomials are simply sorted lists of natural numbers. *)
-
-Definition is_mono (m : mono) : Prop := Sorted lt m.
-
-(** Polynomials are sorted lists of lists, where all of the lists in the polynomail
-    are monomials. *)
-
-Definition is_poly (p : poly) : Prop :=
-  Sorted mono_lt p /\ forall m, In m p -> is_mono m.
-
-Hint Unfold is_mono is_poly.
-Hint Resolve NoDup_cons NoDup_nil Sorted_cons.
 
 Definition vars (p : poly) : list var :=
   nodup var_eq_dec (concat p).
@@ -59,6 +75,13 @@ Lemma NoDup_vars : forall (p : poly),
 Proof.
   intros p. unfold vars. apply NoDup_nodup.
 Qed.
+
+(**
+    This next lemma allows us to convert from a statement about [vars] to a
+    statement about the monomials themselves. If some variable [x] is not in
+    the variables of a polynomial [p], then every monomial in [p] must not
+    contain [x].
+  *)
 
 Lemma in_mono_in_vars : forall x p,
   (forall m : mono, In m p -> ~ In x m) <-> ~ In x (vars p).
@@ -80,8 +103,42 @@ Proof.
       * auto.
 Qed.
 
-(** There are a few userful things we can prove about these definitions too. First, 
-    every element in a monomial is guaranteed to be less than the elements after it. *)
+
+(** ** Stronger Definitions *)
+(**
+    Because as far as Coq is concerned any list of natural numbers is a monomial, 
+    it is necessary to define a few more predicates about monomials and polynomials
+    to ensure our desired properties hold. Using these in proofs will prevent any
+    random list from being used as a monomial or polynomial.
+
+    Monomials are simply lists of natural numbers that, for ease of comparison,
+    are sorted least to greatest. A small sublety is that we are insisting they
+    are sorted with [lt], meaning less than, rather than [le], or less than or
+    equal to. This way, the [Sorted] predicate will insist that each number is
+    _less than_ the one following it, thereby preventing any values from being
+    equal to each other. In this way, we simultaneously enforce the sorting and
+    lack of duplicated values in a monomial.
+  *)
+
+Definition is_mono (m : mono) : Prop := Sorted lt m.
+
+(**
+    Polynomials are sorted lists of lists, where all of the lists in the
+    polynomial are monomials. Similarly to the last example, we use [mono_lt]
+    to simultaneously enforce sorting and no-duplicates.
+  *)
+
+Definition is_poly (p : poly) : Prop :=
+  Sorted mono_lt p /\ forall m, In m p -> is_mono m.
+
+Hint Unfold is_mono is_poly.
+Hint Resolve NoDup_cons NoDup_nil Sorted_cons.
+
+(**
+    There are a few useful things we can prove about these definitions too.
+    First, because of the sorting, every element in a monomial is guaranteed to
+    be less than the element after it.
+  *)
 
 Lemma mono_order : forall x y m,
   is_mono (x :: y :: m) ->
@@ -94,7 +151,9 @@ Proof.
   apply H0.
 Qed.
 
-(** Similarly, if x :: m is a monomial, then m is also a monomial. *)
+(**
+    Similarly, if x :: m is a monomial, then m is also a monomial.
+  *)
 
 Lemma mono_cons : forall x m,
   is_mono (x :: m) ->
@@ -104,8 +163,11 @@ Proof.
   intros x m H. apply Sorted_inv in H as []. apply H.
 Qed.
 
-(** The same properties hold for is_poly as well; any list in a polynomial is
-    guaranteed to be less than the lists after it. *)
+(**
+    The same properties hold for is_poly as well; any list in a polynomial is
+    guaranteed to be less than the lists after it, and if m :: p is a polynomial,
+    we know both that p is a polynomial and that m is a monomial.
+  *)
 
 Lemma poly_order : forall m n p,
   is_poly (m :: n :: p) ->
@@ -118,9 +180,6 @@ Proof.
   apply HdRel_inv in H1.
   apply H1.
 Qed.
-
-(** And if m :: p is a polynomial, we know both that p is a polynomial and that 
-    m is a monomial. *)
 
 Lemma poly_cons : forall m p,
   is_poly (m :: p) ->
@@ -137,7 +196,11 @@ Proof.
   - apply H0, in_eq.
 Qed.
 
-(** Lastly, for completeness, nil is both a polynomial and monomial. *)
+(**
+    Lastly, for completeness, nil is both a polynomial and monomial, the
+    polynomial representation for one as we described before is a polynomial,
+    and a singleton variable is a polynomial.
+  *)
 
 Lemma nil_is_mono :
   is_mono [].
@@ -172,6 +235,12 @@ Proof.
     unfold is_mono. auto.
 Qed.
 
+(**
+    In unification, a common concept is a _ground term_, or a term that contains
+    no variables. If some polynomial is a ground term, then it must either be
+    equal to 0 or 1.
+  *)
+
 Lemma no_vars_is_ground : forall p,
   is_poly p ->
   vars p = [] ->
@@ -196,9 +265,39 @@ Hint Resolve mono_order mono_cons poly_order poly_cons nil_is_mono nil_is_poly
 
 
 
-(* ===== Functions over Monomials and Polynomials ===== *) 
-(** * Functions over Monomials and Polynomials *)
+(** * Sorted Lists and Sorting *)
+(**
+    Clearly, because we want to maintain that our monomials and polynomials
+    are sorted at all times, we will be dealing with Coq's [Sorted] proposition
+    a lot. In addition, not every list we want to operate on will already be
+    perfectly sorted, so it is often necessary to sort lists ourselves. This
+    next section serves to give us all of the tools necessary to operate on
+    sorted lists.
+  *)
+
+(** ** Sorting Lists *)
+
+(**
+    In order to sort our lists, we will make use of the [Sorting] module in the
+    standard library, which implements a version of merge sort.
+
+    For sorting variables in a monomial, we can simply reuse the already
+    provided [NatSort] module.
+  *)
+
 Module Import VarSort := NatSort.
+
+(**
+    Sorting the monomials in a polynomial is slightly more complicated, but
+    still straightforward thanks to the [Sorting] module. First, we need to
+    define a [MonoOrder], which must be a total less-than-or-equal-to comparator.
+
+    This is accomplished by using our [mono_cmp] defined earlier, and simply
+    returning true for either less than or equal to.
+
+    We also prove a relatively simple lemma about this new [MonoOrder], which
+    states that if [x <= y] and [y <= x], x must be equal to y.
+  *)
 
 Require Import Orders.
 Module MonoOrder <: TotalLeBool.
@@ -217,26 +316,40 @@ Module MonoOrder <: TotalLeBool.
   Qed.
 End MonoOrder.
 
+Lemma leb_both_eq : forall x y,
+  is_true (MonoOrder.leb x y) ->
+  is_true (MonoOrder.leb y x) ->
+  x = y.
+Proof.
+  intros x y H H0. unfold is_true, MonoOrder.leb in *.
+  destruct (mono_cmp y x) eqn:Hyx; destruct (mono_cmp x y) eqn:Hxy;
+  unfold mono_cmp in *;
+  try (apply lex_rev_lt_gt in Hxy; rewrite Hxy in Hyx; inversion Hyx);
+  try (apply lex_rev_lt_gt in Hyx; rewrite Hxy in Hyx; inversion Hyx);
+  try inversion H; try inversion H0.
+  apply lex_eq in Hxy; auto.
+Qed.
+
+(**
+    After this order has been defined and its totality has been proven, we
+    simply define a new [MonoSort] module to be a sort based on this [MonoOrder].
+
+    Now, we have a simple [sort] function for both monomials and polynomials,
+    as well as a few useful lemmas about the [sort] functions' correctness.
+  *)
+
 Module Import MonoSort := Sort MonoOrder.
 
-Lemma Permutation_MonoSort_r : forall p q,
-  Permutation p q <-> Permutation p (sort q).
-Proof.
-  intros p q. split; intro H.
-  - apply Permutation_trans with (l':=q). apply H. apply Permuted_sort.
-  - apply Permutation_trans with (l':=(sort q)). apply H. apply Permutation_sym.
-    apply Permuted_sort.
-Qed.
+(**
+    One technique that helps us deal with the difficulty of sorted lists
+    is proving that each of our four comparators - [lt], [VarOrder], [mono_lt],
+    and [MonoOrder] - are all transitive. This allows us to seamlessly pass
+    between the standard library's [Sorted] and [StronglySorted] propositions,
+    making many proofs significantly easier.
 
-Lemma Permutation_MonoSort_l : forall p q,
-  Permutation p q <-> Permutation (sort p) q.
-Proof.
-  intros p q. split; intro H.
-  - apply Permutation_sym. rewrite <- Permutation_MonoSort_r.
-    apply Permutation_sym. auto.
-  - apply Permutation_sym. rewrite Permutation_MonoSort_r.
-    apply Permutation_sym. auto.
-Qed.
+    All four of these are proved relatively easily, mostly by induction and
+    destructing the comparison of the individual values.
+  *)
 
 Lemma lt_Transitive :
   Relations_1.Transitive lt.
@@ -253,28 +366,6 @@ Proof.
   - inversion H.
   - inversion H0.
   - apply IHx with (y:=y); auto.
-Qed.
-
-Lemma MonoOrder_Transitive : 
-  Relations_1.Transitive (fun x y : list nat => is_true (MonoOrder.leb x y)).
-Proof.
-  unfold Relations_1.Transitive, is_true, MonoOrder.leb, mono_cmp.
-  induction x, y, z; intros; try reflexivity; simpl in *.
-  - inversion H.
-  - inversion H.
-  - inversion H0.
-  - destruct (a ?= n) eqn:Han.
-    + apply compare_eq_iff in Han. rewrite Han. destruct (n ?= n0) eqn:Hn0.
-      * apply (IHx _ _ H H0).
-      * reflexivity.
-      * inversion H0.
-    + destruct (n ?= n0) eqn:Hn0.
-      * apply compare_eq_iff in Hn0. rewrite <- Hn0. rewrite Han. reflexivity.
-      * apply compare_lt_iff in Han. apply compare_lt_iff in Hn0.
-        apply (lt_trans a n n0 Han) in Hn0. apply compare_lt_iff in Hn0.
-        rewrite Hn0. reflexivity.
-      * inversion H0.
-    + inversion H.
 Qed.
 
 Lemma mono_lt_Transitive : Relations_1.Transitive mono_lt.
@@ -304,6 +395,273 @@ Proof.
       * inversion H0.
 Qed.
 
+Lemma MonoOrder_Transitive : 
+  Relations_1.Transitive (fun x y : list nat => is_true (MonoOrder.leb x y)).
+Proof.
+  unfold Relations_1.Transitive, is_true, MonoOrder.leb, mono_cmp.
+  induction x, y, z; intros; try reflexivity; simpl in *.
+  - inversion H.
+  - inversion H.
+  - inversion H0.
+  - destruct (a ?= n) eqn:Han.
+    + apply compare_eq_iff in Han. rewrite Han. destruct (n ?= n0) eqn:Hn0.
+      * apply (IHx _ _ H H0).
+      * reflexivity.
+      * inversion H0.
+    + destruct (n ?= n0) eqn:Hn0.
+      * apply compare_eq_iff in Hn0. rewrite <- Hn0. rewrite Han. reflexivity.
+      * apply compare_lt_iff in Han. apply compare_lt_iff in Hn0.
+        apply (lt_trans a n n0 Han) in Hn0. apply compare_lt_iff in Hn0.
+        rewrite Hn0. reflexivity.
+      * inversion H0.
+    + inversion H.
+Qed.
+
+
+
+(** ** Sorting and Permutations *)
+(**
+    The entire purpose of ensuring our monomials and polynomials remain sorted
+    at all times is so that two polynomials containing the same elements are
+    treated as equal. This definition obviously lends itself very well to the
+    use of the [Permutation] predicate from the standard library, which explains
+    we we proved so many lemmas about permutations during [list_util].
+
+    When comparing equality of polynomials or monomials, this [sort] function
+    is often extremely tricky to deal with. Induction over a list being passed
+    to [sort] is nearly impossible, because the induction element [a] is not
+    guaranteed to be the least value, so will not easily make it outside of
+    the sort function. As a result, the induction hypothesis is almost always
+    useless.
+
+    To combat this, we will prove a series of lemmas relating [sort] to
+    [Permutation], since clearly sorting has no effect when we are comparing
+    the lists in an unordered fashion. The simplest of these lemmas is that
+    if either term of a [Permutation] is wrapped in a [sort] function, we can
+    easily get rid of it without changing the provability of these statements.
+  *)
+
+Lemma Permutation_VarSort_l : forall m n,
+  Permutation m n <-> Permutation (VarSort.sort m) n.
+Proof.
+  intros m n. split; intro.
+  - apply Permutation_trans with (l':=m). apply Permutation_sym.
+    apply VarSort.Permuted_sort. apply H.
+  - apply Permutation_trans with (l':=(VarSort.sort m)).
+    apply VarSort.Permuted_sort. apply H.
+Qed.
+
+Lemma Permutation_VarSort_r : forall m n,
+  Permutation m n <-> Permutation m (VarSort.sort n).
+Proof.
+  intros m n. split; intro.
+  - apply Permutation_sym. rewrite <- Permutation_VarSort_l.
+    apply Permutation_sym; auto.
+  - apply Permutation_sym. rewrite -> Permutation_VarSort_l.
+    apply Permutation_sym; auto.
+Qed.
+
+Lemma Permutation_MonoSort_r : forall p q,
+  Permutation p q <-> Permutation p (sort q).
+Proof.
+  intros p q. split; intro H.
+  - apply Permutation_trans with (l':=q). apply H. apply Permuted_sort.
+  - apply Permutation_trans with (l':=(sort q)). apply H. apply Permutation_sym.
+    apply Permuted_sort.
+Qed.
+
+Lemma Permutation_MonoSort_l : forall p q,
+  Permutation p q <-> Permutation (sort p) q.
+Proof.
+  intros p q. split; intro H.
+  - apply Permutation_sym. rewrite <- Permutation_MonoSort_r.
+    apply Permutation_sym. auto.
+  - apply Permutation_sym. rewrite Permutation_MonoSort_r.
+    apply Permutation_sym. auto.
+Qed.
+
+(**
+    More powerful is the idea that, if we know we are dealing with sorted lists,
+    there is no difference between proving lists are equal and proving they
+    are [Permutation]s. While this seems intuitive, it is actually fairly
+    complicated to prove in Coq.
+
+    For monomials, the proof begins by performing induction on both lists.
+    The first three cases are very straightforward, and the only challenge comes
+    from the third case. We approach the third case by first comparing the two
+    induction elements, [a] and [a0].
+
+    This forms three goals for us - one where [a = a0], one where [a < a0], and
+    one where [a > a0]. The first goal is extremely straightforward, and follows
+    from the induction hypothesis almost immediately after using a few [compare]
+    lemmas.
+
+    This leaves us with the next two goals, which seem to be more challenging
+    at first. However, some further thought leads us to the conclusion that
+    both goals should both be contradictions. If the lists are both sorted, and
+    they contain all the same elements, then they should have the same element,
+    at the head of the list, which is the least element of the set. This element
+    is clearly [a] for the first list, and [a0] for the second. However, our
+    destruct of [compare] has left us with a hypothesis stating that they are
+    not equal! This is the source of the contradiction.
+
+    To get Coq to see our contradiction, we first make use of the [Transitive]
+    lemmas we proved earlier to convert to [StronglySorted]. This allows us to
+    get a hypothesis in the second goal that states that [a0] must be less
+    than everything in the second list. Because [a] is not equal to [a0], this
+    implied that [a] is somewhere else in the second list, and therefore [a0] is
+    less than [a]. This clearly contradicts the fact that [a < a0]. The third
+    goal looks the same, but in reverse.
+  *)
+
+Lemma Permutation_Sorted_mono_eq : forall (m n : mono),
+  Permutation m n ->
+  Sorted (fun n m => is_true (leb n m)) m -> 
+  Sorted (fun n m => is_true (leb n m)) n ->
+  m = n.
+Proof.
+  intros m n Hp Hsl Hsm. generalize dependent n.
+  induction m; induction n; intros.
+  - reflexivity.
+  - apply Permutation_nil in Hp. auto.
+  - apply Permutation_sym, Permutation_nil in Hp. auto.
+  - clear IHn. apply Permutation_incl in Hp as Hp'. destruct Hp'.
+    destruct (a ?= a0) eqn:Hcomp.
+    + apply compare_eq_iff in Hcomp. rewrite Hcomp in *.
+      apply Permutation_cons_inv in Hp. f_equal; auto.
+      apply IHm.
+      * apply Sorted_inv in Hsl. apply Hsl.
+      * apply Hp.
+      * apply Sorted_inv in Hsm. apply Hsm.
+    + apply compare_lt_iff in Hcomp as Hneq. apply incl_cons_inv in H. destruct H.
+      apply Sorted_StronglySorted in Hsm. apply StronglySorted_inv in Hsm as [].
+      * simpl in H. destruct H; try (rewrite H in Hneq; apply lt_irrefl in Hneq; contradiction).
+        pose (Forall_In _ _ _ _ H H3). simpl in i. unfold is_true in i.
+        apply leb_le in i. apply lt_not_le in Hneq. contradiction.
+      * apply VarOrder_Transitive.
+    + apply compare_gt_iff in Hcomp as Hneq. apply incl_cons_inv in H0. destruct H0.
+      apply Sorted_StronglySorted in Hsl. apply StronglySorted_inv in Hsl as [].
+      * simpl in H0. destruct H0; try (rewrite H0 in Hneq; apply gt_irrefl in Hneq; contradiction).
+        pose (Forall_In _ _ _ _ H0 H3). simpl in i. unfold is_true in i.
+        apply leb_le in i. apply lt_not_le in Hneq. contradiction.
+      * apply VarOrder_Transitive.
+Qed.
+
+(**
+    We also wish to prove the same thing for polynomials. This proof is
+    identical in spirit, as we do the same double induction, destructing of
+    compare, and find the same two contradictions. The only difference is the
+    use of lemmas about [lex] instead of [compare], since now we are dealing
+    with lists of lists.
+  *)
+
+Lemma Permutation_Sorted_eq : forall (l m : list mono),
+  Permutation l m ->
+  Sorted (fun x y => is_true (MonoOrder.leb x y)) l -> 
+  Sorted (fun x y => is_true (MonoOrder.leb x y)) m ->
+  l = m.
+Proof.
+  intros l m Hp Hsl Hsm. generalize dependent m.
+  induction l; induction m; intros.
+  - reflexivity.
+  - apply Permutation_nil in Hp. auto.
+  - apply Permutation_sym, Permutation_nil in Hp. auto.
+  - clear IHm. apply Permutation_incl in Hp as Hp'. destruct Hp'.
+    destruct (mono_cmp a a0) eqn:Hcomp.
+    + apply lex_eq in Hcomp. rewrite Hcomp in *.
+      apply Permutation_cons_inv in Hp. f_equal; auto.
+      apply IHl.
+      * apply Sorted_inv in Hsl. apply Hsl.
+      * apply Hp.
+      * apply Sorted_inv in Hsm. apply Hsm.
+    + apply lex_neq' in Hcomp as Hneq. apply incl_cons_inv in H. destruct H.
+      apply Sorted_StronglySorted in Hsm. apply StronglySorted_inv in Hsm as [].
+      * simpl in H. destruct H; try (rewrite H in Hneq; contradiction).
+        pose (Forall_In _ _ _ _ H H3). simpl in i. unfold is_true,
+        MonoOrder.leb, mono_cmp in i. apply lex_rev_lt_gt in Hcomp.
+        rewrite Hcomp in i. inversion i.
+      * apply MonoOrder_Transitive.
+    + apply lex_neq' in Hcomp as Hneq. apply incl_cons_inv in H0. destruct H0.
+      apply Sorted_StronglySorted in Hsl. apply StronglySorted_inv in Hsl as [].
+      * simpl in H0. destruct H0; try (rewrite H0 in Hneq; contradiction).
+        pose (Forall_In _ _ _ _ H0 H3). simpl in i. unfold is_true in i.
+        unfold MonoOrder.leb in i. rewrite Hcomp in i. inversion i.
+      * apply MonoOrder_Transitive.
+Qed.
+
+(**
+    Another useful form of these two lemmas is that if at any point we are
+    attempting to prove that [sort] of one list equals [sort] of another, we
+    can ditch the [sort] and instead prove that the two lists are [Permutation]s.
+    These lemmaa will come up a lot in future proofs, and has made some of our
+    work much easier.
+  *)
+
+Lemma Permutation_sort_mono_eq : forall (l m:mono),
+  Permutation l m <-> VarSort.sort l = VarSort.sort m.
+Proof.
+  intros l m. split; intros H.
+  - assert (H0 : Permutation (VarSort.sort l) (VarSort.sort m)).
+    + apply Permutation_trans with (l:=(VarSort.sort l)) (l':=m) (l'':=(VarSort.sort m)).
+      * apply Permutation_sym. apply Permutation_sym in H.
+        apply (Permutation_trans H (VarSort.Permuted_sort l)).
+      * apply VarSort.Permuted_sort.
+    + apply (Permutation_Sorted_mono_eq _ _ H0 (VarSort.LocallySorted_sort l) (VarSort.LocallySorted_sort m)).
+  - assert (Permutation (VarSort.sort l) (VarSort.sort m)).
+    + rewrite H. apply Permutation_refl.
+    + pose (VarSort.Permuted_sort l). pose (VarSort.Permuted_sort m).
+      apply (Permutation_trans p) in H0. apply Permutation_sym in p0.
+      apply (Permutation_trans H0) in p0. apply p0.
+Qed.
+
+Lemma Permutation_sort_eq : forall l m,
+  Permutation l m <-> sort l = sort m.
+Proof.
+  intros l m. split; intros H.
+  - assert (H0 : Permutation (sort l) (sort m)).
+    + apply Permutation_trans with (l:=(sort l)) (l':=m) (l'':=(sort m)).
+      * apply Permutation_sym. apply Permutation_sym in H.
+        apply (Permutation_trans H (Permuted_sort l)).
+      * apply Permuted_sort.
+    + apply (Permutation_Sorted_eq _ _ H0 (LocallySorted_sort l) (LocallySorted_sort m)).
+  - assert (Permutation (sort l) (sort m)).
+    + rewrite H. apply Permutation_refl.
+    + pose (Permuted_sort l). pose (Permuted_sort m).
+      apply (Permutation_trans p) in H0. apply Permutation_sym in p0.
+      apply (Permutation_trans H0) in p0. apply p0.
+Qed.
+
+(* ===== Repairing ====== *) 
+(** * Repairing Invalid Monomials & Polynomials *)
+(**
+    Clearly, there is a very strict set of rules we would like to be true about
+    all of the polynomials and monomials we workd with. These rules are,
+    however, relatively tricky to maintain when it comes to writing functions
+    that operate over monomials and polynomials. Rather than rely on our
+    ability to define every function to perfectly maintain this set of rules,
+    we decided to define two functions to "repair" any invalid monomials or
+    polynomials. These functions, given a list of variables or a list of list of variables,
+    will apply a few functions to them such that at the end, we are left with
+    a properly formatted monomial or polynomial.
+  *)
+
+(** ** Converting Between [lt] and [le] *)
+(**
+    A small problem with the [sort] function provided by the standard
+    library is that it requires us to use a [le] comparator, as opposed to [lt]
+    like we use in our [is_mono] and [is_poly] definitions. However, as we said
+    before, because our lists have no duplicates [le] and [lt] are equivalent.
+    Obviously, though, saying this isn't enough - we must prove it for it to be
+    useful to us in proofs.
+
+    The first step to proving this is proving that this is true when dealing
+    with the [HdRel] definition that [Sorted] is built on top of. These lemmas
+    state that, if [a] holds the [le] relation with a list, and there are also
+    no duplicates in [a::l], that [a] also holds the [lt] relation with the list.
+    These proofs are both relatively straightforward, especially with the use of
+    the [NoDup_neq] lemma proven earlier.
+  *)
+
 Lemma HdRel_le_lt : forall a m,
   HdRel (fun n m => is_true (leb n m)) a m /\ NoDup (a::m) -> HdRel lt a m.
 Proof.
@@ -317,43 +675,6 @@ Proof.
     + apply compare_lt_iff in Hcomp. apply Hcomp.
     + apply compare_gt_iff in Hcomp. apply leb_correct_conv in Hcomp.
       apply leb_correct in H. rewrite H in Hcomp. inversion Hcomp.
-Qed.
-
-Lemma VarSort_Sorted : forall (m : mono),
-  Sorted (fun n m => is_true (leb n m)) m /\ NoDup m -> Sorted lt m.
-Proof.
-  intros m []. remember (fun n m => is_true (leb n m)) as le.
-  induction m.
-  - apply Sorted_nil.
-  - apply Sorted_inv in H. apply Sorted_cons.
-    + apply IHm.
-      * apply H.
-      * apply NoDup_cons_iff in H0. apply H0.
-    + apply HdRel_le_lt. split.
-      * rewrite <- Heqle. apply H.
-      * apply H0.
-Qed.
-
-Lemma Sorted_VarSorted : forall (m : mono),
-  Sorted lt m ->
-  Sorted (fun n m => is_true (leb n m)) m.
-Proof.
-  intros m H. induction H.
-  - apply Sorted_nil.
-  - apply Sorted_cons.
-    + apply IHSorted.
-    + destruct l.
-      * apply HdRel_nil.
-      * apply HdRel_cons. apply HdRel_inv in H0. apply lt_le_incl in H0.
-        apply leb_le in H0. apply H0.
-Qed.
-
-Lemma In_sorted : forall a l,
-  In a l <-> In a (sort l).
-Proof.
-  intros a l. pose (MonoSort.Permuted_sort l). split; intros Hin.
-  - apply (Permutation_in _ p Hin).
-  - apply (Permutation_in' (Logic.eq_refl a) p). auto.
 Qed.
 
 Lemma HdRel_mono_le_lt : forall a p,
@@ -372,6 +693,27 @@ Proof.
     + inversion H.
 Qed.
 
+(**
+    Now, to apply these lemmas - we prove that if a list is [Sorted] with a
+    [le] operator and has no duplicates, that it is also [Sorted] with the
+    corresponding [lt] operator.
+  *)
+
+Lemma VarSort_Sorted : forall (m : mono),
+  Sorted (fun n m => is_true (leb n m)) m /\ NoDup m -> Sorted lt m.
+Proof.
+  intros m []. remember (fun n m => is_true (leb n m)) as le.
+  induction m.
+  - apply Sorted_nil.
+  - apply Sorted_inv in H. apply Sorted_cons.
+    + apply IHm.
+      * apply H.
+      * apply NoDup_cons_iff in H0. apply H0.
+    + apply HdRel_le_lt. split.
+      * rewrite <- Heqle. apply H.
+      * apply H0.
+Qed.
+
 Lemma MonoSort_Sorted : forall (p : poly),
   Sorted (fun n m => is_true (MonoOrder.leb n m)) p /\ NoDup p -> 
   Sorted mono_lt p.
@@ -388,6 +730,25 @@ Proof.
       * apply H0.
 Qed.
 
+(**
+    For convenience, we also include the inverse - if a list is [Sorted] with
+    an [lt] operator, it is also [Sorted] with the matching [le] operator.
+  *)
+
+Lemma Sorted_VarSorted : forall (m : mono),
+  Sorted lt m ->
+  Sorted (fun n m => is_true (leb n m)) m.
+Proof.
+  intros m H. induction H.
+  - apply Sorted_nil.
+  - apply Sorted_cons.
+    + apply IHSorted.
+    + destruct l.
+      * apply HdRel_nil.
+      * apply HdRel_cons. apply HdRel_inv in H0. apply lt_le_incl in H0.
+        apply leb_le in H0. apply H0.
+Qed.
+
 Lemma Sorted_MonoSorted : forall (p : poly),
   Sorted mono_lt p ->
   Sorted (fun n m => is_true (MonoOrder.leb n m)) p.
@@ -401,6 +762,12 @@ Proof.
       * apply HdRel_cons. apply HdRel_inv in H0. unfold MonoOrder.leb.
         rewrite H0. auto.
 Qed.
+
+(**
+    Another obvious side effect of what we have just proven is that if a
+    list is [Sorted] with an [lt] operator, clearly there are no duplicates,
+    as no elements are equal to each other.
+  *)
 
 Lemma NoDup_MonoSorted : forall (p : poly),
   Sorted mono_lt p ->
@@ -429,6 +796,25 @@ Proof.
   - apply lt_Transitive.
 Qed.
 
+(**
+    There are a few more useful lemmas we would like to prove about our sort
+    functions before we can define and prove the correctness of our repair
+    functions. Mostly, we want to know that sorting a list has no effect on
+    some properties of it.
+
+    Specifically, if an element was [In] a list before it was sorted, it is also
+    in it after, and vice versa. Similarly, if a list has no duplicates before
+    being sorted, it also has no duplicates after.
+  *)
+
+Lemma In_sorted : forall a l,
+  In a l <-> In a (sort l).
+Proof.
+  intros a l. pose (MonoSort.Permuted_sort l). split; intros Hin.
+  - apply (Permutation_in _ p Hin).
+  - apply (Permutation_in' (Logic.eq_refl a) p). auto.
+Qed.
+
 Lemma NoDup_VarSort : forall (m : mono),
   NoDup m -> NoDup (VarSort.sort m).
 Proof.
@@ -443,11 +829,38 @@ Proof.
   apply (Permutation_NoDup p0 Hdup).
 Qed.
 
+(** ** Defining the Repair Functions *)
+(**
+    Now time for our definitions. To convert a list of variables into a
+    monomial, we first apply nodup, which removes all duplicates. We use [nodup]
+    rather than [nodup_cancel] because [x*x = x], so we want one copy to remain.
+    After applying [nodup], we use our [VarSort] module to sort the list from
+    least to greatest.
+  *)
+
 Definition make_mono (l : list nat) : mono := 
   VarSort.sort (nodup var_eq_dec l).
 
+(**
+    The process of converting a list of list of variables into a polynomial is
+    very similar. First we [map] across the list applying [make_mono], so that
+    each sublist is properly formatted. Then we apply [nodup_cancel] to remove
+    duplicates. In this case, we use [nodup_cancel] instead of [nodup] because
+    [x+x = 0], so we want pairs to cancel out. Lastly, we use our [MonoSort]
+    module to sort the list.
+  *)
+
 Definition make_poly (l : list mono) : poly := 
   MonoSort.sort (nodup_cancel mono_eq_dec (map make_mono l)).
+
+(**
+    Now to prove the correctness of these lists - if you apply [make_mono]
+    to something, it is then guaranteed to satisfy the [is_mono] proposition.
+    This proof is relatively straightforward, as we have already done most
+    of the work with [VarSort_Sorted]; all that is left to do is show that
+    [make_mono m] is [Sorted] and has [NoDup]s, which is obvious considering
+    that is exactly what [make_mono] does!
+  *)
 
 Lemma make_mono_is_mono : forall m,
   is_mono (make_mono m).
@@ -456,6 +869,15 @@ Proof.
   + apply VarSort.LocallySorted_sort.
   + apply NoDup_VarSort. apply NoDup_nodup.
 Qed.
+
+(**
+    The proof for [make_poly_is_poly] is almost identical, with the addition
+    of one part. [is_poly] still asks us to prove that the list is [Sorted],
+    which follows from [MonoSort_Sorted] like above. The only difference is
+    that [is_poly] also asks us to show that each element in the list [is_mono],
+    which follows from the use of a few [In] lemmas and the [make_mono_is_mono]
+    we just proved thanks to the [map] in [make_poly].
+  *)
 
 Lemma make_poly_is_poly : forall p,
   is_poly (make_poly p).
@@ -471,6 +893,15 @@ Qed.
 
 Hint Resolve make_poly_is_poly make_mono_is_mono.
 
+(** ** Facts about [make_mono] and [make_poly] *)
+(**
+    Before we dive into more complicated proofs involving these repair functions,
+    there are a few simple lemmas we can prove about them.
+
+    First is that if some variable [x] was in a list before [make_mono] was
+    applied, it must also be in it after, and vice-versa.
+  *)
+
 Lemma make_mono_In : forall x m,
   In x (make_mono m) <-> In x m.
 Proof.
@@ -481,6 +912,11 @@ Proof.
     apply Permutation_in with (l:=(nodup var_eq_dec m)); auto. apply nodup_In. auto.
 Qed.
 
+(**
+    In addition, if some list [m] is already a monomial, removing anything
+    from it will not change that.
+  *)
+
 Lemma remove_is_mono : forall x m,
   is_mono m ->
   is_mono (remove var_eq_dec x m).
@@ -490,25 +926,41 @@ Proof.
   apply lt_Transitive.
 Qed.
 
+
+
+(** * Polynomial Arithmetic *)
+
+(**
+    Now, the foundation for operations on polynomails has been put in place,
+    and we can begin to get into the real meat - our arithmetic operators.
+    First up is addition. Because we have so cleverly defined our [make_poly]
+    function, addition over our data structures is as simple as appending
+    the two polynomials and repairing the result back into a proper polynomial.
+  *)
+
 Definition addPP (p q : poly) : poly :=
   make_poly (p ++ q).
 
-Lemma In_distribute : forall (l m:poly) a,
-  In a (vars (distribute l m)) ->
-  In a (vars l) \/ In a (vars m).
-Proof.
-  intros l m a H. unfold distribute, vars in H. apply nodup_In in H.
-  apply In_concat_exists in H. destruct H as [ll[]].
-  apply In_concat_exists in H. destruct H as [ll1[]].
-  apply in_map_iff in H. destruct H as [x[]]. rewrite <- H in H1.
-  apply in_map_iff in H1. destruct H1 as [x0[]]. rewrite <- H1 in H0.
-  apply in_app_iff in H0. destruct H0.
-  - right. apply nodup_In. apply In_concat_exists. exists x. auto.
-  - left. apply nodup_In. apply In_concat_exists. exists x0. auto.
-Qed.
+(**
+    Similarly, the definition for multiplication becomes much easier with
+    the creation of [make_poly]. All we need to do is use our [distribute]
+    function defined earlier to form all combinations of one monomial from
+    each list, and call [make_poly] on the result.
+  *)
 
 Definition mulPP (p q : poly) : poly :=
   make_poly (distribute p q).
+
+(**
+    While this definition is elegant, sometimes it is hard to work with. This
+    has led us to also create a second definition, which allows us to separate
+    the concepts of multiplication of an individual monomial and multiplication
+    of two polynomials.
+
+    Multiplying a monomial times a polynomial is simply appending the monomial
+    to each monomial in the polynomial, and multiplying two polynomials is just
+    multiplying each monomial in one polynomial times the other polynomial.
+  *)
 
 Definition mulMP (p : poly) (m : mono) : poly := 
   map (app m) p.
@@ -567,70 +1019,6 @@ Lemma addPP_is_poly : forall p q,
   is_poly (addPP p q).
 Proof.
   intros p q. apply make_poly_is_poly.
-Qed.
-
-Lemma leb_both_eq : forall x y,
-  is_true (MonoOrder.leb x y) ->
-  is_true (MonoOrder.leb y x) ->
-  x = y.
-Proof.
-  intros x y H H0. unfold is_true, MonoOrder.leb in *.
-  destruct (mono_cmp y x) eqn:Hyx; destruct (mono_cmp x y) eqn:Hxy;
-  unfold mono_cmp in *;
-  try (apply lex_rev_lt_gt in Hxy; rewrite Hxy in Hyx; inversion Hyx);
-  try (apply lex_rev_lt_gt in Hyx; rewrite Hxy in Hyx; inversion Hyx);
-  try inversion H; try inversion H0.
-  apply lex_eq in Hxy; auto.
-Qed.
-
-Lemma Permutation_Sorted_mono_eq : forall (m n : mono),
-  Permutation m n ->
-  Sorted (fun n m => is_true (leb n m)) m -> 
-  Sorted (fun n m => is_true (leb n m)) n ->
-  m = n.
-Proof.
-  intros m n Hp Hsl Hsm. generalize dependent n.
-  induction m; induction n; intros.
-  - reflexivity.
-  - apply Permutation_nil in Hp. auto.
-  - apply Permutation_sym, Permutation_nil in Hp. auto.
-  - clear IHn. apply Permutation_incl in Hp as Hp'. destruct Hp'.
-    destruct (a ?= a0) eqn:Hcomp.
-    + apply compare_eq_iff in Hcomp. rewrite Hcomp in *.
-      apply Permutation_cons_inv in Hp. f_equal; auto.
-      apply IHm.
-      * apply Sorted_inv in Hsl. apply Hsl.
-      * apply Hp.
-      * apply Sorted_inv in Hsm. apply Hsm.
-    + apply compare_lt_iff in Hcomp as Hneq. apply incl_cons_inv in H. destruct H.
-      apply Sorted_StronglySorted in Hsm. apply StronglySorted_inv in Hsm as [].
-      * simpl in H. destruct H; try (rewrite H in Hneq; apply lt_irrefl in Hneq; contradiction).
-        pose (Forall_In _ _ _ _ H H3). simpl in i. unfold is_true in i.
-        apply leb_le in i. apply lt_not_le in Hneq. contradiction.
-      * apply VarOrder_Transitive.
-    + apply compare_gt_iff in Hcomp as Hneq. apply incl_cons_inv in H0. destruct H0.
-      apply Sorted_StronglySorted in Hsl. apply StronglySorted_inv in Hsl as [].
-      * simpl in H0. destruct H0; try (rewrite H0 in Hneq; apply gt_irrefl in Hneq; contradiction).
-        pose (Forall_In _ _ _ _ H0 H3). simpl in i. unfold is_true in i.
-        apply leb_le in i. apply lt_not_le in Hneq. contradiction.
-      * apply VarOrder_Transitive.
-Qed.
-
-Lemma Permutation_sort_mono_eq : forall (l m:mono),
-  Permutation l m <-> VarSort.sort l = VarSort.sort m.
-Proof.
-  intros l m. split; intros H.
-  - assert (H0 : Permutation (VarSort.sort l) (VarSort.sort m)).
-    + apply Permutation_trans with (l:=(VarSort.sort l)) (l':=m) (l'':=(VarSort.sort m)).
-      * apply Permutation_sym. apply Permutation_sym in H.
-        apply (Permutation_trans H (VarSort.Permuted_sort l)).
-      * apply VarSort.Permuted_sort.
-    + apply (Permutation_Sorted_mono_eq _ _ H0 (VarSort.LocallySorted_sort l) (VarSort.LocallySorted_sort m)).
-  - assert (Permutation (VarSort.sort l) (VarSort.sort m)).
-    + rewrite H. apply Permutation_refl.
-    + pose (VarSort.Permuted_sort l). pose (VarSort.Permuted_sort m).
-      apply (Permutation_trans p) in H0. apply Permutation_sym in p0.
-      apply (Permutation_trans H0) in p0. apply p0.
 Qed.
 
 Lemma no_sort_VarSorted : forall m,
@@ -892,57 +1280,6 @@ Proof.
     + rewrite H1. apply perm_skip. apply IHp.
       * apply poly_cons in H. apply H.
       * intros m Hin. apply H0. intuition.
-Qed.
-
-Lemma Permutation_Sorted_eq : forall (l m : list mono),
-  Permutation l m ->
-  Sorted (fun x y => is_true (MonoOrder.leb x y)) l -> 
-  Sorted (fun x y => is_true (MonoOrder.leb x y)) m ->
-  l = m.
-Proof.
-  intros l m Hp Hsl Hsm. generalize dependent m.
-  induction l; induction m; intros.
-  - reflexivity.
-  - apply Permutation_nil in Hp. auto.
-  - apply Permutation_sym, Permutation_nil in Hp. auto.
-  - clear IHm. apply Permutation_incl in Hp as Hp'. destruct Hp'.
-    destruct (mono_cmp a a0) eqn:Hcomp.
-    + apply lex_eq in Hcomp. rewrite Hcomp in *.
-      apply Permutation_cons_inv in Hp. f_equal; auto.
-      apply IHl.
-      * apply Sorted_inv in Hsl. apply Hsl.
-      * apply Hp.
-      * apply Sorted_inv in Hsm. apply Hsm.
-    + apply lex_neq' in Hcomp as Hneq. apply incl_cons_inv in H. destruct H.
-      apply Sorted_StronglySorted in Hsm. apply StronglySorted_inv in Hsm as [].
-      * simpl in H. destruct H; try (rewrite H in Hneq; contradiction).
-        pose (Forall_In _ _ _ _ H H3). simpl in i. unfold is_true,
-        MonoOrder.leb, mono_cmp in i. apply lex_rev_lt_gt in Hcomp.
-        rewrite Hcomp in i. inversion i.
-      * apply MonoOrder_Transitive.
-    + apply lex_neq' in Hcomp as Hneq. apply incl_cons_inv in H0. destruct H0.
-      apply Sorted_StronglySorted in Hsl. apply StronglySorted_inv in Hsl as [].
-      * simpl in H0. destruct H0; try (rewrite H0 in Hneq; contradiction).
-        pose (Forall_In _ _ _ _ H0 H3). simpl in i. unfold is_true in i.
-        unfold MonoOrder.leb in i. rewrite Hcomp in i. inversion i.
-      * apply MonoOrder_Transitive.
-Qed.
-
-Lemma Permutation_sort_eq : forall l m,
-  Permutation l m <-> sort l = sort m.
-Proof.
-  intros l m. split; intros H.
-  - assert (H0 : Permutation (sort l) (sort m)).
-    + apply Permutation_trans with (l:=(sort l)) (l':=m) (l'':=(sort m)).
-      * apply Permutation_sym. apply Permutation_sym in H.
-        apply (Permutation_trans H (Permuted_sort l)).
-      * apply Permuted_sort.
-    + apply (Permutation_Sorted_eq _ _ H0 (LocallySorted_sort l) (LocallySorted_sort m)).
-  - assert (Permutation (sort l) (sort m)).
-    + rewrite H. apply Permutation_refl.
-    + pose (Permuted_sort l). pose (Permuted_sort m).
-      apply (Permutation_trans p) in H0. apply Permutation_sym in p0.
-      apply (Permutation_trans H0) in p0. apply p0.
 Qed.
 
 Lemma make_poly_Permutation : forall p q,
@@ -1217,26 +1554,6 @@ Proof.
   intros q a p. unfold mulPP''. rewrite make_poly_pointless_r. auto.
 Qed.
 
-Lemma Permutation_VarSort_l : forall m n,
-  Permutation m n <-> Permutation (VarSort.sort m) n.
-Proof.
-  intros m n. split; intro.
-  - apply Permutation_trans with (l':=m). apply Permutation_sym.
-    apply VarSort.Permuted_sort. apply H.
-  - apply Permutation_trans with (l':=(VarSort.sort m)).
-    apply VarSort.Permuted_sort. apply H.
-Qed.
-
-Lemma Permutation_VarSort_r : forall m n,
-  Permutation m n <-> Permutation m (VarSort.sort n).
-Proof.
-  intros m n. split; intro.
-  - apply Permutation_sym. rewrite <- Permutation_VarSort_l.
-    apply Permutation_sym; auto.
-  - apply Permutation_sym. rewrite -> Permutation_VarSort_l.
-    apply Permutation_sym; auto.
-Qed.
-
 Lemma make_mono_pointless : forall m a,
   make_mono (m ++ make_mono a) = make_mono (m ++ a).
 Proof.
@@ -1355,273 +1672,6 @@ Lemma mono_in_mulPP'' : forall p q m,
   In m (mulPP'' p q) -> is_mono m.
 Proof.
  intros. unfold mulPP'' in H. apply (mono_in_make_poly _ _ H).
-Qed.
-
-Lemma mulMP'_refold : forall p m,
-  map make_mono (map (app m) p) = mulMP' p m.
-Proof.
-  auto.
-Qed.
-
-Lemma mulMP_mulMP' : forall p q m,
-  make_poly (mulMP p m ++ q) = make_poly (mulMP' p m ++ q).
-Proof.
-  intros. unfold make_poly, mulMP. rewrite map_app, mulMP'_refold.
-  rewrite map_app. rewrite (no_map_make_mono (mulMP' _ _)); auto.
-  apply mono_in_mulMP'.
-Qed.
-
-Lemma mulMP_1 : forall p,
-  mulMP p [] = p.
-Proof.
-  intros. unfold mulMP. simpl.
-  rewrite map_id. auto.
-Qed.
-
-Lemma mulMP''_1 : forall p,
-  is_poly p ->
-  mulMP'' p [] = p.
-Proof.
-  intros. unfold mulMP''. simpl.
-  rewrite map_id. rewrite no_make_poly; auto.
-Qed.
-
-
-
-Definition parity_match (l m:poly) : Prop :=
-  forall x, even (count_occ mono_eq_dec l x) = even (count_occ mono_eq_dec m x).
-
-Lemma even_nodup_cancel : forall p,
-  (forall x, even (count_occ mono_eq_dec p x) = true) ->
-  (forall x, ~ In x (nodup_cancel mono_eq_dec p)).
-Proof.
-  intros p H m. intro. induction p.
-  - inversion H0.
-  - simpl in *. pose (H m) as H1. symmetry in H1. destruct (mono_eq_dec a m).
-    + symmetry in H1. rewrite <- e in H1. rewrite even_succ in H1. rewrite <- negb_even in H1.
-      rewrite Bool.negb_true_iff in H1. rewrite H1 in H0. rewrite e in H0.
-      apply remove_In in H0. inversion H0.
-    + destruct (even (count_occ mono_eq_dec p a)).
-      * destruct H0; try contradiction. apply In_remove in H0. symmetry in H1.
-        apply not_in_nodup_cancel in H1. contradiction.
-      * apply In_remove in H0. symmetry in H1. apply not_in_nodup_cancel in H1.
-        contradiction.
-Qed.
-
-Lemma parity_match_empty : forall q,
-  parity_match [] q ->
-  Permutation [] (nodup_cancel mono_eq_dec q).
-Proof.
-  intros q H. unfold parity_match in H. simpl in H.
-  symmetry in H. pose (even_nodup_cancel q H). apply nothing_in_empty in n.
-  rewrite n. auto.
-Qed.
-
-Lemma parity_match_refl : forall l,
-  parity_match l l.
-Proof.
-  intros l. unfold parity_match. auto.
-Qed.
-
-Lemma parity_match_sym : forall l m,
-  parity_match l m <-> parity_match m l.
-Proof.
-  intros l m. unfold parity_match. split; intros H x; auto.
-Qed.
-
-Lemma parity_match_trans : forall p q r,
-  parity_match p q ->
-  parity_match q r ->
-  parity_match p r.
-Proof.
-  intros p q r H H0. unfold parity_match in *. intros x.
-  rewrite H. rewrite H0. auto.
-Qed.
-
-Hint Resolve parity_match_refl parity_match_sym parity_match_trans.
-
-Lemma parity_match_cons : forall a l1 l2,
-  parity_match (a::l1) (a::l2) <->
-  parity_match l1 l2.
-Proof.
-  intros a l1 l2. unfold parity_match. split; intros H x.
-  - pose (H x). symmetry in e. simpl in e. destruct (mono_eq_dec a x); auto.
-    repeat rewrite even_succ in e. repeat rewrite <- negb_even in e.
-    apply Bool.negb_sym in e. rewrite Bool.negb_involutive in e. auto.
-  - simpl. destruct (mono_eq_dec a x); auto.
-    repeat rewrite even_succ. repeat rewrite <- negb_even.
-    apply Bool.negb_sym. rewrite Bool.negb_involutive. auto.
-Qed.
-
-Lemma parity_match_double : forall a l,
-  parity_match (a::a::l) l.
-Proof.
-  intros a l. unfold parity_match. intros x. simpl.
-  destruct (mono_eq_dec a x).
-  - rewrite even_succ. rewrite odd_succ. auto.
-  - auto.
-Qed.
-
-Lemma parity_match_cons_swap : forall a l1 l2,
-  parity_match (a::l1) l2 ->
-  parity_match l1 (a::l2).
-Proof.
-  intros a l1 l2 H. apply (parity_match_cons a) in H.
-  apply parity_match_sym in H. apply parity_match_trans with (r:=l1) in H.
-  apply parity_match_sym in H. auto. apply parity_match_double.
-Qed.
-
-Lemma parity_match_In : forall a l1 l2,
-  even (count_occ mono_eq_dec l1 a) = true ->
-  parity_match (a::l1) l2 ->
-  In a l2.
-Proof.
-  intros a l1 l2 H H0. apply parity_match_cons_swap in H0.
-  rewrite H0 in H. simpl in H. destruct (mono_eq_dec a a); try contradiction.
-  rewrite even_succ in H. rewrite <- negb_even in H. rewrite Bool.negb_true_iff in H.
-  assert (count_occ mono_eq_dec l2 a > 0). destruct count_occ. inversion H.
-  apply gt_Sn_O. apply count_occ_In in H1. auto.
-Qed.
-
-Lemma Permutation_parity_match : forall p q,
-  Permutation p q -> parity_match p q.
-Proof.
-  intros p q H. induction H.
-  - auto.
-  - apply parity_match_cons. auto.
-  - repeat apply parity_match_cons_swap. unfold parity_match. intros x0.
-    simpl. destruct mono_eq_dec; destruct mono_eq_dec;
-    repeat (rewrite even_succ; rewrite odd_succ); auto.
-  - apply parity_match_trans with (q:=l'); auto.
-Qed.
-
-Lemma parity_nodup_cancel_Permutation : forall p q,
-  parity_match p q ->
-  Permutation (nodup_cancel mono_eq_dec p) (nodup_cancel mono_eq_dec q).
-Proof.
-  intros p q H. generalize dependent q. induction p; induction q; intros.
-  - auto.
-  - simpl nodup_cancel at 1. apply parity_match_empty. auto.
-  - simpl nodup_cancel at 2. apply Permutation_sym. apply parity_match_empty.
-    apply parity_match_sym. auto.
-  - clear IHq. destruct (mono_eq_dec a a0).
-    + rewrite e. simpl. rewrite e in H. apply parity_match_cons in H.
-      destruct even eqn:Hev; rewrite H in Hev; rewrite Hev.
-      * apply perm_skip. apply remove_Permutation. auto.
-      * apply remove_Permutation. auto.
-    + simpl nodup_cancel at 1. destruct even eqn:Hev.
-      * assert (Hev':=Hev). apply parity_match_In with (l2:=(a0::q)) in Hev; auto.
-        destruct Hev. symmetry in H0. contradiction. apply In_split in H0 as [l1[l2 H0]].
-        rewrite H0. apply Permutation_sym. apply Permutation_trans with (l':=(
-          nodup_cancel mono_eq_dec (a::l2++a0::l1))). apply nodup_cancel_Permutation.
-          rewrite app_comm_cons. apply (Permutation_app_comm).
-        simpl. rewrite H0 in H. apply parity_match_trans with (r:=(a::l2++a0::l1)) in H.
-        apply parity_match_cons in H. rewrite H in Hev'. rewrite Hev'.
-        apply perm_skip. apply remove_Permutation. apply Permutation_sym.
-        apply IHp. auto. rewrite app_comm_cons. apply Permutation_parity_match.
-        apply Permutation_app_comm.
-      * apply parity_match_cons_swap in H. rewrite H in Hev. assert (Hev2:=Hev).
-        rewrite count_occ_Permutation with (l':=(a::q++[a0])) in Hev. simpl in Hev.
-        destruct (mono_eq_dec a a); try contradiction. rewrite even_succ in Hev.
-        rewrite <- negb_even in Hev. rewrite Bool.negb_false_iff in Hev.
-        rewrite <- (not_In_remove _ mono_eq_dec a).
-        assert (forall l, remove mono_eq_dec a (nodup_cancel mono_eq_dec (l)) =
-          remove mono_eq_dec a (nodup_cancel mono_eq_dec (a::l))).
-          intros l. simpl. destruct (even (count_occ _ l a)).
-          simpl. destruct (mono_eq_dec a a); try contradiction.
-          rewrite (not_In_remove _ _ _(remove _ _ _)). auto. apply remove_In.
-          rewrite (not_In_remove _ _ _(remove _ _ _)). auto. apply remove_In.
-        rewrite (H0 (a0::q)). apply remove_Permutation. apply IHp. auto.
-        apply not_in_nodup_cancel. rewrite count_occ_Permutation with (l':=(a0::q)) in Hev.
-        auto. replace (a0::q) with ([a0]++q); auto. apply Permutation_app_comm.
-        apply perm_skip. replace (a0::q) with ([a0]++q); auto. apply Permutation_app_comm.
-Qed.
-
-Lemma count_occ_map_lt : forall p a f,
-  count_occ mono_eq_dec p a <= count_occ mono_eq_dec (map f p) (f a).
-Proof.
-  intros p a f. induction p. auto. simpl. destruct mono_eq_dec.
-  - rewrite e. destruct mono_eq_dec; try contradiction. simpl. apply le_n_S. auto.
-  - destruct mono_eq_dec; auto.
-Qed.
-
-Lemma count_occ_map_sub : forall f a p,
-  count_occ mono_eq_dec (map f (remove mono_eq_dec a p)) (f a) = 
-  count_occ mono_eq_dec (map f p) (f a) - count_occ mono_eq_dec p a.
-Proof.
-  intros f a p. induction p; auto. simpl. destruct mono_eq_dec.
-  - rewrite e. destruct mono_eq_dec; try contradiction. destruct mono_eq_dec;
-    try contradiction. simpl. rewrite <- e. auto.
-  - simpl. destruct mono_eq_dec.
-    + destruct mono_eq_dec. symmetry in e0; contradiction. rewrite IHp.
-      rewrite sub_succ_l. auto. apply count_occ_map_lt.
-    + destruct mono_eq_dec. symmetry in e; contradiction. auto.
-Qed.
-
-Lemma count_occ_map_neq_remove : forall f a p x,
-  x <> (f a) ->
-  count_occ mono_eq_dec (map f (remove mono_eq_dec a p)) x =
-  count_occ mono_eq_dec (map f p) x.
-Proof.
-  intros. induction p as [|b]; auto. simpl. destruct (mono_eq_dec a b).
-  - destruct mono_eq_dec. rewrite <- e in e0. symmetry in e0. contradiction.
-    auto.
-  - simpl. destruct mono_eq_dec; auto.
-Qed.
-
-Lemma f_equal_sum_lt : forall f a b p,
-  b <> a -> (f a) = (f b) ->
-  count_occ mono_eq_dec p b +
-  count_occ mono_eq_dec p a <=
-  count_occ mono_eq_dec (map f p) (f a).
-Proof.
-  intros f a b p Hne Hfe. induction p as [|c]; auto. simpl. destruct mono_eq_dec.
-  - rewrite e. destruct mono_eq_dec; try contradiction. rewrite Hfe.
-    destruct mono_eq_dec; try contradiction. simpl. apply le_n_S.
-    rewrite <- Hfe. auto.
-  - destruct mono_eq_dec.
-    + rewrite e. destruct mono_eq_dec; try contradiction. rewrite plus_comm.
-      simpl. rewrite plus_comm. apply le_n_S. auto.
-    + destruct mono_eq_dec.
-      * apply le_S. auto.
-      * auto.
-Qed.
-
-Lemma count_occ_nodup_map_lt : forall p f a,
-  count_occ mono_eq_dec (nodup_cancel mono_eq_dec p) a <=
-  count_occ mono_eq_dec (map f (nodup_cancel mono_eq_dec p)) (f a).
-Proof.
-  intros p f a. induction p as [|b]; auto. simpl. destruct even eqn:Hev.
-  - simpl. destruct mono_eq_dec.
-    + rewrite e. destruct mono_eq_dec; try contradiction. apply le_n_S. auto.
-      rewrite count_occ_remove. apply le_0_l.
-    + rewrite count_occ_neq_remove; auto. rewrite not_In_remove.
-      destruct mono_eq_dec; firstorder. apply not_in_nodup_cancel; auto.
-  - destruct (mono_eq_dec b a) eqn:Hba.
-    + rewrite e. rewrite count_occ_remove. apply le_0_l.
-    + rewrite count_occ_neq_remove; auto. destruct (mono_eq_dec (f b) (f a)) eqn:Hfba.
-      * rewrite <- e. rewrite count_occ_map_sub. rewrite e. apply le_add_le_sub_l.
-        apply f_equal_sum_lt; auto.
-      * rewrite count_occ_map_neq_remove; auto.
-Qed.
-
-Lemma nodup_cancel_map : forall p f,
-  Permutation
-    (nodup_cancel mono_eq_dec (map f (nodup_cancel mono_eq_dec p)))
-    (nodup_cancel mono_eq_dec (map f p)).
-Proof.
-  intros p f. apply parity_nodup_cancel_Permutation. unfold parity_match.
-  intros x. induction p; auto. simpl. destruct (even (count_occ _ p a)) eqn:Hev.
-  - simpl. destruct mono_eq_dec.
-    + repeat rewrite even_succ. repeat rewrite <- negb_even. rewrite not_In_remove.
-      rewrite IHp. auto. apply not_in_nodup_cancel. auto.
-    + rewrite not_In_remove. apply IHp. apply not_in_nodup_cancel. auto.
-  - simpl. destruct mono_eq_dec.
-    + rewrite <- e. rewrite count_occ_map_sub. rewrite even_sub. rewrite <- e in IHp.
-      rewrite IHp. rewrite count_occ_nodup_cancel. rewrite Hev. rewrite even_succ.
-      rewrite <- negb_even. destruct (even (count_occ _ (map f p) _)); auto.
-      apply count_occ_nodup_map_lt.
-    + rewrite count_occ_map_neq_remove; auto.
 Qed.
 
 Lemma map_app_make_poly : forall m p,
@@ -1820,6 +1870,20 @@ Proof.
   apply in_app_or in HinPQ as [Hin | Hin].
   - apply HinP. apply nodup_In. auto.
   - apply HinQ. apply nodup_In. auto.
+Qed.
+
+Lemma In_distribute : forall (l m:poly) a,
+  In a (vars (distribute l m)) ->
+  In a (vars l) \/ In a (vars m).
+Proof.
+  intros l m a H. unfold distribute, vars in H. apply nodup_In in H.
+  apply In_concat_exists in H. destruct H as [ll[]].
+  apply In_concat_exists in H. destruct H as [ll1[]].
+  apply in_map_iff in H. destruct H as [x[]]. rewrite <- H in H1.
+  apply in_map_iff in H1. destruct H1 as [x0[]]. rewrite <- H1 in H0.
+  apply in_app_iff in H0. destruct H0.
+  - right. apply nodup_In. apply In_concat_exists. exists x. auto.
+  - left. apply nodup_In. apply In_concat_exists. exists x0. auto.
 Qed.
 
 Lemma incl_vars_mulPP : forall p q xs,

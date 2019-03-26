@@ -1476,7 +1476,7 @@ Qed.
 
 
 
-(** * Comparing Parity of Lists: [parity_match] *)
+(** ** Comparing Parity of Lists: [parity_match] *)
 (* ========== parity_match ========== *)
 (**
     The final major definition over lists we wrote is [parity_match].
@@ -1881,7 +1881,7 @@ Qed.
 
 
 
-(** * Using [nodup_cancel] over [concat map] *)
+(** ** Using [nodup_cancel] over [concat map] *)
 (* ========== nodup_cancel and concat map ========== *)
 (**
     Similarly to map, the same property of not needing repeated [nodup_cancel]s
