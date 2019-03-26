@@ -895,7 +895,7 @@ Qed.
 Lemma most_general_unifier_compat : forall  (t t' : term),
      t == t' -> forall (sigma: subst), (most_general_unifier t sigma) <-> (most_general_unifier t' sigma).
 Proof.
-Admitted.
+Admitted. 
 
 (** * Auxilliary Computational Operations and Simplifications **)
 
