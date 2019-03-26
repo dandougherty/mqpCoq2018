@@ -838,7 +838,17 @@ Qed.
   to the most general unifier *)
 
 (**
+  While the property of a term being unifiable is certainly important, it should come as no surprise that not all
+unifiers are created equal; in fact, certain unifiers possess the desirable property of being more general than others. 
+For this reason, let us now formally define the concept of a most general unifier (mgu): a unifier such that with respect to
+a given term, all other unifiers are instances of it, or in other words, less general than it. 
+**)
 
+(**
+  The first step towards establishing the concept of a mgu requires us to formalize
+the notion of a unifier being more general than another. To accomplish this goal, let us formulate the definition
+of a substitution composing another one; or in other words, to say that a substitution is more general than
+another one.
 **)
 
 (* substitution composition *)
@@ -849,11 +859,22 @@ Definition substitution_composition (s s' delta : subst) (t : term) : Prop :=
 Definition more_general_substitution (s s': subst) (t : term) : Prop :=
   exists delta, substitution_composition s s' delta t.
 
+(**
+  Now that we have articulated the concept of composing substitutions, let us now formulate
+the definition for a most general unifier.
+**)
 
 (* A Most General Unifier (MGU) takes in a term and a substitution and tells whether or not said substitution
   is an mgu for the given term. *)
 Definition most_general_unifier (t : term) (s : subst) : Prop :=
   (unifier t s) -> (forall (s' : subst), unifier t s' -> more_general_substitution s s' t ).
+
+(**
+  While this definition of a most general unifier is certainly valid, it is a somewhat unwieldy formulation. For this reason,
+let us now define an alternative definition called a reproductive unifier, and then prove it to be equivalent to
+our definition of a most general unifier. This will make our proofs easier to formulate down the road as the 
+task of proving a unifier to be reproductive is substantially easier than proving it to be most general directly. 
+**)
 
 Definition reproductive_unifier (t : term) (sig : subst) : Prop :=
   unifier t sig ->
@@ -879,7 +900,9 @@ Admitted.
 (** * Auxilliary Computational Operations and Simplifications **)
 
 (**
-These functions below will come in handy later during the Lowenheim formula proof.
+These functions below will come in handy later during the Lowenheim formula proof. They mainly lay the 
+groundwork for providing the computational nuts and bolts for Lowenheim's algorithm for finding 
+most general unifiers.
 **)
 
 (* alternate defintion of functions related to term operations and evaluations
