@@ -853,6 +853,11 @@ Definition make_mono (l : list nat) : mono :=
 Definition make_poly (l : list mono) : poly := 
   MonoSort.sort (nodup_cancel mono_eq_dec (map make_mono l)).
 
+Lemma make_poly_refold : forall p,
+  sort (nodup_cancel mono_eq_dec (map make_mono p)) =
+  make_poly p.
+Proof. auto. Qed.
+
 (**
     Now to prove the correctness of these lists - if you apply [make_mono]
     to something, it is then guaranteed to satisfy the [is_mono] proposition.
@@ -893,7 +898,10 @@ Qed.
 
 Hint Resolve make_poly_is_poly make_mono_is_mono.
 
-(** ** Facts about [make_mono] and [make_poly] *)
+
+
+
+(** ** Facts about [make_mono] *)
 (**
     Before we dive into more complicated proofs involving these repair functions,
     there are a few simple lemmas we can prove about them.
@@ -926,100 +934,54 @@ Proof.
   apply lt_Transitive.
 Qed.
 
-
-
-(** * Polynomial Arithmetic *)
-
 (**
-    Now, the foundation for operations on polynomails has been put in place,
-    and we can begin to get into the real meat - our arithmetic operators.
-    First up is addition. Because we have so cleverly defined our [make_poly]
-    function, addition over our data structures is as simple as appending
-    the two polynomials and repairing the result back into a proper polynomial.
+    If we know that some (l1++x::l2) is a mono, then clearly it is still a
+    monomial if we remove the x from the middle, as this will not affect the
+    sorting at all.
   *)
 
-Definition addPP (p q : poly) : poly :=
-  make_poly (p ++ q).
+Lemma mono_middle : forall x l1 l2,
+  is_mono (l1 ++ x :: l2) ->
+  is_mono (l1 ++ l2).
+Proof.
+  intros x l1 l2 H. unfold is_mono in *. apply Sorted_StronglySorted in H.
+  apply StronglySorted_Sorted. induction l1.
+  - rewrite app_nil_l in *. apply StronglySorted_inv in H as []; auto.
+  - simpl in *. apply StronglySorted_inv in H as []. apply SSorted_cons; auto.
+    apply Forall_forall. rewrite Forall_forall in H0. intros x0 Hin.
+    apply H0. apply in_app_iff in Hin as []; intuition.
+  - apply lt_Transitive.
+Qed.
+
+(** ** Facts about [make_poly] *)
 
 (**
-    Similarly, the definition for multiplication becomes much easier with
-    the creation of [make_poly]. All we need to do is use our [distribute]
-    function defined earlier to form all combinations of one monomial from
-    each list, and call [make_poly] on the result.
+    Because we have shown that [sort] and [Permutation] are equivalent,
+    we can easily show that the order of elements in a call to [make_poly]
+    does not matter.
   *)
 
-Definition mulPP (p q : poly) : poly :=
-  make_poly (distribute p q).
+Lemma make_poly_app_comm : forall p q,
+  make_poly (p ++ q) = make_poly (q ++ p).
+Proof.
+  intros p q. apply Permutation_sort_eq.
+  apply nodup_cancel_Permutation. apply Permutation_map.
+  apply Permutation_app_comm.
+Qed.
 
+(** * Proving Functions "Pointless" *)
 (**
-    While this definition is elegant, sometimes it is hard to work with. This
-    has led us to also create a second definition, which allows us to separate
-    the concepts of multiplication of an individual monomial and multiplication
-    of two polynomials.
-
-    Multiplying a monomial times a polynomial is simply appending the monomial
-    to each monomial in the polynomial, and multiplying two polynomials is just
-    multiplying each monomial in one polynomial times the other polynomial.
+    In the [list_util] file, we have two lemmas revolving around the idea that,
+    in some cases, calling [nodup_cancel] is "pointless". The idea here is that,
+    when comparing very complicated terms, it is sometimes beneficial to either
+    add or remove an extra function call that has no effect on the final term.
+    Until this point, we have only proven this about [nodup_cancel], but there
+    are many other cases where this is true, which will make our more complex
+    proofs much easier. This section serves to prove this true of most of our
+    functions.
   *)
 
-Definition mulMP (p : poly) (m : mono) : poly := 
-  map (app m) p.
-
-Definition mulPP' (p q : poly) : poly :=
-  make_poly (concat (map (mulMP p) q)).
-
-Definition mulMP' (p : poly) (m : mono) : poly :=
-  map make_mono (map (app m) p).
-
-Definition mulPP'' (p q : poly) : poly :=
-  make_poly (concat (map (mulMP' p) q)).
-
-Definition mulMP'' (p : poly) (m : mono) : poly :=
-  make_poly (map (app m) p).
-
-Definition mulPP''' (p q : poly) : poly :=
-  make_poly (concat (map (mulMP'' p) q)).
-
-Lemma mulPP_mulPP' : forall (p q : poly),
-  mulPP p q = mulPP' p q.
-Proof.
-  intros p q. unfold mulPP, mulPP'. induction q.
-  - auto.
-  - simpl. unfold distribute. simpl. unfold mulMP. auto.
-Qed.
-
-Lemma mulPP'''_refold : forall p q,
-  make_poly (concat (map (mulMP'' p) q)) =
-  mulPP''' p q.
-Proof.
-  auto.
-Qed.
-
-Lemma mulPP''_refold : forall p q,
-  make_poly (concat (map (mulMP' p) q)) =
-  mulPP'' p q.
-Proof.
-  auto.
-Qed.
-
-Lemma mulPP'_refold : forall p q,
-  make_poly (concat (map (mulMP p) q)) =
-  mulPP' p q.
-Proof.
-  auto.
-Qed.
-
-Lemma addPP_refold : forall p q,
-  make_poly (p ++ q) = addPP p q.
-Proof.
-  auto.
-Qed.
-
-Lemma addPP_is_poly : forall p q,
-  is_poly (addPP p q).
-Proof.
-  intros p q. apply make_poly_is_poly.
-Qed.
+(** ** [make_mono] and [make_poly] *)
 
 Lemma no_sort_VarSorted : forall m,
   Sorted lt m ->
@@ -1074,17 +1036,811 @@ Proof.
   apply no_nodup_cancel_NoDup; auto.
 Qed.
 
-Lemma mono_middle : forall x l1 l2,
-  is_mono (l1 ++ x :: l2) ->
-  is_mono (l1 ++ l2).
+Lemma make_poly_Permutation : forall p q,
+  Permutation p q -> make_poly p = make_poly q.
 Proof.
-  intros x l1 l2 H. unfold is_mono in *. apply Sorted_StronglySorted in H.
-  apply StronglySorted_Sorted. induction l1.
-  - rewrite app_nil_l in *. apply StronglySorted_inv in H as []; auto.
-  - simpl in *. apply StronglySorted_inv in H as []. apply SSorted_cons; auto.
-    apply Forall_forall. rewrite Forall_forall in H0. intros x0 Hin.
-    apply H0. apply in_app_iff in Hin as []; intuition.
-  - apply lt_Transitive.
+  intros. unfold make_poly.
+  apply Permutation_sort_eq, nodup_cancel_Permutation, Permutation_map.
+  auto.
+Qed.
+
+Lemma no_sort_MonoSorted : forall p,
+  Sorted mono_lt p ->
+  MonoSort.sort p = p.
+Proof.
+  intros p H. unfold make_poly. apply Permutation_Sorted_eq.
+  - apply Permutation_sym. apply Permuted_sort.
+  - apply LocallySorted_sort.
+  - apply Sorted_MonoSorted. auto.
+Qed.
+
+Lemma no_make_poly : forall p,
+  is_poly p ->
+  make_poly p = p.
+Proof.
+  unfold make_poly, is_poly. intros m []. rewrite no_sort_MonoSorted.
+  - rewrite no_nodup_cancel_NoDup.
+    + apply no_map_make_mono. intros m0 Hin. apply H0. auto.
+    + apply NoDup_MonoSorted in H. rewrite no_map_make_mono; auto.
+  - apply Sorted_nodup_cancel.
+    + apply mono_lt_Transitive.
+    + rewrite no_map_make_mono; auto.
+Qed.
+
+Lemma sort_nodup_cancel_assoc : forall l,
+  sort (nodup_cancel mono_eq_dec l) = nodup_cancel mono_eq_dec (sort l).
+Proof.
+  intros l. apply Permutation_Sorted_eq.
+  - pose (Permuted_sort (nodup_cancel mono_eq_dec l)). apply Permutation_sym in p.
+    apply (Permutation_trans p). clear p. apply NoDup_Permutation.
+    + apply NoDup_nodup_cancel.
+    + apply NoDup_nodup_cancel.
+    + intros x. split.
+      * intros H. apply Permutation_in with (l:=(nodup_cancel mono_eq_dec l)).
+        apply nodup_cancel_Permutation. apply Permuted_sort. auto.
+      * intros H. apply Permutation_in with (l:=(nodup_cancel mono_eq_dec (sort l))).
+        apply nodup_cancel_Permutation. apply Permutation_sym. apply Permuted_sort. auto.
+  - apply LocallySorted_sort.
+  - apply Sorted_nodup_cancel.
+    + apply MonoOrder_Transitive.
+    + apply LocallySorted_sort.
+Qed.
+
+Lemma sort_pointless : forall p q,
+  sort (sort p ++ q) =
+  sort (p ++ q).
+Proof.
+  intros p q. apply Permutation_sort_eq.
+  apply Permutation_app_tail. apply Permutation_sym.
+  apply Permuted_sort.
+Qed.
+
+Lemma make_poly_pointless_weak : forall p q,
+  (forall m, In m p -> is_mono m) ->
+  (forall m, In m q -> is_mono m) ->
+  make_poly (make_poly p ++ q) =
+  make_poly (p ++ q).
+Proof.
+  intros p q Hmp Hmq. induction p; auto.
+  unfold make_poly. repeat rewrite no_map_make_mono; intuition.
+  apply Permutation_sort_eq. rewrite sort_nodup_cancel_assoc.
+  rewrite nodup_cancel_pointless. apply nodup_cancel_Permutation.
+  apply Permutation_sym. apply Permutation_app_tail. apply Permuted_sort.
+  - simpl in H. rewrite in_app_iff in H. destruct H as [H|[H|H]]; intuition.
+    rewrite H in Hmp; intuition.
+  - rewrite in_app_iff in H. destruct H; intuition.
+    apply In_sorted in H. apply nodup_cancel_in in H. intuition.
+Qed.
+
+Lemma mono_in_map_make_mono : forall p m,
+  In m (map make_mono p) -> is_mono m.
+Proof.
+  intros. apply in_map_iff in H as [x []]. rewrite <- H. auto.
+Qed.
+
+Lemma make_poly_pointless : forall p q,
+  make_poly (make_poly p ++ q) =
+  make_poly (p ++ q).
+Proof.
+  intros p q. rewrite make_poly_app_comm.
+  rewrite <- map_make_mono_pointless. rewrite make_poly_app_comm.
+  rewrite <- (map_make_mono_pointless p). rewrite (make_poly_app_comm _ q).
+  rewrite <- (map_make_mono_pointless q). rewrite (make_poly_app_comm _ (map make_mono p)).
+  rewrite <- (make_poly_pointless_weak (map make_mono p)). unfold make_poly.
+  rewrite (no_map_make_mono (map make_mono p)). auto.
+  apply mono_in_map_make_mono. apply mono_in_map_make_mono.
+  apply mono_in_map_make_mono.
+Qed.
+
+Lemma make_poly_pointless_r : forall p q,
+  make_poly (p ++ make_poly q) =
+  make_poly (p ++ q).
+Proof.
+  intros p q. rewrite make_poly_app_comm. rewrite make_poly_pointless.
+  apply make_poly_app_comm.
+Qed.
+
+
+
+(** * Polynomial Arithmetic *)
+
+(**
+    Now, the foundation for operations on polynomails has been put in place,
+    and we can begin to get into the real meat - our arithmetic operators.
+    First up is addition. Because we have so cleverly defined our [make_poly]
+    function, addition over our data structures is as simple as appending
+    the two polynomials and repairing the result back into a proper polynomial.
+
+    We also include a simple refold lemma for convenience, and a quick proof
+    that the result of [addPP] is always a poly.
+  *)
+
+Definition addPP (p q : poly) : poly :=
+  make_poly (p ++ q).
+
+Lemma addPP_refold : forall p q,
+  make_poly (p ++ q) = addPP p q.
+Proof.
+  auto.
+Qed.
+
+Lemma addPP_is_poly : forall p q,
+  is_poly (addPP p q).
+Proof.
+  intros p q. apply make_poly_is_poly.
+Qed.
+
+(**
+    Similarly, the definition for multiplication becomes much easier with
+    the creation of [make_poly]. All we need to do is use our [distribute]
+    function defined earlier to form all combinations of one monomial from
+    each list, and call [make_poly] on the result.
+  *)
+
+Definition mulPP (p q : poly) : poly :=
+  make_poly (distribute p q).
+
+(**
+    While this definition is elegant, sometimes it is hard to work with. This
+    has led us to also create a few more definitions of multiplication. Each is
+    just slightly different from the last, which allows us to choose the level
+    of completeness we need for any given multiplication proof while knowing
+    that at the end of the day, they are all equivalent.
+
+    Each of these new definitions breaks down multiplication into two steps -
+    mutliplying a monomial times a polynomial, and multiplying a polynomial
+    times a polynomial. Multiplying a monomial times a polynomial is simply
+    appending the monomial to each monomial in the polynomial, and multiplying
+    two polynomials is just multiplying each monomial in one polynomial times
+    the other polynomial.
+
+    The difference in each of the following definitions comes from the
+    intermediate step. Because we know that [mulPP] will call [make_poly], there
+    is no need to call make_poly on the result of [mulMP], as shown in the first
+    definition. However, some proofs are made easier if the result of [mulMP]
+    is wrapped in [map make_mono], and some are made easier if the result is
+    wrapped in a full [make_poly]. As a result, we have created each of these
+    definitions, and choose between them to help make our proofs easier.
+
+    We also include a refolding method for each, for convenience, and a proof
+    that each new version is equivalent to the last.
+  *)
+
+Definition mulMP (p : poly) (m : mono) : poly := 
+  map (app m) p.
+
+Definition mulPP' (p q : poly) : poly :=
+  make_poly (concat (map (mulMP p) q)).
+
+Lemma mulPP'_refold : forall p q,
+  make_poly (concat (map (mulMP p) q)) =
+  mulPP' p q.
+Proof. auto. Qed.
+
+Lemma mulPP_mulPP' : forall (p q : poly),
+  mulPP p q = mulPP' p q.
+Proof.
+  intros p q. unfold mulPP, mulPP'. induction q.
+  - auto.
+  - simpl. unfold distribute. simpl. unfold mulMP. auto.
+Qed.
+
+
+
+Definition mulMP' (p : poly) (m : mono) : poly :=
+  map make_mono (map (app m) p).
+
+Definition mulPP'' (p q : poly) : poly :=
+  make_poly (concat (map (mulMP' p) q)).
+
+Lemma mulPP''_refold : forall p q,
+  make_poly (concat (map (mulMP' p) q)) =
+  mulPP'' p q.
+Proof. auto. Qed.
+
+Lemma mulPP'_mulPP'' : forall p q,
+  mulPP' p q = mulPP'' p q.
+Proof.
+  intros p q. unfold mulPP', mulPP'', mulMP, mulMP', make_poly.
+  rewrite concat_map_map.
+  rewrite (no_map_make_mono (map _ _)); auto.
+  intros. apply in_map_iff in H as [n []].
+  rewrite <- H.
+  auto.
+Qed.
+
+
+
+Definition mulMP'' (p : poly) (m : mono) : poly :=
+  make_poly (map (app m) p).
+
+Definition mulPP''' (p q : poly) : poly :=
+  make_poly (concat (map (mulMP'' p) q)).
+
+Lemma mulPP'''_refold : forall p q,
+  make_poly (concat (map (mulMP'' p) q)) =
+  mulPP''' p q.
+Proof. auto. Qed.
+
+Lemma mulMP'_mulMP'' : forall m p q,
+  make_poly (mulMP' p m ++ q) = make_poly (mulMP'' p m ++ q).
+Proof.
+  intros m p q. unfold mulMP', mulMP''. rewrite make_poly_app_comm.
+  rewrite <- map_make_mono_pointless. rewrite make_poly_app_comm.
+  rewrite <- make_poly_pointless. unfold make_poly at 2. rewrite (no_map_make_mono (map make_mono _)).
+  unfold make_poly at 3. rewrite (make_poly_app_comm _ q).
+  rewrite <- (map_make_mono_pointless q). rewrite make_poly_app_comm. auto.
+  apply mono_in_map_make_mono.
+Qed.
+
+Lemma mulPP''_mulPP''' : forall p q,
+  mulPP'' p q = mulPP''' p q.
+Proof.
+  intros p q. induction q. auto. unfold mulPP'', mulPP'''. simpl.
+  rewrite mulMP'_mulMP''. repeat rewrite <- (make_poly_pointless_r _ (concat _)).
+  f_equal. f_equal. apply IHq.
+Qed.
+
+
+
+Lemma mulPP_mulPP'' : forall p q,
+  mulPP p q = mulPP'' p q.
+Proof.
+  intros. rewrite mulPP_mulPP', mulPP'_mulPP''. auto.
+Qed.
+
+Lemma mulPP_mulPP''' : forall p q,
+  mulPP p q = mulPP''' p q.
+Proof.
+  intros. rewrite mulPP_mulPP'', mulPP''_mulPP'''. auto.
+Qed.
+
+Hint Unfold addPP mulPP mulPP' mulPP'' mulPP''' mulMP mulMP' mulMP''.
+
+
+
+
+
+
+
+Lemma make_mono_app_comm : forall m n,
+  make_mono (m ++ n) = make_mono (n ++ m).
+Proof.
+  intros m n. apply Permutation_sort_mono_eq. apply Permutation_nodup.
+  apply Permutation_app_comm.
+Qed.
+
+Lemma make_poly_nil : 
+  make_poly [] = [].
+Proof.
+  unfold make_poly, sort. auto.
+Qed.
+
+Lemma mulPP''_cons : forall q a p,
+  make_poly (mulMP' q a ++ mulPP'' q p) =
+  mulPP'' q (a::p).
+Proof.
+  intros q a p. unfold mulPP''. rewrite make_poly_pointless_r. auto.
+Qed.
+
+Lemma make_mono_pointless : forall m a,
+  make_mono (m ++ make_mono a) = make_mono (m ++ a).
+Proof.
+  intros m a. apply Permutation_sort_mono_eq.
+  apply Permutation_trans with (l':=(nodup var_eq_dec (m ++ nodup var_eq_dec a))).
+    apply Permutation_nodup. apply Permutation_app_head. unfold make_mono.
+    rewrite <- Permutation_VarSort_l. auto.
+  induction a; auto. simpl. destruct in_dec.
+  - apply Permutation_sym. apply Permutation_trans with (l':=(nodup var_eq_dec (a :: m ++ a0))).
+      apply Permutation_nodup. apply Permutation_sym. apply Permutation_middle.
+    simpl. destruct in_dec.
+    + apply Permutation_sym. apply IHa.
+    + exfalso. apply n. intuition.
+  - apply Permutation_trans with (l':=(nodup var_eq_dec (a::m++nodup var_eq_dec a0))).
+      apply Permutation_nodup. apply Permutation_sym. apply Permutation_middle.
+    apply Permutation_sym. apply Permutation_trans with (l':=(nodup var_eq_dec
+      (a::m++a0))). apply Permutation_nodup. apply Permutation_sym. apply Permutation_middle.
+    simpl. destruct (in_dec var_eq_dec a m).
+    + assert (In a (m++a0)). intuition. destruct in_dec; try contradiction.
+      assert (In a (m++nodup var_eq_dec a0)). intuition. destruct in_dec;
+      try contradiction. apply Permutation_sym. apply IHa.
+    + assert (~In a (m++a0)). intuition. apply in_app_iff in H. destruct H; auto.
+      assert (~In a (m++nodup var_eq_dec a0)). intuition. apply in_app_iff in H0.
+      destruct H0; auto. apply nodup_In in H0. auto. repeat destruct in_dec; try contradiction.
+      apply perm_skip. apply Permutation_sym. apply IHa.
+Qed.
+
+Lemma make_mono_self : forall m,
+  is_mono m ->
+  make_mono (m ++ m) = m.
+Proof.
+  intros m H. apply Permutation_Sorted_mono_eq.
+  - induction m; auto. unfold make_mono. rewrite <- Permutation_VarSort_l. simpl.
+    assert (In a (m++a::m)).
+      intuition. destruct in_dec; try contradiction.
+    apply Permutation_trans with (l':=(nodup var_eq_dec (a::m++m))).
+       apply Permutation_nodup. apply Permutation_app_comm.
+    simpl. assert (~ In a (m++m)).
+      apply NoDup_VarSorted in H as H1. apply NoDup_cons_iff in H1.
+    intro. apply H1. apply in_app_iff in H2; intuition.
+    destruct in_dec; try contradiction. apply perm_skip.
+    apply Permutation_VarSort_l in IHm. auto. apply (mono_cons _ _ H).
+  - apply VarSort.LocallySorted_sort.
+  - apply Sorted_VarSorted. apply H.
+Qed.
+
+
+
+Lemma mono_in_concat_mulMP' : forall p q m,
+  In m (concat (map (mulMP' p) q)) -> is_mono m.
+Proof.
+  intros. unfold mulMP' in H. rewrite concat_map_map in H.
+  apply in_map_iff in H as [x[]]. rewrite <- H. auto.
+Qed.
+
+Lemma mono_in_mulMP' : forall p n m,
+  In m (mulMP' p n) -> is_mono m.
+Proof.
+  intros. unfold mulMP' in H. apply (mono_in_map_make_mono _ _ H).
+Qed.
+
+Lemma mono_in_make_poly : forall p m,
+  In m (make_poly p) -> is_mono m.
+Proof.
+  intros. unfold make_poly in H. apply In_sorted in H.
+  apply nodup_cancel_in in H. apply (mono_in_map_make_mono _ _ H).
+Qed.
+
+Lemma mono_in_mulPP'' : forall p q m,
+  In m (mulPP'' p q) -> is_mono m.
+Proof.
+ intros. unfold mulPP'' in H. apply (mono_in_make_poly _ _ H).
+Qed.
+
+Lemma map_app_make_poly : forall m p,
+  (forall a, In a p -> is_mono a) ->
+  make_poly (map (app m) (make_poly p)) = make_poly (map (app m) p).
+Proof.
+  intros m p Hm. apply Permutation_sort_eq.
+  apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (map make_mono
+    (map (app m) (nodup_cancel mono_eq_dec (map make_mono p)))))).
+    apply nodup_cancel_Permutation. repeat apply Permutation_map.
+    unfold make_poly. rewrite <- Permutation_MonoSort_l. auto.
+  rewrite (no_map_make_mono p); auto. repeat rewrite map_map. apply nodup_cancel_map.
+Qed.
+
+Lemma mulMP''_make_poly : forall p m,
+  (forall a, In a p -> is_mono a) ->
+  mulMP'' (make_poly p) m =
+  mulMP'' p m.
+Proof.
+  intros p m. unfold mulMP''. apply map_app_make_poly.
+Qed.
+
+Lemma mulMP'_app : forall p q m,
+  mulMP' (p ++ q) m =
+  mulMP' p m ++ mulMP' q m.
+Proof.
+  intros p q m. unfold mulMP'. repeat rewrite map_app. auto.
+Qed.
+
+
+
+Lemma mulPP_is_poly : forall p q,
+  is_poly (mulPP p q).
+Proof.
+  intros p q. apply make_poly_is_poly.
+Qed.
+
+
+
+
+(** * Proving the 10 B-Unification Axioms *)
+(**
+    Now that we have defined our operations so carefully, we want to prove that
+    the 10 standard B-Unification Axioms all apply. This is extremely important,
+    as they will both be needed in the higher-level proofs of our unification
+    algorithm, and they show that our list-of-list setup is actually correct
+    and equivalent to any other representation of a term.
+  *)
+
+
+
+(** ** Axiom 1: Additive Inverse *)
+Lemma addPP_p_p : forall p,
+  is_poly p ->
+  addPP p p = [].
+Proof.
+  intros p Hp. unfold addPP. unfold make_poly. rewrite no_map_make_mono.
+  - rewrite nodup_cancel_self. auto.
+  - intros m Hin. apply Hp. apply in_app_iff in Hin. intuition.
+Qed.
+
+
+
+(** ** Axiom 2: Additive Identity *)
+Lemma addPP_0 : forall p,
+  is_poly p ->
+  addPP [] p = p.
+Proof. 
+  intros p Hpoly. unfold addPP. simpl. apply no_make_poly. auto.
+Qed.
+
+Lemma addPP_0r : forall p,
+  is_poly p ->
+  addPP p [] = p.
+Proof.
+  intros p Hpoly. unfold addPP. rewrite app_nil_r. apply no_make_poly. auto.
+Qed.
+
+
+
+(** ** Axiom 3: Multiplicative Identity - 1 *)
+Lemma mulPP_1r : forall p,
+  is_poly p ->
+  mulPP p [[]] = p.
+Proof.
+  intros p H. unfold mulPP, distribute. simpl. rewrite app_nil_r.
+  rewrite map_id. apply no_make_poly. auto.
+Qed.
+
+
+
+(** ** Axiom 4: Multiplicative Inverse *)
+Lemma mulPP_0 : forall p,
+  mulPP [] p = [].
+Proof.
+  intros p. unfold mulPP. rewrite (@distribute_nil var). auto.
+Qed.
+
+Lemma mulPP_0r : forall p,
+  mulPP p [] = [].
+Proof.
+  intros p. unfold mulPP. rewrite (@distribute_nil_r var). auto.
+Qed.
+
+
+
+(** ** Axiom 5: Commutativity of Addition *) 
+(**
+    The next of the ten axioms states that, for all terms x and y, [x + y = y + x].
+
+    This Axiom is rather easy, and follows entirely from the [make_poly_app_comm]
+    lemma we proved earlier due to our clever addition definition.
+  *)
+
+Lemma addPP_comm : forall p q,
+  addPP p q = addPP q p.
+Proof.
+  intros p q. unfold addPP. apply make_poly_app_comm.
+Qed.
+
+
+
+(** ** Axiom 6: Associativity of Addition *)
+(**
+    The next axiom states that, for all terms x, y, and z, [x + (y + z) = (x + y) + z].
+
+    This Axiom is also relatively straightforward to prove, thanks to [addPP_comm]
+    and all of the "pointless" lemmas we proved earlier. These allow us to easily 
+    manipulate the operations until we end by proving that [p ++ q ++ r] is a
+    permutation of [q ++ r ++ p].
+  *)
+
+Lemma addPP_assoc : forall p q r,
+  addPP (addPP p q) r = addPP p (addPP q r).
+Proof.
+  intros p q r. rewrite (addPP_comm _ (addPP _ _)). unfold addPP.
+  repeat rewrite make_poly_pointless. repeat rewrite <- app_assoc.
+  apply Permutation_sort_eq. apply nodup_cancel_Permutation. apply Permutation_map.
+  rewrite (app_assoc q). apply Permutation_app_comm with (l':=(q++r)).
+Qed.
+
+
+
+(** ** Axiom 7: Commutativity of Multiplication *)
+Lemma mulPP_comm : forall p q,
+  mulPP p q = mulPP q p.
+Proof.
+  intros p q. repeat rewrite mulPP_mulPP''.
+  generalize dependent q. induction p; induction q as [|m].
+  - auto.
+  - unfold mulPP'', mulMP'. simpl. rewrite (@concat_map_nil mono). auto.
+  - unfold mulPP'', mulMP'. simpl. rewrite (@concat_map_nil mono). auto.
+  - unfold mulPP''. simpl. rewrite (app_comm_cons _ _ (make_mono (a++m))).
+    rewrite <- make_poly_pointless_r. rewrite mulPP''_refold. rewrite <- IHp.
+    unfold mulPP''. rewrite make_poly_pointless_r. simpl. unfold mulMP' at 2.
+    rewrite app_comm_cons. rewrite <- make_poly_pointless_r. rewrite mulPP''_refold.
+    rewrite IHq. unfold mulPP''. rewrite make_poly_pointless_r. simpl.
+    unfold mulMP' at 1. rewrite app_comm_cons. rewrite app_assoc.
+    rewrite <- make_poly_pointless_r. rewrite mulPP''_refold. rewrite <- IHp.
+    unfold mulPP''. rewrite make_poly_pointless_r. simpl. rewrite (app_assoc (map _ (map _ q))).
+    apply Permutation_sort_eq. apply nodup_cancel_Permutation.
+    apply Permutation_map. rewrite make_mono_app_comm. apply perm_skip.
+    apply Permutation_app_tail. apply Permutation_app_comm.
+Qed.
+
+
+
+(** ** Axiom 8: Associativity of Multiplication *)
+Lemma mulMP'_assoc : forall q a m,
+  mulMP' (mulMP' q a) m =
+  mulMP' (mulMP' q m) a.
+Proof.
+  intros q a m. unfold mulMP'. induction q.
+  - auto.
+  - simpl. repeat rewrite make_mono_pointless. f_equal.
+    + apply Permutation_sort_mono_eq. apply Permutation_nodup.
+      repeat rewrite app_assoc. apply Permutation_app_tail.
+      apply Permutation_app_comm.
+    + apply IHq.
+Qed.
+
+Lemma mulPP_assoc : forall p q r,
+  mulPP (mulPP p q) r = mulPP p (mulPP q r).
+Proof.
+  intros p q r. rewrite (mulPP_comm _ (mulPP q _)). rewrite (mulPP_comm p _).
+  generalize dependent r. induction p; induction r as [|m];
+  repeat rewrite mulPP_0; repeat rewrite mulPP_0r; auto.
+  repeat rewrite mulPP_mulPP'' in *. unfold mulPP''. simpl.
+  repeat rewrite <- (make_poly_pointless_r _ (concat _)).
+  repeat rewrite mulPP''_refold. repeat rewrite (mulPP''_cons q).
+  pose (IHp (m::r)). repeat rewrite mulPP_mulPP'' in e. rewrite <- e.
+  rewrite IHr. unfold mulPP'' at 2, mulPP'' at 4. simpl.
+  repeat rewrite make_poly_pointless_r. repeat rewrite app_assoc.
+  repeat rewrite <- (make_poly_pointless_r _ (concat _)).
+  repeat rewrite mulPP''_refold. pose (IHp r). repeat rewrite mulPP_mulPP'' in e0.
+  rewrite <- e0. repeat rewrite <- app_assoc. repeat rewrite mulMP'_mulMP''.
+  repeat rewrite <- mulPP''_cons. repeat rewrite mulMP''_make_poly.
+  repeat rewrite <- mulMP'_mulMP''. repeat rewrite app_assoc.
+  apply Permutation_sort_eq. apply nodup_cancel_Permutation. apply Permutation_map.
+  apply Permutation_app_tail. repeat rewrite mulMP'_app. rewrite mulMP'_assoc.
+  repeat rewrite <- app_assoc. apply Permutation_app_head. apply Permutation_app_comm.
+  intros a0 Hin. apply in_app_iff in Hin as []. unfold mulMP' in H.
+  apply in_map_iff in H as [x[]]. rewrite <- H; auto.
+  apply (make_poly_is_poly (concat (map (mulMP' q) r))). auto.
+  intros a0 Hin. apply in_app_iff in Hin as []. unfold mulMP' in H.
+  apply in_map_iff in H as [x[]]. rewrite <- H; auto.
+  apply (make_poly_is_poly (concat (map (mulMP' q) p))). auto.
+Qed.
+
+
+
+(** ** Axiom 9: Multiplicative Identity - Self *)
+Lemma mulPP_p_p : forall p,
+  is_poly p ->
+  mulPP p p = p.
+Proof.
+  intros p H. rewrite mulPP_mulPP'. rewrite mulPP'_mulPP''. apply Permutation_Sorted_eq.
+  - induction p; auto. unfold mulPP'', make_poly. rewrite <- Permutation_MonoSort_l.
+    simpl map at 1. apply poly_cons in H as H1. destruct H1. rewrite make_mono_self; auto.
+    rewrite no_make_mono; auto. rewrite map_app. apply Permutation_trans with
+      (l':=(nodup_cancel mono_eq_dec (map make_mono (concat (map (mulMP' (a :: 
+      p)) p)) ++ a :: map make_mono (map make_mono (map (app a) p))))).
+      apply nodup_cancel_Permutation. rewrite app_comm_cons. apply Permutation_app_comm.
+    rewrite <- nodup_cancel_pointless. apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec
+      ((nodup_cancel mono_eq_dec (map make_mono (concat (map (mulMP' p) (a :: p)))))
+      ++ (a :: map make_mono (map make_mono (map (app a) p)))))).
+      apply nodup_cancel_Permutation. apply Permutation_app_tail. apply Permutation_sort_eq.
+      repeat rewrite make_poly_refold. repeat rewrite mulPP''_refold.
+      repeat rewrite <- mulPP'_mulPP''. repeat rewrite <- mulPP_mulPP'. apply mulPP_comm.
+    rewrite nodup_cancel_pointless. apply Permutation_trans with (l':=
+      (nodup_cancel mono_eq_dec (a :: map make_mono (map make_mono (map (app a) p))
+      ++ (map make_mono (concat (map (mulMP' p) (a :: p))))))).
+      apply nodup_cancel_Permutation. apply Permutation_app_comm.
+    simpl map. rewrite map_app. unfold mulMP' at 1. repeat rewrite (no_map_make_mono 
+    (map make_mono _)); try apply mono_in_map_make_mono. rewrite (app_assoc (map _ _)).
+    apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec ((map make_mono (map 
+      (app a) p) ++ map make_mono (map (app a) p)) ++ a :: map make_mono (concat 
+      (map (mulMP' p) p))))). apply nodup_cancel_Permutation. apply Permutation_middle.
+    rewrite <- nodup_cancel_pointless. rewrite nodup_cancel_self. simpl app.
+    apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (map make_mono
+      (concat (map (mulMP' p) p)) ++ [a]))). apply nodup_cancel_Permutation.
+      replace (a::map make_mono (concat (map (mulMP' p) p))) with ([a] ++ map
+      make_mono (concat (map (mulMP' p) p))); auto. apply Permutation_app_comm.
+    rewrite <- nodup_cancel_pointless. apply Permutation_trans with (l':=(nodup_cancel 
+      mono_eq_dec (p ++ [a]))). apply nodup_cancel_Permutation.
+      apply Permutation_app_tail. unfold mulPP'', make_poly in IHp.
+      rewrite <- Permutation_MonoSort_l in IHp. apply IHp; auto.
+    replace (a::p) with ([a]++p); auto. rewrite no_nodup_cancel_NoDup.
+    apply Permutation_app_comm. apply Permutation_NoDup with (l:=(a::p)).
+    replace (a::p) with ([a]++p); auto. apply Permutation_app_comm.
+    destruct H. apply NoDup_MonoSorted in H. auto.
+  - unfold make_poly. apply LocallySorted_sort.
+  - apply Sorted_MonoSorted. apply H.
+Qed.
+
+
+
+(** ** Axiom 10: Distribution *)
+Lemma mulMP''_distr_addPP : forall m p q,
+  is_poly p -> is_poly q ->
+  mulMP'' (addPP p q) m = addPP (mulMP'' p m) (mulMP'' q m).
+Proof.
+  intros m p q Hp Hq. unfold mulMP'', addPP. rewrite map_app_make_poly.
+  rewrite make_poly_pointless. rewrite make_poly_app_comm.
+  rewrite make_poly_pointless. rewrite make_poly_app_comm.
+  rewrite map_app. auto. intros a Hin. apply in_app_iff in Hin as [].
+  apply Hp. auto. apply Hq. auto.
+Qed.
+
+Lemma mulPP_distr_addPP : forall p q r,
+  is_poly p -> is_poly q ->
+  mulPP (addPP p q) r = addPP (mulPP p r) (mulPP q r).
+Proof.
+  intros p q r Hp Hq. induction r; auto. rewrite mulPP_mulPP''. unfold mulPP''.
+  simpl. rewrite mulPP_mulPP'', (mulPP_mulPP'' q), make_poly_app_comm.
+  rewrite <- make_poly_pointless. rewrite make_poly_app_comm.
+  rewrite mulPP''_refold.
+  rewrite addPP_refold. repeat unfold mulPP'' at 2. simpl. unfold addPP at 4.
+  rewrite make_poly_pointless. rewrite addPP_refold.
+  rewrite (addPP_comm _ (make_poly _)).
+  unfold addPP at 4. rewrite make_poly_pointless. rewrite <- app_assoc.
+  rewrite make_poly_app_comm. rewrite <- app_assoc.
+  rewrite <- make_poly_pointless.
+  rewrite mulPP''_refold. rewrite <- app_assoc. rewrite app_assoc.
+  rewrite make_poly_app_comm.
+  rewrite <- app_assoc. rewrite <- make_poly_pointless. rewrite mulPP''_refold.
+  replace (make_poly (mulPP'' p r ++ mulMP' q a ++ mulPP'' q r ++ mulMP' p a))
+    with (make_poly ((mulPP'' p r ++ mulPP'' q r) ++ mulMP' p a ++ mulMP' q a)).
+  rewrite <- make_poly_pointless. rewrite (addPP_refold (mulPP'' _ _)).
+  rewrite make_poly_app_comm. rewrite addPP_refold.
+  rewrite mulPP_mulPP'', (mulPP_mulPP'' p), (mulPP_mulPP'' q) in IHr.
+  rewrite <- IHr. unfold addPP at 4.
+  rewrite <- make_poly_pointless. unfold addPP. repeat rewrite mulMP'_mulMP''.
+  rewrite (make_poly_app_comm (mulMP'' _ _) (mulMP' _ _)).
+  rewrite mulMP'_mulMP''. rewrite (make_poly_app_comm (mulMP'' _ _) (mulMP'' _ _)).
+  repeat rewrite addPP_refold. f_equal. apply mulMP''_distr_addPP; auto.
+  apply make_poly_Permutation. rewrite <- app_assoc.
+  apply Permutation_app_head. rewrite app_assoc.
+  apply Permutation_trans with
+    (l':=mulMP' q a ++ mulPP'' q r ++ mulMP' p a).
+  apply Permutation_app_comm.
+  auto.
+Qed.
+
+Lemma mulPP_distr_addPPr : forall p q r,
+  is_poly p -> is_poly q ->
+  mulPP r (addPP p q) = addPP (mulPP r p) (mulPP r q).
+Proof.
+  intros p q r Hp Hq. rewrite mulPP_comm. rewrite (mulPP_comm r p).
+  rewrite (mulPP_comm r q). apply mulPP_distr_addPP; auto.
+Qed.
+
+
+
+
+
+
+
+(** * Other Facts About Arithmetic *)
+Lemma mulPP_mono_cons : forall x m,
+  is_mono (x :: m) ->
+  mulPP [[x]] [m] = [x :: m].
+Proof.
+  intros x m H. unfold mulPP, distribute. simpl. apply Permutation_Sorted_eq.
+  - apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (map make_mono [m++[x]]))).
+    apply Permutation_sym. apply Permuted_sort. rewrite no_nodup_cancel_NoDup.
+    simpl. assert (make_mono (m++[x]) = x::m).
+    + rewrite <- no_make_mono; auto. apply Permutation_sort_mono_eq.
+      repeat rewrite no_nodup_NoDup. replace (x::m) with ([x]++m); auto; apply Permutation_app_comm.
+      apply NoDup_VarSorted; apply H. apply Permutation_NoDup with (l:=(x::m)).
+      replace (x::m) with ([x]++m); auto; apply Permutation_app_comm.
+      apply NoDup_VarSorted; apply H.
+    + rewrite H0. auto.
+    + apply NoDup_cons; auto.
+  - apply LocallySorted_sort.
+  - apply Sorted_cons; auto.
+Qed.
+
+Lemma addPP_poly_cons : forall m p,
+  is_poly (m :: p) ->
+  addPP [m] p = m :: p.
+Proof.
+  intros m p H. unfold addPP. simpl. rewrite no_make_poly; auto.
+Qed.
+
+Hint Resolve addPP_is_poly mulPP_is_poly.
+
+Lemma mulPP_addPP_1 : forall p q r,
+  is_poly p -> is_poly q -> is_poly r ->
+  mulPP (addPP (mulPP p q) r) (addPP [[]] q) =
+  mulPP (addPP [[]] q) r.
+Proof.
+  intros p q r Hp Hq Hr. rewrite mulPP_distr_addPP; auto.
+  rewrite mulPP_distr_addPPr; auto. rewrite mulPP_1r; auto.
+  rewrite mulPP_assoc. rewrite mulPP_p_p; auto. rewrite addPP_p_p; auto.
+  rewrite addPP_0; auto. rewrite mulPP_comm. auto.
+Qed.
+
+Lemma make_poly_rem_vars : forall p x,
+  In x (vars (make_poly p)) ->
+  In x (vars p).
+Proof.
+  intros p x H. induction p.
+  - inversion H.
+  - unfold vars. simpl. apply nodup_In. apply in_app_iff.
+    unfold vars, make_poly in H. apply nodup_In in H.
+    apply In_concat_exists in H as [m []].
+    apply In_sorted in H. apply nodup_cancel_in in H.
+    apply in_map_iff in H as [n []]. destruct H1.
+    + left. apply make_mono_In. rewrite H1. rewrite H. auto.
+    + right. apply In_concat_exists. exists n. split; auto. apply make_mono_In.
+      rewrite H. auto.
+Qed.
+
+Lemma incl_vars_addPP : forall p q xs,
+  incl (vars p) xs /\ incl (vars q) xs ->
+  incl (vars (addPP p q)) xs.
+Proof.
+  unfold incl, addPP.
+  intros p q xs [HinP HinQ] x HinPQ.
+  apply make_poly_rem_vars in HinPQ.
+  unfold vars in HinPQ.
+  apply nodup_In in HinPQ.
+  rewrite concat_app in HinPQ.
+  apply in_app_or in HinPQ as [Hin | Hin].
+  - apply HinP. apply nodup_In. auto.
+  - apply HinQ. apply nodup_In. auto.
+Qed.
+
+Lemma In_distribute : forall (l m:poly) a,
+  In a (vars (distribute l m)) ->
+  In a (vars l) \/ In a (vars m).
+Proof.
+  intros l m a H. unfold distribute, vars in H. apply nodup_In in H.
+  apply In_concat_exists in H. destruct H as [ll[]].
+  apply In_concat_exists in H. destruct H as [ll1[]].
+  apply in_map_iff in H. destruct H as [x[]]. rewrite <- H in H1.
+  apply in_map_iff in H1. destruct H1 as [x0[]]. rewrite <- H1 in H0.
+  apply in_app_iff in H0. destruct H0.
+  - right. apply nodup_In. apply In_concat_exists. exists x. auto.
+  - left. apply nodup_In. apply In_concat_exists. exists x0. auto.
+Qed.
+
+Lemma incl_vars_mulPP : forall p q xs,
+  incl (vars p) xs /\ incl (vars q) xs ->
+  incl (vars (mulPP p q)) xs.
+Proof.
+  unfold incl, mulPP.
+  intros p q xs [HinP HinQ] x HinPQ.
+  apply make_poly_rem_vars in HinPQ.
+  apply In_distribute in HinPQ. destruct HinPQ.
+  - apply HinP. auto.
+  - apply HinQ. auto.
+Qed.
+
+Lemma part_add_eq : forall f p l r,
+  is_poly p ->
+  partition f p = (l, r) ->
+  p = addPP l r.
+Proof.
+  intros f p l r H H0. apply Permutation_Sorted_eq.
+  - generalize dependent l; generalize dependent r. induction p; intros.
+    + simpl in H0. inversion H0. auto.
+    + assert (H1:=H0); auto. apply partition_Permutation in H1. simpl in H0.
+      destruct (partition f p) as [g d]. unfold addPP, make_poly.
+      rewrite <- Permutation_MonoSort_r. rewrite unsorted_poly. destruct (f a); inversion H0.
+      * rewrite <- H3 in H1. apply H1.
+      * rewrite <- H4 in H1. apply H1.
+      * destruct H. apply NoDup_MonoSorted in H. apply (Permutation_NoDup H1 H).
+      * intros m Hin. apply H. apply Permutation_sym in H1. apply (Permutation_in _ H1 Hin).
+  - apply Sorted_MonoSorted. apply H.
+  - apply Sorted_MonoSorted. apply make_poly_is_poly.
+Qed.
+
+Lemma part_is_poly : forall f p l r,
+  is_poly p ->
+  partition f p = (l, r) ->
+  is_poly l /\ is_poly r.
+Proof.
+  intros f p l r Hpoly Hpart. destruct Hpoly. split; split.
+  - apply (part_Sorted _ _ _ mono_lt_Transitive H _ _ Hpart).
+  - intros m Hin. apply H0. apply elements_in_partition with (x:=m) in Hpart.
+    apply Hpart; auto.
+  - apply (part_Sorted _ _ _ mono_lt_Transitive H _ _ Hpart).
+  - intros m Hin. apply H0. apply elements_in_partition with (x:=m) in Hpart.
+    apply Hpart; auto.
 Qed.
 
 Lemma remove_Sorted_eq : forall x (l l':mono),
@@ -1280,653 +2036,4 @@ Proof.
     + rewrite H1. apply perm_skip. apply IHp.
       * apply poly_cons in H. apply H.
       * intros m Hin. apply H0. intuition.
-Qed.
-
-Lemma make_poly_Permutation : forall p q,
-  Permutation p q -> make_poly p = make_poly q.
-Proof.
-  intros. unfold make_poly.
-  apply Permutation_sort_eq, nodup_cancel_Permutation, Permutation_map.
-  auto.
-Qed.
-
-Lemma no_sort_MonoSorted : forall p,
-  Sorted mono_lt p ->
-  MonoSort.sort p = p.
-Proof.
-  intros p H. unfold make_poly. apply Permutation_Sorted_eq.
-  - apply Permutation_sym. apply Permuted_sort.
-  - apply LocallySorted_sort.
-  - apply Sorted_MonoSorted. auto.
-Qed.
-
-Lemma make_poly_app_comm : forall p q,
-  make_poly (p ++ q) = make_poly (q ++ p).
-Proof.
-  intros p q. apply Permutation_sort_eq.
-  apply nodup_cancel_Permutation. apply Permutation_map.
-  apply Permutation_app_comm.
-Qed.
-
-Lemma no_make_poly : forall p,
-  is_poly p ->
-  make_poly p = p.
-Proof.
-  unfold make_poly, is_poly. intros m []. rewrite no_sort_MonoSorted.
-  - rewrite no_nodup_cancel_NoDup.
-    + apply no_map_make_mono. intros m0 Hin. apply H0. auto.
-    + apply NoDup_MonoSorted in H. rewrite no_map_make_mono; auto.
-  - apply Sorted_nodup_cancel.
-    + apply mono_lt_Transitive.
-    + rewrite no_map_make_mono; auto.
-Qed.
-
-Lemma sort_app_comm : forall l m,
-  sort (l ++ m) = sort (m ++ l).
-Proof.
-  intros l m. pose (Permutation.Permutation_app_comm l m).
-  apply Permutation_sort_eq. auto.
-Qed.
-
-Lemma sort_nodup_cancel_assoc : forall l,
-  sort (nodup_cancel mono_eq_dec l) = nodup_cancel mono_eq_dec (sort l).
-Proof.
-  intros l. apply Permutation_Sorted_eq.
-  - pose (Permuted_sort (nodup_cancel mono_eq_dec l)). apply Permutation_sym in p.
-    apply (Permutation_trans p). clear p. apply NoDup_Permutation.
-    + apply NoDup_nodup_cancel.
-    + apply NoDup_nodup_cancel.
-    + intros x. split.
-      * intros H. apply Permutation_in with (l:=(nodup_cancel mono_eq_dec l)).
-        apply nodup_cancel_Permutation. apply Permuted_sort. auto.
-      * intros H. apply Permutation_in with (l:=(nodup_cancel mono_eq_dec (sort l))).
-        apply nodup_cancel_Permutation. apply Permutation_sym. apply Permuted_sort. auto.
-  - apply LocallySorted_sort.
-  - apply Sorted_nodup_cancel.
-    + apply MonoOrder_Transitive.
-    + apply LocallySorted_sort.
-Qed.
-
-Lemma addPP_comm : forall p q,
-  addPP p q = addPP q p.
-Proof.
-  intros p q. unfold addPP, make_poly. repeat rewrite map_app.
-  repeat rewrite sort_nodup_cancel_assoc. rewrite sort_app_comm.
-  reflexivity.
-Qed.
-
-Hint Unfold addPP mulPP.
-
-Lemma mulPP_0 : forall p,
-  mulPP [] p = [].
-Proof.
-  intros p. unfold mulPP. rewrite (@distribute_nil var). auto.
-Qed.
-
-Lemma mulPP_0r : forall p,
-  mulPP p [] = [].
-Proof.
-  intros p. unfold mulPP. rewrite (@distribute_nil_r var). auto.
-Qed.
-
-Lemma addPP_0 : forall p,
-  is_poly p ->
-  addPP [] p = p.
-Proof. 
-  intros p Hpoly. unfold addPP. simpl. apply no_make_poly. auto.
-Qed.
-
-Lemma addPP_0r : forall p,
-  is_poly p ->
-  addPP p [] = p.
-Proof.
-  intros p Hpoly. unfold addPP. rewrite app_nil_r. apply no_make_poly. auto.
-Qed.
-
-Lemma addPP_p_p : forall p,
-  is_poly p ->
-  addPP p p = [].
-Proof.
-  intros p Hp. unfold addPP. unfold make_poly. rewrite no_map_make_mono.
-  - rewrite nodup_cancel_self. auto.
-  - intros m Hin. apply Hp. apply in_app_iff in Hin. intuition.
-Qed.
-
-Lemma sort_pointless : forall p q,
-  sort (sort p ++ q) =
-  sort (p ++ q).
-Proof.
-  intros p q. apply Permutation_sort_eq.
-  apply Permutation_app_tail. apply Permutation_sym.
-  apply Permuted_sort.
-Qed.
-
-Lemma make_poly_pointless_weak : forall p q,
-  (forall m, In m p -> is_mono m) ->
-  (forall m, In m q -> is_mono m) ->
-  make_poly (make_poly p ++ q) =
-  make_poly (p ++ q).
-Proof.
-  intros p q Hmp Hmq. induction p; auto.
-  unfold make_poly. repeat rewrite no_map_make_mono; intuition.
-  apply Permutation_sort_eq. rewrite sort_nodup_cancel_assoc.
-  rewrite nodup_cancel_pointless. apply nodup_cancel_Permutation.
-  apply Permutation_sym. apply Permutation_app_tail. apply Permuted_sort.
-  - simpl in H. rewrite in_app_iff in H. destruct H as [H|[H|H]]; intuition.
-    rewrite H in Hmp; intuition.
-  - rewrite in_app_iff in H. destruct H; intuition.
-    apply In_sorted in H. apply nodup_cancel_in in H. intuition.
-Qed.
-
-Lemma mono_in_map_make_mono : forall p m,
-  In m (map make_mono p) -> is_mono m.
-Proof.
-  intros. apply in_map_iff in H as [x []]. rewrite <- H. auto.
-Qed.
-
-Lemma make_poly_pointless : forall p q,
-  make_poly (make_poly p ++ q) =
-  make_poly (p ++ q).
-Proof.
-  intros p q. rewrite make_poly_app_comm.
-  rewrite <- map_make_mono_pointless. rewrite make_poly_app_comm.
-  rewrite <- (map_make_mono_pointless p). rewrite (make_poly_app_comm _ q).
-  rewrite <- (map_make_mono_pointless q). rewrite (make_poly_app_comm _ (map make_mono p)).
-  rewrite <- (make_poly_pointless_weak (map make_mono p)). unfold make_poly.
-  rewrite (no_map_make_mono (map make_mono p)). auto.
-  apply mono_in_map_make_mono. apply mono_in_map_make_mono.
-  apply mono_in_map_make_mono.
-Qed.
-
-Lemma make_poly_pointless_r : forall p q,
-  make_poly (p ++ make_poly q) =
-  make_poly (p ++ q).
-Proof.
-  intros p q. rewrite make_poly_app_comm. rewrite make_poly_pointless.
-  apply make_poly_app_comm.
-Qed.
-
-Lemma concat_map_map : forall A B C l (f:B->C) (g:A->list B),
-  concat (map (fun a => map f (g a)) l) =
-  map f (concat (map g l)).
-Proof.
-  intros. induction l; auto.
-  simpl. rewrite map_app. f_equal. auto.
-Qed.
-
-Lemma mulPP'_mulPP'' : forall p q,
-  mulPP' p q = mulPP'' p q.
-Proof.
-  intros p q. unfold mulPP', mulPP'', mulMP, mulMP', make_poly.
-  rewrite concat_map_map.
-  rewrite (no_map_make_mono (map _ _)); auto.
-  intros. apply in_map_iff in H as [n []].
-  rewrite <- H.
-  auto.
-Qed.
-
-Lemma mulMP'_mulMP'' : forall m p q,
-  make_poly (mulMP' p m ++ q) = make_poly (mulMP'' p m ++ q).
-Proof.
-  intros m p q. unfold mulMP', mulMP''. rewrite make_poly_app_comm.
-  rewrite <- map_make_mono_pointless. rewrite make_poly_app_comm.
-  rewrite <- make_poly_pointless. unfold make_poly at 2. rewrite (no_map_make_mono (map make_mono _)).
-  unfold make_poly at 3. rewrite (make_poly_app_comm _ q).
-  rewrite <- (map_make_mono_pointless q). rewrite make_poly_app_comm. auto.
-  apply mono_in_map_make_mono.
-Qed.
-
-Lemma mulPP''_mulPP''' : forall p q,
-  mulPP'' p q = mulPP''' p q.
-Proof.
-  intros p q. induction q. auto. unfold mulPP'', mulPP'''. simpl.
-  rewrite mulMP'_mulMP''. repeat rewrite <- (make_poly_pointless_r _ (concat _)).
-  f_equal. f_equal. apply IHq.
-Qed.
-
-Lemma mulPP_mulPP'' : forall p q,
-  mulPP p q = mulPP'' p q.
-Proof.
-  intros. rewrite mulPP_mulPP', mulPP'_mulPP''. auto.
-Qed.
-
-Lemma mulPP_mulPP''' : forall p q,
-  mulPP p q = mulPP''' p q.
-Proof.
-  intros. rewrite mulPP_mulPP'', mulPP''_mulPP'''. auto.
-Qed.
-
-Lemma addPP_assoc : forall p q r,
-  addPP (addPP p q) r = addPP p (addPP q r).
-Proof.
-  intros p q r. rewrite (addPP_comm _ (addPP _ _)). unfold addPP.
-  repeat rewrite make_poly_pointless. repeat rewrite <- app_assoc.
-  apply Permutation_sort_eq. apply nodup_cancel_Permutation. apply Permutation_map.
-  rewrite (app_assoc q). apply Permutation_app_comm with (l':=(q++r)).
-Qed.
-
-Lemma mulPP_1r : forall p,
-  is_poly p ->
-  mulPP p [[]] = p.
-Proof.
-  intros p H. unfold mulPP, distribute. simpl. rewrite app_nil_r.
-  rewrite map_id. apply no_make_poly. auto.
-Qed.
-
-Lemma make_mono_app_comm : forall m n,
-  make_mono (m ++ n) = make_mono (n ++ m).
-Proof.
-  intros m n. apply Permutation_sort_mono_eq. apply Permutation_nodup.
-  apply Permutation_app_comm.
-Qed.
-
-Lemma mulPP_comm : forall p q,
-  mulPP p q = mulPP q p.
-Proof.
-  intros p q. repeat rewrite mulPP_mulPP''.
-  generalize dependent q. induction p; induction q as [|m].
-  - auto.
-  - unfold mulPP'', mulMP'. simpl. rewrite (@concat_map_nil mono). auto.
-  - unfold mulPP'', mulMP'. simpl. rewrite (@concat_map_nil mono). auto.
-  - unfold mulPP''. simpl. rewrite (app_comm_cons _ _ (make_mono (a++m))).
-    rewrite <- make_poly_pointless_r. rewrite mulPP''_refold. rewrite <- IHp.
-    unfold mulPP''. rewrite make_poly_pointless_r. simpl. unfold mulMP' at 2.
-    rewrite app_comm_cons. rewrite <- make_poly_pointless_r. rewrite mulPP''_refold.
-    rewrite IHq. unfold mulPP''. rewrite make_poly_pointless_r. simpl.
-    unfold mulMP' at 1. rewrite app_comm_cons. rewrite app_assoc.
-    rewrite <- make_poly_pointless_r. rewrite mulPP''_refold. rewrite <- IHp.
-    unfold mulPP''. rewrite make_poly_pointless_r. simpl. rewrite (app_assoc (map _ (map _ q))).
-    apply Permutation_sort_eq. apply nodup_cancel_Permutation.
-    apply Permutation_map. rewrite make_mono_app_comm. apply perm_skip.
-    apply Permutation_app_tail. apply Permutation_app_comm.
-Qed.
-
-Lemma make_poly_nil : 
-  make_poly [] = [].
-Proof.
-  unfold make_poly, sort. auto.
-Qed.
-
-Lemma mulPP''_cons : forall q a p,
-  make_poly (mulMP' q a ++ mulPP'' q p) =
-  mulPP'' q (a::p).
-Proof.
-  intros q a p. unfold mulPP''. rewrite make_poly_pointless_r. auto.
-Qed.
-
-Lemma make_mono_pointless : forall m a,
-  make_mono (m ++ make_mono a) = make_mono (m ++ a).
-Proof.
-  intros m a. apply Permutation_sort_mono_eq.
-  apply Permutation_trans with (l':=(nodup var_eq_dec (m ++ nodup var_eq_dec a))).
-    apply Permutation_nodup. apply Permutation_app_head. unfold make_mono.
-    rewrite <- Permutation_VarSort_l. auto.
-  induction a; auto. simpl. destruct in_dec.
-  - apply Permutation_sym. apply Permutation_trans with (l':=(nodup var_eq_dec (a :: m ++ a0))).
-      apply Permutation_nodup. apply Permutation_sym. apply Permutation_middle.
-    simpl. destruct in_dec.
-    + apply Permutation_sym. apply IHa.
-    + exfalso. apply n. intuition.
-  - apply Permutation_trans with (l':=(nodup var_eq_dec (a::m++nodup var_eq_dec a0))).
-      apply Permutation_nodup. apply Permutation_sym. apply Permutation_middle.
-    apply Permutation_sym. apply Permutation_trans with (l':=(nodup var_eq_dec
-      (a::m++a0))). apply Permutation_nodup. apply Permutation_sym. apply Permutation_middle.
-    simpl. destruct (in_dec var_eq_dec a m).
-    + assert (In a (m++a0)). intuition. destruct in_dec; try contradiction.
-      assert (In a (m++nodup var_eq_dec a0)). intuition. destruct in_dec;
-      try contradiction. apply Permutation_sym. apply IHa.
-    + assert (~In a (m++a0)). intuition. apply in_app_iff in H. destruct H; auto.
-      assert (~In a (m++nodup var_eq_dec a0)). intuition. apply in_app_iff in H0.
-      destruct H0; auto. apply nodup_In in H0. auto. repeat destruct in_dec; try contradiction.
-      apply perm_skip. apply Permutation_sym. apply IHa.
-Qed.
-
-Lemma make_mono_self : forall m,
-  is_mono m ->
-  make_mono (m ++ m) = m.
-Proof.
-  intros m H. apply Permutation_Sorted_mono_eq.
-  - induction m; auto. unfold make_mono. rewrite <- Permutation_VarSort_l. simpl.
-    assert (In a (m++a::m)).
-      intuition. destruct in_dec; try contradiction.
-    apply Permutation_trans with (l':=(nodup var_eq_dec (a::m++m))).
-       apply Permutation_nodup. apply Permutation_app_comm.
-    simpl. assert (~ In a (m++m)).
-      apply NoDup_VarSorted in H as H1. apply NoDup_cons_iff in H1.
-    intro. apply H1. apply in_app_iff in H2; intuition.
-    destruct in_dec; try contradiction. apply perm_skip.
-    apply Permutation_VarSort_l in IHm. auto. apply (mono_cons _ _ H).
-  - apply VarSort.LocallySorted_sort.
-  - apply Sorted_VarSorted. apply H.
-Qed.
-
-Lemma make_poly_refold : forall p,
-  sort (nodup_cancel mono_eq_dec (map make_mono p)) =
-  make_poly p.
-Proof. auto. Qed.
-
-Lemma mulPP_p_p : forall p,
-  is_poly p ->
-  mulPP p p = p.
-Proof.
-  intros p H. rewrite mulPP_mulPP'. rewrite mulPP'_mulPP''. apply Permutation_Sorted_eq.
-  - induction p; auto. unfold mulPP'', make_poly. rewrite <- Permutation_MonoSort_l.
-    simpl map at 1. apply poly_cons in H as H1. destruct H1. rewrite make_mono_self; auto.
-    rewrite no_make_mono; auto. rewrite map_app. apply Permutation_trans with
-      (l':=(nodup_cancel mono_eq_dec (map make_mono (concat (map (mulMP' (a :: 
-      p)) p)) ++ a :: map make_mono (map make_mono (map (app a) p))))).
-      apply nodup_cancel_Permutation. rewrite app_comm_cons. apply Permutation_app_comm.
-    rewrite <- nodup_cancel_pointless. apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec
-      ((nodup_cancel mono_eq_dec (map make_mono (concat (map (mulMP' p) (a :: p)))))
-      ++ (a :: map make_mono (map make_mono (map (app a) p)))))).
-      apply nodup_cancel_Permutation. apply Permutation_app_tail. apply Permutation_sort_eq.
-      repeat rewrite make_poly_refold. repeat rewrite mulPP''_refold.
-      repeat rewrite <- mulPP'_mulPP''. repeat rewrite <- mulPP_mulPP'. apply mulPP_comm.
-    rewrite nodup_cancel_pointless. apply Permutation_trans with (l':=
-      (nodup_cancel mono_eq_dec (a :: map make_mono (map make_mono (map (app a) p))
-      ++ (map make_mono (concat (map (mulMP' p) (a :: p))))))).
-      apply nodup_cancel_Permutation. apply Permutation_app_comm.
-    simpl map. rewrite map_app. unfold mulMP' at 1. repeat rewrite (no_map_make_mono 
-    (map make_mono _)); try apply mono_in_map_make_mono. rewrite (app_assoc (map _ _)).
-    apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec ((map make_mono (map 
-      (app a) p) ++ map make_mono (map (app a) p)) ++ a :: map make_mono (concat 
-      (map (mulMP' p) p))))). apply nodup_cancel_Permutation. apply Permutation_middle.
-    rewrite <- nodup_cancel_pointless. rewrite nodup_cancel_self. simpl app.
-    apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (map make_mono
-      (concat (map (mulMP' p) p)) ++ [a]))). apply nodup_cancel_Permutation.
-      replace (a::map make_mono (concat (map (mulMP' p) p))) with ([a] ++ map
-      make_mono (concat (map (mulMP' p) p))); auto. apply Permutation_app_comm.
-    rewrite <- nodup_cancel_pointless. apply Permutation_trans with (l':=(nodup_cancel 
-      mono_eq_dec (p ++ [a]))). apply nodup_cancel_Permutation.
-      apply Permutation_app_tail. unfold mulPP'', make_poly in IHp.
-      rewrite <- Permutation_MonoSort_l in IHp. apply IHp; auto.
-    replace (a::p) with ([a]++p); auto. rewrite no_nodup_cancel_NoDup.
-    apply Permutation_app_comm. apply Permutation_NoDup with (l:=(a::p)).
-    replace (a::p) with ([a]++p); auto. apply Permutation_app_comm.
-    destruct H. apply NoDup_MonoSorted in H. auto.
-  - unfold make_poly. apply LocallySorted_sort.
-  - apply Sorted_MonoSorted. apply H.
-Qed.
-
-Lemma mono_in_concat_mulMP' : forall p q m,
-  In m (concat (map (mulMP' p) q)) -> is_mono m.
-Proof.
-  intros. unfold mulMP' in H. rewrite concat_map_map in H.
-  apply in_map_iff in H as [x[]]. rewrite <- H. auto.
-Qed.
-
-Lemma mono_in_mulMP' : forall p n m,
-  In m (mulMP' p n) -> is_mono m.
-Proof.
-  intros. unfold mulMP' in H. apply (mono_in_map_make_mono _ _ H).
-Qed.
-
-Lemma mono_in_make_poly : forall p m,
-  In m (make_poly p) -> is_mono m.
-Proof.
-  intros. unfold make_poly in H. apply In_sorted in H.
-  apply nodup_cancel_in in H. apply (mono_in_map_make_mono _ _ H).
-Qed.
-
-Lemma mono_in_mulPP'' : forall p q m,
-  In m (mulPP'' p q) -> is_mono m.
-Proof.
- intros. unfold mulPP'' in H. apply (mono_in_make_poly _ _ H).
-Qed.
-
-Lemma map_app_make_poly : forall m p,
-  (forall a, In a p -> is_mono a) ->
-  make_poly (map (app m) (make_poly p)) = make_poly (map (app m) p).
-Proof.
-  intros m p Hm. apply Permutation_sort_eq.
-  apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (map make_mono
-    (map (app m) (nodup_cancel mono_eq_dec (map make_mono p)))))).
-    apply nodup_cancel_Permutation. repeat apply Permutation_map.
-    unfold make_poly. rewrite <- Permutation_MonoSort_l. auto.
-  rewrite (no_map_make_mono p); auto. repeat rewrite map_map. apply nodup_cancel_map.
-Qed.
-
-Lemma mulMP''_make_poly : forall p m,
-  (forall a, In a p -> is_mono a) ->
-  mulMP'' (make_poly p) m =
-  mulMP'' p m.
-Proof.
-  intros p m. unfold mulMP''. apply map_app_make_poly.
-Qed.
-
-Lemma mulMP'_app : forall p q m,
-  mulMP' (p ++ q) m =
-  mulMP' p m ++ mulMP' q m.
-Proof.
-  intros p q m. unfold mulMP'. repeat rewrite map_app. auto.
-Qed.
-
-Lemma mulMP'_assoc : forall q a m,
-  mulMP' (mulMP' q a) m =
-  mulMP' (mulMP' q m) a.
-Proof.
-  intros q a m. unfold mulMP'. induction q.
-  - auto.
-  - simpl. repeat rewrite make_mono_pointless. f_equal.
-    + apply Permutation_sort_mono_eq. apply Permutation_nodup.
-      repeat rewrite app_assoc. apply Permutation_app_tail.
-      apply Permutation_app_comm.
-    + apply IHq.
-Qed.
-
-Lemma mulPP_assoc : forall p q r,
-  mulPP (mulPP p q) r = mulPP p (mulPP q r).
-Proof.
-  intros p q r. rewrite (mulPP_comm _ (mulPP q _)). rewrite (mulPP_comm p _).
-  generalize dependent r. induction p; induction r as [|m];
-  repeat rewrite mulPP_0; repeat rewrite mulPP_0r; auto.
-  repeat rewrite mulPP_mulPP'' in *. unfold mulPP''. simpl.
-  repeat rewrite <- (make_poly_pointless_r _ (concat _)).
-  repeat rewrite mulPP''_refold. repeat rewrite (mulPP''_cons q).
-  pose (IHp (m::r)). repeat rewrite mulPP_mulPP'' in e. rewrite <- e.
-  rewrite IHr. unfold mulPP'' at 2, mulPP'' at 4. simpl.
-  repeat rewrite make_poly_pointless_r. repeat rewrite app_assoc.
-  repeat rewrite <- (make_poly_pointless_r _ (concat _)).
-  repeat rewrite mulPP''_refold. pose (IHp r). repeat rewrite mulPP_mulPP'' in e0.
-  rewrite <- e0. repeat rewrite <- app_assoc. repeat rewrite mulMP'_mulMP''.
-  repeat rewrite <- mulPP''_cons. repeat rewrite mulMP''_make_poly.
-  repeat rewrite <- mulMP'_mulMP''. repeat rewrite app_assoc.
-  apply Permutation_sort_eq. apply nodup_cancel_Permutation. apply Permutation_map.
-  apply Permutation_app_tail. repeat rewrite mulMP'_app. rewrite mulMP'_assoc.
-  repeat rewrite <- app_assoc. apply Permutation_app_head. apply Permutation_app_comm.
-  intros a0 Hin. apply in_app_iff in Hin as []. unfold mulMP' in H.
-  apply in_map_iff in H as [x[]]. rewrite <- H; auto.
-  apply (make_poly_is_poly (concat (map (mulMP' q) r))). auto.
-  intros a0 Hin. apply in_app_iff in Hin as []. unfold mulMP' in H.
-  apply in_map_iff in H as [x[]]. rewrite <- H; auto.
-  apply (make_poly_is_poly (concat (map (mulMP' q) p))). auto.
-Qed.
-
-Lemma mulMP''_distr_addPP : forall m p q,
-  is_poly p -> is_poly q ->
-  mulMP'' (addPP p q) m = addPP (mulMP'' p m) (mulMP'' q m).
-Proof.
-  intros m p q Hp Hq. unfold mulMP'', addPP. rewrite map_app_make_poly.
-  rewrite make_poly_pointless. rewrite make_poly_app_comm.
-  rewrite make_poly_pointless. rewrite make_poly_app_comm.
-  rewrite map_app. auto. intros a Hin. apply in_app_iff in Hin as [].
-  apply Hp. auto. apply Hq. auto.
-Qed.
-
-Lemma mulPP_distr_addPP : forall p q r,
-  is_poly p -> is_poly q ->
-  mulPP (addPP p q) r = addPP (mulPP p r) (mulPP q r).
-Proof.
-  intros p q r Hp Hq. induction r; auto. rewrite mulPP_mulPP''. unfold mulPP''.
-  simpl. rewrite mulPP_mulPP'', (mulPP_mulPP'' q), make_poly_app_comm.
-  rewrite <- make_poly_pointless. rewrite make_poly_app_comm.
-  rewrite mulPP''_refold.
-  rewrite addPP_refold. repeat unfold mulPP'' at 2. simpl. unfold addPP at 4.
-  rewrite make_poly_pointless. rewrite addPP_refold.
-  rewrite (addPP_comm _ (make_poly _)).
-  unfold addPP at 4. rewrite make_poly_pointless. rewrite <- app_assoc.
-  rewrite make_poly_app_comm. rewrite <- app_assoc.
-  rewrite <- make_poly_pointless.
-  rewrite mulPP''_refold. rewrite <- app_assoc. rewrite app_assoc.
-  rewrite make_poly_app_comm.
-  rewrite <- app_assoc. rewrite <- make_poly_pointless. rewrite mulPP''_refold.
-  replace (make_poly (mulPP'' p r ++ mulMP' q a ++ mulPP'' q r ++ mulMP' p a))
-    with (make_poly ((mulPP'' p r ++ mulPP'' q r) ++ mulMP' p a ++ mulMP' q a)).
-  rewrite <- make_poly_pointless. rewrite (addPP_refold (mulPP'' _ _)).
-  rewrite make_poly_app_comm. rewrite addPP_refold.
-  rewrite mulPP_mulPP'', (mulPP_mulPP'' p), (mulPP_mulPP'' q) in IHr.
-  rewrite <- IHr. unfold addPP at 4.
-  rewrite <- make_poly_pointless. unfold addPP. repeat rewrite mulMP'_mulMP''.
-  rewrite (make_poly_app_comm (mulMP'' _ _) (mulMP' _ _)).
-  rewrite mulMP'_mulMP''. rewrite (make_poly_app_comm (mulMP'' _ _) (mulMP'' _ _)).
-  repeat rewrite addPP_refold. f_equal. apply mulMP''_distr_addPP; auto.
-  apply make_poly_Permutation. rewrite <- app_assoc.
-  apply Permutation_app_head. rewrite app_assoc.
-  apply Permutation_trans with
-    (l':=mulMP' q a ++ mulPP'' q r ++ mulMP' p a).
-  apply Permutation_app_comm.
-  auto.
-Qed.
-
-Lemma mulPP_distr_addPPr : forall p q r,
-  is_poly p -> is_poly q ->
-  mulPP r (addPP p q) = addPP (mulPP r p) (mulPP r q).
-Proof.
-  intros p q r Hp Hq. rewrite mulPP_comm. rewrite (mulPP_comm r p).
-  rewrite (mulPP_comm r q). apply mulPP_distr_addPP; auto.
-Qed.
-
-Lemma mulPP_is_poly : forall p q,
-  is_poly (mulPP p q).
-Proof.
-  intros p q. apply make_poly_is_poly.
-Qed.
-
-Lemma mulPP_mono_cons : forall x m,
-  is_mono (x :: m) ->
-  mulPP [[x]] [m] = [x :: m].
-Proof.
-  intros x m H. unfold mulPP, distribute. simpl. apply Permutation_Sorted_eq.
-  - apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (map make_mono [m++[x]]))).
-    apply Permutation_sym. apply Permuted_sort. rewrite no_nodup_cancel_NoDup.
-    simpl. assert (make_mono (m++[x]) = x::m).
-    + rewrite <- no_make_mono; auto. apply Permutation_sort_mono_eq.
-      repeat rewrite no_nodup_NoDup. replace (x::m) with ([x]++m); auto; apply Permutation_app_comm.
-      apply NoDup_VarSorted; apply H. apply Permutation_NoDup with (l:=(x::m)).
-      replace (x::m) with ([x]++m); auto; apply Permutation_app_comm.
-      apply NoDup_VarSorted; apply H.
-    + rewrite H0. auto.
-    + apply NoDup_cons; auto.
-  - apply LocallySorted_sort.
-  - apply Sorted_cons; auto.
-Qed.
-
-Lemma addPP_poly_cons : forall m p,
-  is_poly (m :: p) ->
-  addPP [m] p = m :: p.
-Proof.
-  intros m p H. unfold addPP. simpl. rewrite no_make_poly; auto.
-Qed.
-
-Hint Resolve addPP_is_poly mulPP_is_poly.
-
-Lemma mulPP_addPP_1 : forall p q r,
-  is_poly p -> is_poly q -> is_poly r ->
-  mulPP (addPP (mulPP p q) r) (addPP [[]] q) =
-  mulPP (addPP [[]] q) r.
-Proof.
-  intros p q r Hp Hq Hr. rewrite mulPP_distr_addPP; auto.
-  rewrite mulPP_distr_addPPr; auto. rewrite mulPP_1r; auto.
-  rewrite mulPP_assoc. rewrite mulPP_p_p; auto. rewrite addPP_p_p; auto.
-  rewrite addPP_0; auto. rewrite mulPP_comm. auto.
-Qed.
-
-Lemma make_poly_rem_vars : forall p x,
-  In x (vars (make_poly p)) ->
-  In x (vars p).
-Proof.
-  intros p x H. induction p.
-  - inversion H.
-  - unfold vars. simpl. apply nodup_In. apply in_app_iff.
-    unfold vars, make_poly in H. apply nodup_In in H.
-    apply In_concat_exists in H as [m []].
-    apply In_sorted in H. apply nodup_cancel_in in H.
-    apply in_map_iff in H as [n []]. destruct H1.
-    + left. apply make_mono_In. rewrite H1. rewrite H. auto.
-    + right. apply In_concat_exists. exists n. split; auto. apply make_mono_In.
-      rewrite H. auto.
-Qed.
-
-Lemma incl_vars_addPP : forall p q xs,
-  incl (vars p) xs /\ incl (vars q) xs ->
-  incl (vars (addPP p q)) xs.
-Proof.
-  unfold incl, addPP.
-  intros p q xs [HinP HinQ] x HinPQ.
-  apply make_poly_rem_vars in HinPQ.
-  unfold vars in HinPQ.
-  apply nodup_In in HinPQ.
-  rewrite concat_app in HinPQ.
-  apply in_app_or in HinPQ as [Hin | Hin].
-  - apply HinP. apply nodup_In. auto.
-  - apply HinQ. apply nodup_In. auto.
-Qed.
-
-Lemma In_distribute : forall (l m:poly) a,
-  In a (vars (distribute l m)) ->
-  In a (vars l) \/ In a (vars m).
-Proof.
-  intros l m a H. unfold distribute, vars in H. apply nodup_In in H.
-  apply In_concat_exists in H. destruct H as [ll[]].
-  apply In_concat_exists in H. destruct H as [ll1[]].
-  apply in_map_iff in H. destruct H as [x[]]. rewrite <- H in H1.
-  apply in_map_iff in H1. destruct H1 as [x0[]]. rewrite <- H1 in H0.
-  apply in_app_iff in H0. destruct H0.
-  - right. apply nodup_In. apply In_concat_exists. exists x. auto.
-  - left. apply nodup_In. apply In_concat_exists. exists x0. auto.
-Qed.
-
-Lemma incl_vars_mulPP : forall p q xs,
-  incl (vars p) xs /\ incl (vars q) xs ->
-  incl (vars (mulPP p q)) xs.
-Proof.
-  unfold incl, mulPP.
-  intros p q xs [HinP HinQ] x HinPQ.
-  apply make_poly_rem_vars in HinPQ.
-  apply In_distribute in HinPQ. destruct HinPQ.
-  - apply HinP. auto.
-  - apply HinQ. auto.
-Qed.
-
-Lemma part_add_eq : forall f p l r,
-  is_poly p ->
-  partition f p = (l, r) ->
-  p = addPP l r.
-Proof.
-  intros f p l r H H0. apply Permutation_Sorted_eq.
-  - generalize dependent l; generalize dependent r. induction p; intros.
-    + simpl in H0. inversion H0. auto.
-    + assert (H1:=H0); auto. apply partition_Permutation in H1. simpl in H0.
-      destruct (partition f p) as [g d]. unfold addPP, make_poly.
-      rewrite <- Permutation_MonoSort_r. rewrite unsorted_poly. destruct (f a); inversion H0.
-      * rewrite <- H3 in H1. apply H1.
-      * rewrite <- H4 in H1. apply H1.
-      * destruct H. apply NoDup_MonoSorted in H. apply (Permutation_NoDup H1 H).
-      * intros m Hin. apply H. apply Permutation_sym in H1. apply (Permutation_in _ H1 Hin).
-  - apply Sorted_MonoSorted. apply H.
-  - apply Sorted_MonoSorted. apply make_poly_is_poly.
-Qed.
-
-Lemma part_is_poly : forall f p l r,
-  is_poly p ->
-  partition f p = (l, r) ->
-  is_poly l /\ is_poly r.
-Proof.
-  intros f p l r Hpoly Hpart. destruct Hpoly. split; split.
-  - apply (part_Sorted _ _ _ mono_lt_Transitive H _ _ Hpart).
-  - intros m Hin. apply H0. apply elements_in_partition with (x:=m) in Hpart.
-    apply Hpart; auto.
-  - apply (part_Sorted _ _ _ mono_lt_Transitive H _ _ Hpart).
-  - intros m Hin. apply H0. apply elements_in_partition with (x:=m) in Hpart.
-    apply Hpart; auto.
 Qed.

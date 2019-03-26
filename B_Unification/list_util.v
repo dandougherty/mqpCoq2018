@@ -433,6 +433,20 @@ Proof.
 Qed.
 
 (**
+    Another fact similar to the last is that if you concatenate the result
+    of mapping a function that maps a function over a list, we can rearrange
+    the order of the concat and the maps.
+  *)
+
+Lemma concat_map_map : forall A B C l (f:B->C) (g:A->list B),
+  concat (map (fun a => map f (g a)) l) =
+  map f (concat (map g l)).
+Proof.
+  intros. induction l; auto.
+  simpl. rewrite map_app. f_equal. auto.
+Qed.
+
+(**
     Lastly, if you [map] a function that converts every element of a list
     to [nil], and then [concat] the list of [nil]s, you end with [nil].
   *)
