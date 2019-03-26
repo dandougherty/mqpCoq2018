@@ -826,7 +826,7 @@ Lemma mulPP_map_app_permutation : forall (x:var) (l l' : poly),
   is_poly l ->
   (forall m, In m l -> ~ In x m) ->
   Permutation l l' ->
-  Permutation (mulPP [[x]] l) (map (fun a => (make_mono(a ++ [x]))) l').
+  Permutation (mulPP [[x]] l) (map (fun a => (make_mono (a ++ [x]))) l').
 Proof.
   intros x l l' Hp H H0. generalize dependent l'. induction l; induction l'.
   - intros. unfold mulPP, distribute, make_poly, MonoSort.sort. simpl. auto.
@@ -859,10 +859,10 @@ Proof.
       * apply p.
 Qed.
 
-Lemma p_map_Permutation : forall p x,
+Lemma map_app_remove_Permutation : forall p x,
   is_poly p ->
   (forall m, In m p -> In x m) ->
-  Permutation p (map (fun a => (make_mono(a ++ [x]))) (map (remove var_eq_dec x) p)).
+  Permutation p (map (fun a => (make_mono (a ++ [x]))) (map (remove var_eq_dec x) p)).
 Proof.
   intros p x H H0. rewrite map_map. induction p.
   - auto.
