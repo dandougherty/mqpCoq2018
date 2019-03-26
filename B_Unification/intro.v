@@ -104,10 +104,10 @@ that perform static analysis on the behavior of a system, or the correctness of 
 differs to dynamic analysis that uses simulation to evaluate the correctness of a system.
 *)
 
-(** More simply stated, formalt verification is the process of examining whether a system or a theory "does what it is supposed to do". 
+(** More simply stated, formal verification is the process of examining whether a system or a theory "does what it is supposed to do." 
 If it is a system, then scientistis formally verify that it satisfies its design requirements. Formal verification is also different to testing.
 Software testing is trying to detect "bugs" specific errors and requirements in the system, whereas verfification acts as a general safeguard
-that they system is always error-free. As Edsger Dijkstra stated, testing can be used to show the presence of bugs, but never to show their absence.
+that the system is always error-free. As Edsger Dijkstra stated, testing can be used to show the presence of bugs, but never to show their absence.
 If it a theory, scientists formally verify the correctness of the theory by formulating its proof using a formal language, axioms and inference rules.
 *)
 
@@ -158,13 +158,28 @@ approaches are often linked together.
 
 *)
 
-
-
-
 (** * Importance *)
 
+(**
+  Given that the emergence of proof assistance software is still in its infancy relative to the age-old traditional methods
+of theorem proving, it would be a disservice for us to not establish the importance of this technology and its implications 
+for the future of mathematics. Unlike in years past, where typos or subliminal edge cases could derail the developments of sound
+theorems, proof assistants now guarantee through their properties of verification that any development run by them is free from
+such lapses in logic on account of the natural failings of the human mind. Additionally, due to the adoption of a well-defined
+shared language, many of the ambiguities naturally present in the exchange of mathematical ideas between colleagues are mitigated,
+leading to a smoother learning curve for newcomers trying to understand the nuts and bolts of a complex theorem. The end result
+of these phenomenon is a faster iterative development cycle for mathemeticians as they now can spend more time on proving things and
+building off of the work of others since they no longer need to devote as much of their efforts towards verifying the correctness
+of the theorems they are operating across.
+**)
 
-
+(** 
+  Bearing this in mind, it should come as no surprise that there is a utility in going back to older proofs that have never been
+verified by a proof assistant and redeveloping them for the purposes of ensuring their correctness. If the theorem is truly sound,
+it stands to reason that any additional rigorous scrutiny would only serve to bolster the credibility of its claims, and conversely,
+if the theorem is not sound, it is a benefit to the academic community at large to be made aware of its shortcomings. Therefore, 
+for these reasons we set out to formally verify two algorithms across Boolean Unification.
+**)
 
 
 (** * Development *)
