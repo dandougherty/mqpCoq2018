@@ -1334,6 +1334,8 @@ Proof.
   intros p q. apply make_poly_is_poly.
 Qed.
 
+Hint Resolve addPP_is_poly mulPP_is_poly.
+
 (**
     While this definition is elegant, sometimes it is hard to work with. This
     has led us to also create a few more definitions of multiplication. Each is
@@ -1991,7 +1993,23 @@ Qed.
 
 
 
-(** * Other Facts About Arithmetic *)
+(** * Other Facts About Polynomials *)
+
+(**
+    Now that we have proven the core ten axioms proven, there are a few more
+    useful lemmas that we will prove to assist us in future parts of the
+    development.
+  *)
+
+(** ** More Arithmetic *)
+(**
+    Occasionally, when dealing with multiplication, we already know that one
+    of the variables being multiplied in is less than the rest, meaning it
+    would end up at the front of the list after sorting. For convenience and
+    to bypass the work of dealing with the calls to [sort] and [nodup_cancel],
+    the below lemma allows us to rewrite with this concept.
+  *)
+
 Lemma mulPP_mono_cons : forall x m,
   is_mono (x :: m) ->
   mulPP [[x]] [m] = [x :: m].
@@ -2011,6 +2029,12 @@ Proof.
   - apply Sorted_cons; auto.
 Qed.
 
+(**
+    Similarly, if we already know some monomial is less than the polynomials
+    it is being added to, then the monomial will clearly end up at the front
+    of the list.
+  *)
+
 Lemma addPP_poly_cons : forall m p,
   is_poly (m :: p) ->
   addPP [m] p = m :: p.
@@ -2018,7 +2042,12 @@ Proof.
   intros m p H. unfold addPP. simpl. rewrite no_make_poly; auto.
 Qed.
 
-Hint Resolve addPP_is_poly mulPP_is_poly.
+(**
+    An interesting arithmetic fact is that if we multiply the term [(p*q)+r]
+    by [1+q], we effectively eliminate the [p*q] term and are left with [(1+q)*r].
+    This will come into play later in the development, as we look to begin
+    building unifiers.
+  *)
 
 Lemma mulPP_addPP_1 : forall p q r,
   is_poly p -> is_poly q -> is_poly r ->
@@ -2030,6 +2059,15 @@ Proof.
   rewrite mulPP_assoc. rewrite mulPP_p_p; auto. rewrite addPP_p_p; auto.
   rewrite addPP_0; auto. rewrite mulPP_comm. auto.
 Qed.
+
+(** ** Reasoning about Variables *)
+
+(**
+    To more easily deal with the [vars] definition, we have defined a few
+    definitions about it. First, if some [x] is in the variables of [make_poly p],
+    then it must have been in the vars of [p] originally. Note that this is
+    not true in the other direction, as [nodup_cancel] may remove some variables.
+  *)
 
 Lemma make_poly_rem_vars : forall p x,
   In x (vars (make_poly p)) ->
@@ -2047,6 +2085,14 @@ Proof.
       rewrite H. auto.
 Qed.
 
+(**
+    An interesting observation about [addPP] and our [vars] function is that
+    clearly, the variables of some [p + q] is a subset of the variables of
+    [p] combined with the variables of [q]. The next lemma is a more convenient
+    formulation of that fact, using a list of variables [xs] rather than
+    comparing them directly.
+  *)
+
 Lemma incl_vars_addPP : forall p q xs,
   incl (vars p) xs /\ incl (vars q) xs ->
   incl (vars (addPP p q)) xs.
@@ -2062,6 +2108,13 @@ Proof.
   - apply HinQ. apply nodup_In. auto.
 Qed.
 
+(**
+    We would like to be able to prove a similar fact about [mulPP], but before
+    we can do so, we need to know more about the [distribute] function.
+    This lemma states that if some [a] is in the variables of [distribute l m],
+    then it must have been in either [vars l] or [vars m] originally.
+  *)
+
 Lemma In_distribute : forall (l m:poly) a,
   In a (vars (distribute l m)) ->
   In a (vars l) \/ In a (vars m).
@@ -2076,6 +2129,13 @@ Proof.
   - left. apply nodup_In. apply In_concat_exists. exists x0. auto.
 Qed.
 
+(**
+    We can then use this fact to prove our desired fact about [mulPP]; the
+    variables of [p * q] are a subset of the variables of [p] and the variables
+    of [q]. Once again, this is formalized in a way that is more convenient in
+    later proofs, with an extra list [xs].
+  *)
+
 Lemma incl_vars_mulPP : forall p q xs,
   incl (vars p) xs /\ incl (vars q) xs ->
   incl (vars (mulPP p q)) xs.
@@ -2087,6 +2147,20 @@ Proof.
   - apply HinP. auto.
   - apply HinQ. auto.
 Qed.
+
+(** ** Partition with Polynomials *)
+
+(**
+    When it comes to actually performing successive variable elimination later
+    in the development, the [partition] function will play a big role, so we
+    have opted to prove a few useful facts about its relation to polynomials
+    now.
+
+    First is that if you separate a polynomial with any function [f], you can
+    get the original polynomial back by adding together the two lists returned
+    by [partition]. This is relatively easy to prove thanks to the lemma
+    [partition_Permutation] we proved during [list_util].
+  *)
 
 Lemma part_add_eq : forall f p l r,
   is_poly p ->
@@ -2107,6 +2181,12 @@ Proof.
   - apply Sorted_MonoSorted. apply make_poly_is_poly.
 Qed.
 
+(**
+    In addition, if you [partition] some polynomial [p] with any function [f],
+    the resulting two lists will both be proper polynomials, since [partition]
+    does not affect the order.
+  *)
+
 Lemma part_is_poly : forall f p l r,
   is_poly p ->
   partition f p = (l, r) ->
@@ -2120,6 +2200,52 @@ Proof.
   - intros m Hin. apply H0. apply elements_in_partition with (x:=m) in Hpart.
     apply Hpart; auto.
 Qed.
+
+(** ** Multiplication and Remove *)
+
+(**
+    Lastly are some rather complex lemmas relating [remove] and multiplication.
+    Similarly to the partition lemmas, these will come to play a large roll in
+    performing successive variable elimination later in the development.
+
+    First is an interesting fact about removing from monomials. If there are two
+    monomials which are equal after removing some [x], and either both contain
+    [x] or both do not contain [x], then they must have been equal originally.
+    This proof begins by performing double induction, and quickly solving the
+    first three cases.
+
+    The fourth case is rather long, and begins by comparing if the [a] and [a0]
+    at the head of each list are equal. The case where they are equal is
+    relatively straightforward; we must also destruct if [x = a = a0], but
+    regardless of whether they are equal or not, we can easily prove this with
+    the use of the induction hypothesis.
+
+    The case where [a <> a0] should be a contradiction, as that element is at
+    the head of both lists, and we know the lists are equal after removing [x].
+    We begin by destructing whether or not [x] is in the two lists. In the case
+    where it is not in either, we can quickly solve this, as we know the call
+    to remove will do nothing, which immediately gives us the contradiction.
+
+    In the case where [x] is in both, we begin by using [in_split] to rewrite
+    both lists to contain [x]. We then use the fact that there are no duplicates
+    in either list to show that [x] is not in [l1], [l2], [l1'], or [l2'], and
+    therefore the calls to remove will do nothing. This leaves us with a
+    hypothesis that [l1 ++ l2 = l1' ++ l2']. To finish the proof, we destruct
+    [l1] and [l1'] to further compare the head of each list.
+
+    In the case where they are both empty, we arrive at a contradiction
+    immediately, as this implies the head of both lists is [x] and therefore
+    contradicts that [a <> a0]. In the case where they are both lists, doing
+    inversion on our remove hypothesis gives us that the head of each list is
+    equal again, also contradicting that [a <> a0].
+
+    In the other two cases, we rewrite with the [in_split] hypotheses into the
+    [is_mono] hypotheses. In both cases, we result in one statement that [a]
+    comes before [a0] in the monomial, and one statement that [a0] comes before
+    [a] in the monomial. With the help of [StronglySorted], we are able to turn
+    these into [a < a0] and [a0 < a], which contradict each other to finish the
+    proof.
+  *)
 
 Lemma remove_Sorted_eq : forall x (l l':mono),
   is_mono l -> is_mono l' ->
@@ -2151,7 +2277,8 @@ Proof.
       * apply Hx in i as i'. apply in_split in i. apply in_split in i'.
         destruct i as [l1[l2 i]]. destruct i' as [l1'[l2' i']].
         pose (NoDup_VarSorted _ Hl). pose (NoDup_VarSorted _ Hl').
-        apply (NoDup_In_split _ _ _ _ i) in n0 as []. apply (NoDup_In_split _ _ _ _ i') in n1 as [].
+        apply (NoDup_In_split _ _ _ _ i) in n0 as [].
+        apply (NoDup_In_split _ _ _ _ i') in n1 as [].
         rewrite i in Hrem. rewrite i' in Hrem. repeat rewrite remove_distr_app in Hrem.
         simpl in Hrem. destruct (var_eq_dec x x); try contradiction.
         rewrite not_In_remove in Hrem; auto. rewrite not_In_remove in Hrem; auto.
@@ -2175,6 +2302,11 @@ Proof.
         rewrite not_In_remove in Hrem; auto. rewrite not_In_remove in Hrem; auto.
 Qed.
 
+(**
+    Next is that if we [map remove] across a polynomial where every monomial
+    contains [x], there will still be no duplicates at the end.
+  *)
+
 Lemma NoDup_map_remove : forall x p,
   is_poly p ->
   (forall m, In m p -> In x m) ->
@@ -2194,6 +2326,12 @@ Proof.
       * apply poly_cons in Hp. apply Hp.
       * intros m H. apply Hx. intuition.
 Qed.
+
+(**
+    Building off that, if every monomial in a list _does not_ contain some
+    [x], then appending [x] to every monomial and calling [make_mono] still
+    will not create any duplicates.
+  *)
 
 Lemma NoDup_map_app : forall x l,
   is_poly l ->
@@ -2225,6 +2363,12 @@ Proof.
     + apply IHl. apply poly_cons in Hp. apply Hp. intros m H. apply Hin. intuition.
 Qed.
 
+(**
+    This next lemma is relatively straightforward, and really just served to
+    remove the calls to [sort] and [nodup_cancel] for convenience when simplifying
+    a [mulPP].
+  *)
+
 Lemma mulPP_Permutation : forall x a0 l,
   is_poly (a0::l) ->
   (forall m, In m (a0::l) -> ~ In x m) ->
@@ -2235,14 +2379,20 @@ Proof.
         (map make_mono ((a0 ++ [x]) :: concat (map (fun a : list var => [a ++ [x]]) l))))).
   apply Permutation_sym in p. apply (Permutation_trans p). simpl map.
   rewrite no_nodup_cancel_NoDup; clear p.
-  - apply perm_skip. apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (map make_mono (concat (map (fun a : list var => [a ++ [x]]) l))))).
-    + rewrite no_nodup_cancel_NoDup; auto. rewrite concat_map. apply NoDup_map_app.
-      apply poly_cons in Hp. apply Hp. intros m H. apply Hx. intuition.
-    + apply MonoSort.Permuted_sort.
+  - apply perm_skip. rewrite <- Permutation_MonoSort_r.
+    rewrite no_nodup_cancel_NoDup; auto. rewrite concat_map. apply NoDup_map_app.
+    apply poly_cons in Hp. apply Hp. intros m H. apply Hx. intuition.
   - rewrite <- map_cons. rewrite concat_map.
     rewrite <- map_cons with (f:=(fun a : list var => a ++ [x])).
     apply NoDup_map_app; auto.
 Qed.
+
+(**
+    Building off of the previous lemma, this one serves to remove the calls
+    to [make_poly] entirely, and instead replace [mulPP] with just the [map app].
+    We can do this because we know that [x] is not in any of the monomials, so
+    [nodup_cancel] will have no effect as we proved earlier.
+  *)
 
 Lemma mulPP_map_app_permutation : forall (x:var) (l l' : poly),
   is_poly l ->
@@ -2280,6 +2430,13 @@ Proof.
       * intros m Hin. apply H. intuition.
       * apply p.
 Qed.
+
+(**
+    Finally, we combine the lemmas in this section to prove that, if there is
+    some polynomial [p] that has [x] in every monomial, removing and then
+    re-appending [x] to every monomial results in a list that is a permutation
+    of the original polynomial.
+  *)
 
 Lemma map_app_remove_Permutation : forall p x,
   is_poly p ->
