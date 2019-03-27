@@ -787,6 +787,26 @@ Proof.
 Qed.
 
 (**
+    We can also show that in some cases, if there are repeated calls to [nodup],
+    they are "pointless" - in other words, we can remove the inner call and
+    only keep the outer one.
+  *)
+
+Lemma nodup_pointless : forall m a,
+  nodup Nat.eq_dec (m ++ nodup Nat.eq_dec a) = nodup Nat.eq_dec (m ++ a).
+Proof.
+  intros m a. induction m.
+  - simpl. rewrite no_nodup_NoDup; auto. apply NoDup_nodup.
+  - simpl. destruct in_dec; destruct in_dec.
+    + auto.
+    + exfalso. apply n. apply in_app_iff in i; destruct i. intuition.
+      apply nodup_In in H; intuition.
+    + exfalso. apply n. apply in_app_iff in i; destruct i; intuition.
+      apply in_app_iff. right. apply nodup_In; auto.
+    + f_equal. auto.
+Qed.
+
+(**
     And lastly, similarly to our other [Permutation] lemmas this far, if
     two lists were permutations of each other before [nodup] they are also
     permutations after.
@@ -1362,7 +1382,7 @@ Qed.
 
 (**
     Lastly, one of the toughest [nodup_cancel] lemmas. Similarly to
-    [remove_pointless], if nodup_cancel is going to be applied later,
+    [nodup_pointless], if nodup_cancel is going to be applied later,
     there is no need for it to be applied twice. This lemma proves to be
     very useful when proving that two different polynomials are equal, because,
     as we will see later, there are often repeated calls to [nodup_cancel] inside

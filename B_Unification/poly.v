@@ -953,7 +953,43 @@ Proof.
   - apply lt_Transitive.
 Qed.
 
+(**
+    Due to the nature of sorting, the order of arguments in [make_mono]
+    doesn't matter.
+  *)
+
+Lemma make_mono_app_comm : forall m n,
+  make_mono (m ++ n) = make_mono (n ++ m).
+Proof.
+  intros m n. apply Permutation_sort_mono_eq. apply Permutation_nodup.
+  apply Permutation_app_comm.
+Qed.
+
+(**
+    Finally, is a list m is a member of the list resulting from [map make_mono],
+    then clearly it is a monomial.
+  *)
+
+Lemma mono_in_map_make_mono : forall p m,
+  In m (map make_mono p) -> is_mono m.
+Proof.
+  intros. apply in_map_iff in H as [x []]. rewrite <- H. auto.
+Qed.
+
 (** ** Facts about [make_poly] *)
+
+(**
+    If two lists are permutations of each other, then they will be equivalent
+    after applying [make_poly] to both.
+  *)
+
+Lemma make_poly_Permutation : forall p q,
+  Permutation p q -> make_poly p = make_poly q.
+Proof.
+  intros. unfold make_poly.
+  apply Permutation_sort_eq, nodup_cancel_Permutation, Permutation_map.
+  auto.
+Qed.
 
 (**
     Because we have shown that [sort] and [Permutation] are equivalent,
@@ -969,103 +1005,11 @@ Proof.
   apply Permutation_app_comm.
 Qed.
 
-(** * Proving Functions "Pointless" *)
 (**
-    In the [list_util] file, we have two lemmas revolving around the idea that,
-    in some cases, calling [nodup_cancel] is "pointless". The idea here is that,
-    when comparing very complicated terms, it is sometimes beneficial to either
-    add or remove an extra function call that has no effect on the final term.
-    Until this point, we have only proven this about [nodup_cancel], but there
-    are many other cases where this is true, which will make our more complex
-    proofs much easier. This section serves to prove this true of most of our
-    functions.
+    During [make_poly], we both sort and call nodup_cancel. A lemma that is
+    useful in some cases shows that it doesn't matter what order we do these
+    in, as [nodup_cancel] will maintain the order of a list.
   *)
-
-(** ** [make_mono] and [make_poly] *)
-
-Lemma no_sort_VarSorted : forall m,
-  Sorted lt m ->
-  VarSort.sort m = m.
-Proof.
-  intros m H. apply Permutation_Sorted_mono_eq.
-  - apply Permutation_sym. apply VarSort.Permuted_sort.
-  - apply VarSort.LocallySorted_sort.
-  - apply Sorted_VarSorted. auto.
-Qed.
-
-Lemma no_make_mono : forall m,
-  is_mono m ->
-  make_mono m = m.
-Proof.
-  unfold make_mono, is_mono. intros m H. rewrite no_sort_VarSorted.
-  - apply no_nodup_NoDup. apply NoDup_VarSorted in H. auto.
-  - apply Sorted_nodup.
-    + apply lt_Transitive.
-    + auto.
-Qed.
-
-Lemma no_map_make_mono : forall p,
-  (forall m, In m p -> is_mono m) ->
-  map make_mono p = p.
-Proof.
-  intros p H. induction p.
-  - auto.
-  - simpl. rewrite no_make_mono.
-    + f_equal. apply IHp. intros m Hin. apply H. intuition.
-    + apply H. intuition.
-Qed.
-
-Lemma map_make_mono_pointless : forall p q,
-  make_poly (map make_mono p ++ q) =
-  make_poly (p ++ q).
-Proof.
-  intros p q. destruct p.
-  - auto.
-  - simpl. unfold make_poly. simpl map. rewrite (no_make_mono (make_mono l)); auto.
-    rewrite map_app. rewrite map_app. rewrite (no_map_make_mono (map _ _)).
-    auto. intros m Hin. apply in_map_iff in Hin. destruct Hin as [x[]].
-    rewrite <- H. auto.
-Qed.
-
-Lemma unsorted_poly : forall p,
-  NoDup p ->
-  (forall m, In m p -> is_mono m) ->
-  nodup_cancel mono_eq_dec (map make_mono p) = p.
-Proof.
-  intros p Hdup Hin. rewrite no_map_make_mono; auto.
-  apply no_nodup_cancel_NoDup; auto.
-Qed.
-
-Lemma make_poly_Permutation : forall p q,
-  Permutation p q -> make_poly p = make_poly q.
-Proof.
-  intros. unfold make_poly.
-  apply Permutation_sort_eq, nodup_cancel_Permutation, Permutation_map.
-  auto.
-Qed.
-
-Lemma no_sort_MonoSorted : forall p,
-  Sorted mono_lt p ->
-  MonoSort.sort p = p.
-Proof.
-  intros p H. unfold make_poly. apply Permutation_Sorted_eq.
-  - apply Permutation_sym. apply Permuted_sort.
-  - apply LocallySorted_sort.
-  - apply Sorted_MonoSorted. auto.
-Qed.
-
-Lemma no_make_poly : forall p,
-  is_poly p ->
-  make_poly p = p.
-Proof.
-  unfold make_poly, is_poly. intros m []. rewrite no_sort_MonoSorted.
-  - rewrite no_nodup_cancel_NoDup.
-    + apply no_map_make_mono. intros m0 Hin. apply H0. auto.
-    + apply NoDup_MonoSorted in H. rewrite no_map_make_mono; auto.
-  - apply Sorted_nodup_cancel.
-    + apply mono_lt_Transitive.
-    + rewrite no_map_make_mono; auto.
-Qed.
 
 Lemma sort_nodup_cancel_assoc : forall l,
   sort (nodup_cancel mono_eq_dec l) = nodup_cancel mono_eq_dec (sort l).
@@ -1086,6 +1030,70 @@ Proof.
     + apply LocallySorted_sort.
 Qed.
 
+(**
+    Another obvious but useful lemma is that if a monomial [m] is in a
+    list resulting from applying [make_poly], is is clearly a monomial.
+  *)
+
+Lemma mono_in_make_poly : forall p m,
+  In m (make_poly p) -> is_mono m.
+Proof.
+  intros. unfold make_poly in H. apply In_sorted in H.
+  apply nodup_cancel_in in H. apply (mono_in_map_make_mono _ _ H).
+Qed.
+
+
+(** * Proving Functions "Pointless" *)
+(**
+    In the [list_util] file, we have two lemmas revolving around the idea that,
+    in some cases, calling [nodup_cancel] is "pointless". The idea here is that,
+    when comparing very complicated terms, it is sometimes beneficial to either
+    add or remove an extra function call that has no effect on the final term.
+    Until this point, we have only proven this about [nodup_cancel], but there
+    are many other cases where this is true, which will make our more complex
+    proofs much easier. This section serves to prove this true of most of our
+    functions.
+  *)
+
+(** ** Working with [sort] Functions *)
+
+(**
+    The next two lemmas very simply prove that, if a list is already [Sorted],
+    then calling either [VarSort] or [MonoSort] on it will have no effect.
+    This is relatively obvious, and is extremely easy to prove with our
+    [Permutation] / [Sorted] lemmas from earlier.
+  *)
+
+Lemma no_sort_VarSorted : forall m,
+  Sorted lt m ->
+  VarSort.sort m = m.
+Proof.
+  intros m H. apply Permutation_Sorted_mono_eq.
+  - apply Permutation_sym. apply VarSort.Permuted_sort.
+  - apply VarSort.LocallySorted_sort.
+  - apply Sorted_VarSorted. auto.
+Qed.
+
+Lemma no_sort_MonoSorted : forall p,
+  Sorted mono_lt p ->
+  MonoSort.sort p = p.
+Proof.
+  intros p H. unfold make_poly. apply Permutation_Sorted_eq.
+  - apply Permutation_sym. apply Permuted_sort.
+  - apply LocallySorted_sort.
+  - apply Sorted_MonoSorted. auto.
+Qed.
+
+(**
+    The following lemma more closely aligns with the format of the
+    [nodup_cancel_pointless] lemma from [list_util]. It states that if the
+    result of appending two lists is already going to be sorted, there is
+    no need to sort the intermediate lists.
+
+    This also applies if the sort is wrapped around the right argument, thanks
+    to the [Permutation] lemmas we proved earlier.
+  *)
+
 Lemma sort_pointless : forall p q,
   sort (sort p ++ q) =
   sort (p ++ q).
@@ -1095,28 +1103,163 @@ Proof.
   apply Permuted_sort.
 Qed.
 
+(** ** Working with [make_mono] *)
+
+(**
+    There are a couple forms that the proof of make_mono being pointless can
+    take. Firstly, because we already know that [make_mono] simply applies
+    functions to get the list into a form that satisfies [is_mono], it makes
+    sense to prove that if some list is already a mono that [make_mono] will
+    have no effect. This is proved with the help of [no_sort_VarSorted] and
+    [no_nodup_NoDup].
+  *)
+
+Lemma no_make_mono : forall m,
+  is_mono m ->
+  make_mono m = m.
+Proof.
+  unfold make_mono, is_mono. intros m H. rewrite no_sort_VarSorted.
+  - apply no_nodup_NoDup. apply NoDup_VarSorted in H. auto.
+  - apply Sorted_nodup.
+    + apply lt_Transitive.
+    + auto.
+Qed.
+
+(**
+    We can also prove the more standard form of [make_mono_pointless], which
+    states that if there are nested calls to [make_mono], we can remove all
+    except the outermost layer.
+  *)
+
+Lemma make_mono_pointless : forall m a,
+  make_mono (m ++ make_mono a) = make_mono (m ++ a).
+Proof.
+  intros m a. apply Permutation_sort_mono_eq. rewrite <- (nodup_pointless _ a).
+  apply Permutation_nodup. apply Permutation_app_head. unfold make_mono.
+  rewrite <- Permutation_VarSort_l. auto.
+Qed.
+
+(**
+    Similarly, if we already know that all of the elements in a list are monos,
+    then mapping [make_mono] across the list will have no effect on the entire
+    list.
+  *)
+
+Lemma no_map_make_mono : forall p,
+  (forall m, In m p -> is_mono m) ->
+  map make_mono p = p.
+Proof.
+  intros p H. induction p.
+  - auto.
+  - simpl. rewrite no_make_mono.
+    + f_equal. apply IHp. intros m Hin. apply H. intuition.
+    + apply H. intuition.
+Qed.
+
+(**
+    Lastly, the pointless proof that more closely aligns with what we have
+    done so far - if [make_poly] is already being applied to a list, there is
+    no need to have a call to [map make_mono] on the inside.
+  *)
+
+Lemma map_make_mono_pointless : forall p q,
+  make_poly (map make_mono p ++ q) =
+  make_poly (p ++ q).
+Proof.
+  intros p q. destruct p.
+  - auto.
+  - simpl. unfold make_poly. simpl map. rewrite (no_make_mono (make_mono l)); auto.
+    rewrite map_app. rewrite map_app. rewrite (no_map_make_mono (map _ _)).
+    auto. intros m Hin. apply in_map_iff in Hin. destruct Hin as [x[]].
+    rewrite <- H. auto.
+Qed.
+
+(** ** Working with [make_poly] *)
+
+(**
+    Finally, we work to prove some lemmas about [make_poly] as a whole being
+    pointless. These proofs are built upon the previous few lemmas, which prove
+    that we can remove the components of [make_poly] one by one.
+
+    First up, we have a lemma that shows that if [p] already has no duplicates
+    and everything in the list is a mono, then [nodup_cancel] and [map make_mono]
+    will both have no effect. This lemma turns out to be very useful _after_
+    something like [Permutation_sort_eq] has been applied, as it can strip
+    away the other two functions of [make_poly].
+  *)
+
+Lemma unsorted_poly : forall p,
+  NoDup p ->
+  (forall m, In m p -> is_mono m) ->
+  nodup_cancel mono_eq_dec (map make_mono p) = p.
+Proof.
+  intros p Hdup Hin. rewrite no_map_make_mono; auto.
+  apply no_nodup_cancel_NoDup; auto.
+Qed.
+
+(**
+    Similarly to [no_make_mono], it is very straightforward to prove that if
+    some list [p] is already a poly, then [make_poly] has no effect.
+  *)
+
+Lemma no_make_poly : forall p,
+  is_poly p ->
+  make_poly p = p.
+Proof.
+  unfold make_poly, is_poly. intros m []. rewrite no_sort_MonoSorted.
+  - rewrite no_nodup_cancel_NoDup.
+    + apply no_map_make_mono. intros m0 Hin. apply H0. auto.
+    + apply NoDup_MonoSorted in H. rewrite no_map_make_mono; auto.
+  - apply Sorted_nodup_cancel.
+    + apply mono_lt_Transitive.
+    + rewrite no_map_make_mono; auto.
+Qed.
+
+(**
+    Now onto the most important lemma. In many of the later proofs, there will
+    be times where there are calls to [make_poly] nested inside of each other,
+    or long lists of arguments appended together inside of a [make_poly]. In
+    either case, the ability to add and remove extra calls to [make_poly] as
+    we please proves to be very powerful.
+
+    To prove [make_poly_pointless], we begin by proving a weaker version that
+    insists that all of the arguments of [p] and [q] are all monomials. This
+    addition makes the proof significantly easier. As one might expect, the
+    proof is completed by using [Permutation_sort_eq] to remove the sort
+    calls, [nodup_cancel_pointless] to remove the [nodup_cancel] calls,
+    and [no_map_make_mono] to get rid of the [map make_mono] calls. After this
+    is done, the two sides are identical.
+  *)
+
 Lemma make_poly_pointless_weak : forall p q,
   (forall m, In m p -> is_mono m) ->
   (forall m, In m q -> is_mono m) ->
   make_poly (make_poly p ++ q) =
   make_poly (p ++ q).
 Proof.
-  intros p q Hmp Hmq. induction p; auto.
-  unfold make_poly. repeat rewrite no_map_make_mono; intuition.
+  intros p q Hmp Hmq. unfold make_poly.
+  repeat rewrite no_map_make_mono; intuition.
   apply Permutation_sort_eq. rewrite sort_nodup_cancel_assoc.
   rewrite nodup_cancel_pointless. apply nodup_cancel_Permutation.
   apply Permutation_sym. apply Permutation_app_tail. apply Permuted_sort.
-  - simpl in H. rewrite in_app_iff in H. destruct H as [H|[H|H]]; intuition.
-    rewrite H in Hmp; intuition.
+  - simpl in H. rewrite in_app_iff in H. destruct H; intuition.
   - rewrite in_app_iff in H. destruct H; intuition.
     apply In_sorted in H. apply nodup_cancel_in in H. intuition.
 Qed.
 
-Lemma mono_in_map_make_mono : forall p m,
-  In m (map make_mono p) -> is_mono m.
-Proof.
-  intros. apply in_map_iff in H as [x []]. rewrite <- H. auto.
-Qed.
+(**
+    Now, to make the stronger and easier to use version, we simply rewrite
+    in the opposite direction with [map_make_mono_pointless] to add extra
+    calls [map make_mono] in! Ironically, this proof _of_ [make_poly_pointless]
+    is a great example of why these "pointless" lemmas are so useful. While we
+    can clearly tell that adding the extra call to [map make_mono] makes no
+    difference, it makes proving things in a way that Coq understands
+    dramatically easier at times.
+
+    After rewriting with [map_make_mono_pointless], clearly both areguments
+    contain all monomials, and we can use [make_poly_pointless_weak] to prove
+    the stronger version.
+  *)
 
 Lemma make_poly_pointless : forall p q,
   make_poly (make_poly p ++ q) =
@@ -1131,6 +1274,11 @@ Proof.
   apply mono_in_map_make_mono. apply mono_in_map_make_mono.
   apply mono_in_map_make_mono.
 Qed.
+
+(**
+    For convenience, we also prove that it applies on the right side by
+    using [make_poly_app_comm] twice.
+  *)
 
 Lemma make_poly_pointless_r : forall p q,
   make_poly (p ++ make_poly q) =
@@ -1180,6 +1328,12 @@ Qed.
 Definition mulPP (p q : poly) : poly :=
   make_poly (distribute p q).
 
+Lemma mulPP_is_poly : forall p q,
+  is_poly (mulPP p q).
+Proof.
+  intros p q. apply make_poly_is_poly.
+Qed.
+
 (**
     While this definition is elegant, sometimes it is hard to work with. This
     has led us to also create a few more definitions of multiplication. Each is
@@ -1225,7 +1379,9 @@ Proof.
   - simpl. unfold distribute. simpl. unfold mulMP. auto.
 Qed.
 
-
+(**
+    Next, the version including a [map make_mono]:
+  *)
 
 Definition mulMP' (p : poly) (m : mono) : poly :=
   map make_mono (map (app m) p).
@@ -1249,7 +1405,9 @@ Proof.
   auto.
 Qed.
 
-
+(**
+    And finally, the version including a full [make_poly]:
+  *)
 
 Definition mulMP'' (p : poly) (m : mono) : poly :=
   make_poly (map (app m) p).
@@ -1261,6 +1419,12 @@ Lemma mulPP'''_refold : forall p q,
   make_poly (concat (map (mulMP'' p) q)) =
   mulPP''' p q.
 Proof. auto. Qed.
+
+(**
+    In order to make the proof of going from [mulPP''] to [mulPP'''] easier,
+    we begin by proving that we can go from their corresponding [mulMP]s if
+    they are wrapped in a [make_poly].
+  *)
 
 Lemma mulMP'_mulMP'' : forall m p q,
   make_poly (mulMP' p m ++ q) = make_poly (mulMP'' p m ++ q).
@@ -1281,7 +1445,10 @@ Proof.
   f_equal. f_equal. apply IHq.
 Qed.
 
-
+(**
+    Again, for convenience, we add lemmas to skip from [mulPP] to any of the
+    other varieties.
+  *)
 
 Lemma mulPP_mulPP'' : forall p q,
   mulPP p q = mulPP'' p q.
@@ -1300,141 +1467,6 @@ Hint Unfold addPP mulPP mulPP' mulPP'' mulPP''' mulMP mulMP' mulMP''.
 
 
 
-
-
-
-Lemma make_mono_app_comm : forall m n,
-  make_mono (m ++ n) = make_mono (n ++ m).
-Proof.
-  intros m n. apply Permutation_sort_mono_eq. apply Permutation_nodup.
-  apply Permutation_app_comm.
-Qed.
-
-Lemma make_poly_nil : 
-  make_poly [] = [].
-Proof.
-  unfold make_poly, sort. auto.
-Qed.
-
-Lemma mulPP''_cons : forall q a p,
-  make_poly (mulMP' q a ++ mulPP'' q p) =
-  mulPP'' q (a::p).
-Proof.
-  intros q a p. unfold mulPP''. rewrite make_poly_pointless_r. auto.
-Qed.
-
-Lemma make_mono_pointless : forall m a,
-  make_mono (m ++ make_mono a) = make_mono (m ++ a).
-Proof.
-  intros m a. apply Permutation_sort_mono_eq.
-  apply Permutation_trans with (l':=(nodup var_eq_dec (m ++ nodup var_eq_dec a))).
-    apply Permutation_nodup. apply Permutation_app_head. unfold make_mono.
-    rewrite <- Permutation_VarSort_l. auto.
-  induction a; auto. simpl. destruct in_dec.
-  - apply Permutation_sym. apply Permutation_trans with (l':=(nodup var_eq_dec (a :: m ++ a0))).
-      apply Permutation_nodup. apply Permutation_sym. apply Permutation_middle.
-    simpl. destruct in_dec.
-    + apply Permutation_sym. apply IHa.
-    + exfalso. apply n. intuition.
-  - apply Permutation_trans with (l':=(nodup var_eq_dec (a::m++nodup var_eq_dec a0))).
-      apply Permutation_nodup. apply Permutation_sym. apply Permutation_middle.
-    apply Permutation_sym. apply Permutation_trans with (l':=(nodup var_eq_dec
-      (a::m++a0))). apply Permutation_nodup. apply Permutation_sym. apply Permutation_middle.
-    simpl. destruct (in_dec var_eq_dec a m).
-    + assert (In a (m++a0)). intuition. destruct in_dec; try contradiction.
-      assert (In a (m++nodup var_eq_dec a0)). intuition. destruct in_dec;
-      try contradiction. apply Permutation_sym. apply IHa.
-    + assert (~In a (m++a0)). intuition. apply in_app_iff in H. destruct H; auto.
-      assert (~In a (m++nodup var_eq_dec a0)). intuition. apply in_app_iff in H0.
-      destruct H0; auto. apply nodup_In in H0. auto. repeat destruct in_dec; try contradiction.
-      apply perm_skip. apply Permutation_sym. apply IHa.
-Qed.
-
-Lemma make_mono_self : forall m,
-  is_mono m ->
-  make_mono (m ++ m) = m.
-Proof.
-  intros m H. apply Permutation_Sorted_mono_eq.
-  - induction m; auto. unfold make_mono. rewrite <- Permutation_VarSort_l. simpl.
-    assert (In a (m++a::m)).
-      intuition. destruct in_dec; try contradiction.
-    apply Permutation_trans with (l':=(nodup var_eq_dec (a::m++m))).
-       apply Permutation_nodup. apply Permutation_app_comm.
-    simpl. assert (~ In a (m++m)).
-      apply NoDup_VarSorted in H as H1. apply NoDup_cons_iff in H1.
-    intro. apply H1. apply in_app_iff in H2; intuition.
-    destruct in_dec; try contradiction. apply perm_skip.
-    apply Permutation_VarSort_l in IHm. auto. apply (mono_cons _ _ H).
-  - apply VarSort.LocallySorted_sort.
-  - apply Sorted_VarSorted. apply H.
-Qed.
-
-
-
-Lemma mono_in_concat_mulMP' : forall p q m,
-  In m (concat (map (mulMP' p) q)) -> is_mono m.
-Proof.
-  intros. unfold mulMP' in H. rewrite concat_map_map in H.
-  apply in_map_iff in H as [x[]]. rewrite <- H. auto.
-Qed.
-
-Lemma mono_in_mulMP' : forall p n m,
-  In m (mulMP' p n) -> is_mono m.
-Proof.
-  intros. unfold mulMP' in H. apply (mono_in_map_make_mono _ _ H).
-Qed.
-
-Lemma mono_in_make_poly : forall p m,
-  In m (make_poly p) -> is_mono m.
-Proof.
-  intros. unfold make_poly in H. apply In_sorted in H.
-  apply nodup_cancel_in in H. apply (mono_in_map_make_mono _ _ H).
-Qed.
-
-Lemma mono_in_mulPP'' : forall p q m,
-  In m (mulPP'' p q) -> is_mono m.
-Proof.
- intros. unfold mulPP'' in H. apply (mono_in_make_poly _ _ H).
-Qed.
-
-Lemma map_app_make_poly : forall m p,
-  (forall a, In a p -> is_mono a) ->
-  make_poly (map (app m) (make_poly p)) = make_poly (map (app m) p).
-Proof.
-  intros m p Hm. apply Permutation_sort_eq.
-  apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (map make_mono
-    (map (app m) (nodup_cancel mono_eq_dec (map make_mono p)))))).
-    apply nodup_cancel_Permutation. repeat apply Permutation_map.
-    unfold make_poly. rewrite <- Permutation_MonoSort_l. auto.
-  rewrite (no_map_make_mono p); auto. repeat rewrite map_map. apply nodup_cancel_map.
-Qed.
-
-Lemma mulMP''_make_poly : forall p m,
-  (forall a, In a p -> is_mono a) ->
-  mulMP'' (make_poly p) m =
-  mulMP'' p m.
-Proof.
-  intros p m. unfold mulMP''. apply map_app_make_poly.
-Qed.
-
-Lemma mulMP'_app : forall p q m,
-  mulMP' (p ++ q) m =
-  mulMP' p m ++ mulMP' q m.
-Proof.
-  intros p q m. unfold mulMP'. repeat rewrite map_app. auto.
-Qed.
-
-
-
-Lemma mulPP_is_poly : forall p q,
-  is_poly (mulPP p q).
-Proof.
-  intros p q. apply make_poly_is_poly.
-Qed.
-
-
-
-
 (** * Proving the 10 B-Unification Axioms *)
 (**
     Now that we have defined our operations so carefully, we want to prove that
@@ -1447,18 +1479,35 @@ Qed.
 
 
 (** ** Axiom 1: Additive Inverse *)
+(**
+    We begin with the inverse and identities for each addition and multiplication.
+    First is the additive inverse, which states that forall terms x, [x + x = 0].
+
+    Thanks to the definition of [nodup_cancel] and the previously proven
+    [nodup_cancel_self], this proof is extremely simple.
+  *)
+
 Lemma addPP_p_p : forall p,
-  is_poly p ->
   addPP p p = [].
 Proof.
-  intros p Hp. unfold addPP. unfold make_poly. rewrite no_map_make_mono.
-  - rewrite nodup_cancel_self. auto.
-  - intros m Hin. apply Hp. apply in_app_iff in Hin. intuition.
+  intros p. unfold addPP. unfold make_poly. rewrite map_app.
+  rewrite nodup_cancel_self. auto.
 Qed.
 
 
 
 (** ** Axiom 2: Additive Identity *)
+(**
+    Next, we prove the additive identity: for all terms x, [0 + x = x].
+    This also applies in the right direction, and is extremely easy to prove
+    since we already know that appending [nil] to a list results in that list.
+
+    Something to note is that, unlike some of the other of the ten axioms, this
+    one is _only_ true if [p] is already a polynomial. Clearly, if it wasn't,
+    [addPP] would not return the same [p], but rather [make_poly p], since
+    [addPP] will only return proper polynomials.
+  *)
+
 Lemma addPP_0 : forall p,
   is_poly p ->
   addPP [] p = p.
@@ -1476,6 +1525,15 @@ Qed.
 
 
 (** ** Axiom 3: Multiplicative Identity - 1 *)
+(**
+    Now onto multiplication. In B-Unification, there are _two_ multiplicative
+    identities. We begin with the easier to prove of the two, which is 1.
+    In other words, for any term x, [x * 1 = x].
+
+    This proof is also very simply proved simply because of how appending
+    [nil] works
+  *)
+
 Lemma mulPP_1r : forall p,
   is_poly p ->
   mulPP p [[]] = p.
@@ -1487,6 +1545,14 @@ Qed.
 
 
 (** ** Axiom 4: Multiplicative Inverse *)
+(**
+    Next is the multiplicative inverse, which states that for any term x,
+    [0 * x = 0].
+
+    This is proven immediately by the [distribute_nil] lemmas we proved in
+    [list_util].
+  *)
+
 Lemma mulPP_0 : forall p,
   mulPP [] p = [].
 Proof.
@@ -1505,7 +1571,7 @@ Qed.
 (**
     The next of the ten axioms states that, for all terms x and y, [x + y = y + x].
 
-    This Axiom is rather easy, and follows entirely from the [make_poly_app_comm]
+    This axiom is also rather easy, and follows entirely from the [make_poly_app_comm]
     lemma we proved earlier due to our clever addition definition.
   *)
 
@@ -1521,10 +1587,10 @@ Qed.
 (**
     The next axiom states that, for all terms x, y, and z, [x + (y + z) = (x + y) + z].
 
-    This Axiom is also relatively straightforward to prove, thanks to [addPP_comm]
-    and all of the "pointless" lemmas we proved earlier. These allow us to easily 
-    manipulate the operations until we end by proving that [p ++ q ++ r] is a
-    permutation of [q ++ r ++ p].
+    Thanks to [addPP_comm] and all of the "pointless" lemmas we proved earlier,
+    this proof is much easier than it might have been otherwise. These lemmas
+    allow us to easily manipulate the operations until we end by proving that
+    [p ++ q ++ r] is a permutation of [q ++ r ++ p].
   *)
 
 Lemma addPP_assoc : forall p q r,
@@ -1539,6 +1605,38 @@ Qed.
 
 
 (** ** Axiom 7: Commutativity of Multiplication *)
+(**
+    Now onto the harder half of the axioms. This next one states that for all
+    terms x and y, [x * y = y *x]. In order to prove this, we have opted to
+    use the second version of [mulPP], which wraps the monomial multiplication
+    in a [map make_mono].
+
+    The proof begins with double induction, and the first three cases are
+    rather simple. The fourth case is slightly more complicated, but the
+    [make_poly_pointless] lemma we proved earlier plays a huge role in making
+    it simpler. We begin by simplifying, so that the [m] created by induction
+    on [q] is distributed across the list on the left side, and the [a] created
+    by induction on [p] is distributed accross the list on the right side.
+    Then, we use [make_poly_pointless] to surround the rightmost term - which
+    now has [a] but not [m] on the left and [m] but not [a] on the right -
+    with [make_poly]. This additional [make_poly] allows us to refold the
+    mess of [map]s and [concat]s into [mulPP], like they used to be. From there,
+    we use the two induction hypotheses to apply commutativity, remove the
+    redundant [make_poly]s we added, and simple again.
+
+    In this way, we are able to cause both [a] and [m] to be distributed across
+    the whole list on both the left and right sides of the equation. At this
+    point, it simply requires some rearranging of [app] with the help of
+    [Permutation], and our left and right sides are equal.
+
+    Without the help of [make_poly_pointless], we would not have been able to
+    use the induction hypotheses until much later in the proof, and the proof
+    would have been dramatically longer. This also makes it more readable as
+    you step through the proof, as we can seamlessly move between the original
+    form including [mulPP] and the more functional form consisting of [map]
+    and [concat].
+  *)
+
 Lemma mulPP_comm : forall p q,
   mulPP p q = mulPP q p.
 Proof.
@@ -1563,6 +1661,76 @@ Qed.
 
 
 (** ** Axiom 8: Associativity of Multiplication *)
+(**
+    The eigth axiom states that, for all terms x y and z, [x * (y * z) = (x * y) * z].
+
+    This one is also fairly complicated, so we will start small and build up to
+    it. First, we prove a convenient side effect of [make_poly_pointless],
+    which allows us to simplify [mulPP] into a [mulMP] and a [mulPP]. Unlike
+    commutativity, for this proof we opt to use the version of [mulPP] that
+    includes a [make_poly] in its [mulMP], in addition to the [map make_mono]
+    version used previously.
+  *)
+
+Lemma mulPP''_cons : forall q a p,
+  make_poly (mulMP' q a ++ mulPP'' q p) =
+  mulPP'' q (a::p).
+Proof.
+  intros q a p. unfold mulPP''. rewrite make_poly_pointless_r. auto.
+Qed.
+
+(**
+    Next is a deceptively easy lemma. [map_app_make_poly] is the primary
+    application of [nodup_cancel_map], proven in [list_util]. It states that
+    if we are applying [make_poly] twice, we can remove the second application,
+    even if there is a [map app] in between them. Clearly, here, the [map app]
+    is in reference to [mulMP].
+  *)
+
+Lemma map_app_make_poly : forall m p,
+  (forall a, In a p -> is_mono a) ->
+  make_poly (map (app m) (make_poly p)) = make_poly (map (app m) p).
+Proof.
+  intros m p Hm. apply Permutation_sort_eq.
+  apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (map make_mono
+    (map (app m) (nodup_cancel mono_eq_dec (map make_mono p)))))).
+    apply nodup_cancel_Permutation. repeat apply Permutation_map.
+    unfold make_poly. rewrite <- Permutation_MonoSort_l. auto.
+  rewrite (no_map_make_mono p); auto. repeat rewrite map_map. apply nodup_cancel_map.
+Qed.
+
+(**
+    [map_app_make_poly] is then immediately applied here, to state that since
+    [mulMP''] already applies [make_poly] to its result, we can remove any
+    [make_poly] calls inside.
+  *)
+
+Lemma mulMP''_make_poly : forall p m,
+  (forall a, In a p -> is_mono a) ->
+  mulMP'' (make_poly p) m =
+  mulMP'' p m.
+Proof.
+  intros p m. unfold mulMP''. apply map_app_make_poly.
+Qed.
+
+(**
+    This very simple lemma states that since [mulMP] is effectively
+    just a map, it distributes over append.
+  *)
+
+Lemma mulMP'_app : forall p q m,
+  mulMP' (p ++ q) m =
+  mulMP' p m ++ mulMP' q m.
+Proof.
+  intros p q m. unfold mulMP'. repeat rewrite map_app. auto.
+Qed.
+
+(**
+    Now into the meat of the associativity proof. We begin by proving that
+    [mulMP'] is associative. This proof is straightforward, and is proven
+    by induction with the use of [make_mono_pointless] and [Permutation_sort_mono_eq].
+  *)
+
 Lemma mulMP'_assoc : forall q a m,
   mulMP' (mulMP' q a) m =
   mulMP' (mulMP' q m) a.
@@ -1575,6 +1743,36 @@ Proof.
       apply Permutation_app_comm.
     + apply IHq.
 Qed.
+
+(**
+    For the final associativity proof, we begin by using the commutativity lemma
+    to make it so that [q] is on the leftmost side of the multiplications. This
+    means that it will never be the polynomial being mapped across, and allows
+    us to do induction on just [p] and [r] instead of all three. [p] becomes
+    [a :: p], and [r] becomes [m :: r].
+
+    The first three cases are easily solved with some rewrites and a call to
+    auto, so we move on to the fourth. Similarly to the commutativity proof,
+    the main struggle here is forcing [mulPP] to map across the same term
+    on both sides of the equation. This is accomplished in a very similar way -
+    by simplifying, using [make_poly_pointless] to get [mulPP] back in the goal,
+    and then applying the two induction hypotheses to reorder the terms.
+
+    The crucial point is when we rewrite with [mulMP'_mulMP''], allowing us to
+    wrap our [mulMP]s in [make_poly] and make use of the lemmas we proved
+    earlier in this section. This technique enables us to reorder the
+    multiplications in a way that is convenient for us; [(q * [a::p]) * m] becomes
+    [(q * a) * m ++ (q * p) * m]. At the end of all of this rewriting, we are left
+    with the original [p * q * r] as the last term of both sides, and [q * p * m]
+    and [q * r * a] as the middle terms of both. These three terms are easily
+    eliminated with the standard [Permutation] lemmas, because they are on
+    both sides.
+
+    The only remaining challenge comes from the first term on each side; on the
+    left, we have [(q * a) * m], and on the right we have [(q * m) * a]. This
+    is where the above [mulMP'_assoc] lemma comes into play, solving the last
+    piece of the associativity lemma.
+  *)
 
 Lemma mulPP_assoc : forall p q r,
   mulPP (mulPP p q) r = mulPP p (mulPP q r).
@@ -1607,6 +1805,58 @@ Qed.
 
 
 (** ** Axiom 9: Multiplicative Identity - Self *)
+(**
+    Next comes the other multiplicative identity mentioned earlier. This axiom
+    states that for all terms x, [x * x = x].
+
+    To begin, we prove that this holds for monomials; [m * m = m]. This proof
+    uses a combination of [Permutation_Sorted_mono_eq] and induction. We then
+    use the standard [Permutation] lemmas to move the induction variable [a]
+    out to the front, and show that [nodup] removes one of the two [a]s. After
+    that, [perm_skip] and the induction hypothesis solve the lemma.
+  *)
+
+Lemma make_mono_self : forall m,
+  is_mono m ->
+  make_mono (m ++ m) = m.
+Proof.
+  intros m H. apply Permutation_Sorted_mono_eq.
+  - induction m; auto. unfold make_mono. rewrite <- Permutation_VarSort_l. simpl.
+    assert (In a (m++a::m)).
+      intuition. destruct in_dec; try contradiction.
+    apply Permutation_trans with (l':=(nodup var_eq_dec (a::m++m))).
+       apply Permutation_nodup. apply Permutation_app_comm.
+    simpl. assert (~ In a (m++m)).
+      apply NoDup_VarSorted in H as H1. apply NoDup_cons_iff in H1.
+    intro. apply H1. apply in_app_iff in H2; intuition.
+    destruct in_dec; try contradiction. apply perm_skip.
+    apply Permutation_VarSort_l in IHm. auto. apply (mono_cons _ _ H).
+  - apply VarSort.LocallySorted_sort.
+  - apply Sorted_VarSorted. apply H.
+Qed.
+
+(**
+    The full proof of the self multiplicative identity is much longer, but in
+    a way very similar to the proof of commutativity. We begin by doing
+    induction and simplifying, which distributes _one_ of the induction variables
+    across the list on the left side. This leaves us with [a*a] as the leftmost
+    term, which is easily replaced with [a] with the above lemma and then
+    removed from both sides with [perm_skip].
+
+    At this point we are left with a goal of the form
+        [ a*[a::p] ++ [a::p]*p = p ]
+    which is not particularly easy to deal with. However, by rewriting with
+    [mulPP_comm], we can force the second term on the left to simplify futher.
+
+    This leaves us with something along the lines of
+        [ a*[a::p] ++ a*[a::p] ++ p*p = p ]
+    which is much more workable! We know that [p * p = p] from the induction
+    hypothesis, so this is then removed from both sides and all that is left
+    is to prove that the same term added together twice is equal to an empty
+    list. This follows from the [nodup_cancel_self] lemma used to prove
+    [addPP_p_p], and finished the proof of this lemma.
+  *)
+
 Lemma mulPP_p_p : forall p,
   is_poly p ->
   mulPP p p = p.
@@ -1653,6 +1903,18 @@ Qed.
 
 
 (** ** Axiom 10: Distribution *)
+(**
+    Finally, we are left with the most intimidating of the axioms - distribution.
+    This states, as one would expect, that for all terms x y and z, [x * (y + z)
+    = (x * y) + (x * z)].
+
+    In a similar approach to what we have done for some of the other lemmas,
+    we begin by proving this on a smaller scale, working with just [mulMP]
+    and [addPP]. This lemma is once again solved easily by the [map_app_make_poly]
+    we proved while working on multiplication associativity, combined with
+    [make_poly_pointless].
+  *)
+
 Lemma mulMP''_distr_addPP : forall m p q,
   is_poly p -> is_poly q ->
   mulMP'' (addPP p q) m = addPP (mulMP'' p m) (mulMP'' q m).
@@ -1663,6 +1925,21 @@ Proof.
   rewrite map_app. auto. intros a Hin. apply in_app_iff in Hin as [].
   apply Hp. auto. apply Hq. auto.
 Qed.
+
+(**
+    For the distribution proof itself, we begin by performing induction on [r],
+    the element outside of the [addPP] call initially. We begin by simplifying,
+    and using the usual combination of [make_poly_pointless] and refolding to
+    convert our goal to a form of [ (p+q)*a ++ (p+q)*r ].
+
+    We then apply similar tactics on the right side, to convert our goal to a
+    form similar to [ (p*a) + (q*a) + (p*r) + (q*r) ]. The two terms containing
+    [r] are easy to deal with, since we know they are equal to the [(p+q)*r] we
+    have on the left side due to the induction hypothesis. Similarly, the first
+    two terms are known to be equal to [(p+q)*a] from the [mulMP_distr_addPP]
+    lemma we just proved. This results in us having the same thing on both
+    sides, thus solving the final of the ten B-Unification axioms.
+  *)
 
 Lemma mulPP_distr_addPP : forall p q r,
   is_poly p -> is_poly q ->
@@ -1699,6 +1976,11 @@ Proof.
   auto.
 Qed.
 
+(**
+    For convenience, we also prove that distribution can be applied right,
+    which follows from [mulPP_comm] and the distribution lemma we just proved.
+  *)
+
 Lemma mulPP_distr_addPPr : forall p q r,
   is_poly p -> is_poly q ->
   mulPP r (addPP p q) = addPP (mulPP r p) (mulPP r q).
@@ -1706,10 +1988,6 @@ Proof.
   intros p q r Hp Hq. rewrite mulPP_comm. rewrite (mulPP_comm r p).
   rewrite (mulPP_comm r q). apply mulPP_distr_addPP; auto.
 Qed.
-
-
-
-
 
 
 
