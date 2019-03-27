@@ -1,3 +1,6 @@
+(*** Required Libraries
+***)
+
 Require Export lowenheim_formula.
 
 Require Export EqNat.
@@ -6,22 +9,32 @@ Import ListNotations.
 Import Coq.Init.Tactics.
 Require Export Classical_Prop.
 
-(*** 3. Lownheim's proof ***)
+(** *Introduction **)
 
-(* In this subsection we provide a proof that our lownheim substituion builder produces a substituion
-   that 
-      -> unifies any given term (if possible)
-      -> is a reproductive unifier, hence an mgu *)
+(** In this section we provide a proof that our main Lowenheim_Main function defined in lowenheim_formula.v provides a unifier 
+   that is most general. Our final top level proof (found at the end of this file) proves two statements:
+      1) if a term is unifiable, then our own defined Lowenheim_Main function produces a most general unifier (mgu)
+      2) if a term is not unifiable, then our own defined Lownheim_Main function produces a None substitution
+We prove the above statements with a series of proofs and sub-groups of proofs that help us get to the final top-level statements 
+mentioned above.
+**)
 
+(** * Auxillary declarations and their lemmas useful for the final proofs **)
 
-(** 3.1 Declarations and their lemmas useful for the proof **)
+(** In this sub-section we provide definitions and proofs of helper functions, Propositions and lemmas that will be later used
+  in the proofs.
 
+**)
 
+(** This is the definition of a sub_term. A sub_term is a Proposition, or a relationship between two terms. When a term t is a sub_term
+of a term t' then each of the unique variables found within t are also found within the unique variables of t'. 
+**)
 Definition sub_term (t : term) (t' : term) : Prop :=
   forall (x : var ),
   (In x (term_unique_vars t) ) -> (In x (term_unique_vars t')) .
 
-
+(** This is a simple lemma for sub_terms that states that a term is a sub_term of itself. 
+**)
 Lemma sub_term_id :
   forall (t : term),
   sub_term t t.
@@ -29,6 +42,9 @@ Proof.
  intros. firstorder.
 Qed.
 
+(** This is a lemma to prove the summation distribution property of the function term_vars: the term_vars of a sum of two_terms
+is equal to the concantentation of the term_vars of each individual term of the original sum.
+**)
 Lemma term_vars_distr :
 forall (t1 t2 : term),
  (term_vars (t1 + t2)) = (term_vars t1) ++ (term_vars t2).
@@ -42,6 +58,10 @@ Proof.
  - simpl. reflexivity.
 Qed.
 
+(** This is a lemma to prove an intuitive statement: if a variable is within the term_vars (list of variables) of a term, then it is also
+within the term vars of the sum of that term and any other term.
+
+**)
 Lemma tv_h1:
 forall (t1 t2 : term) ,
 forall (x : var),
@@ -56,7 +76,10 @@ intros. induction t2.
 Qed.
 
 
+(** This is a lemma similar to the previous one, to prove an intuitive statement: if a variable is within the term_vars (list of variables) of a term, then it is also
+within the term vars of the sum of that term and any other term, but being added from the left side.
 
+**)
 Lemma tv_h2:
 forall (t1 t2 : term) ,
 forall (x : var),
@@ -71,8 +94,9 @@ intros. induction t1.
 Qed.
 
 
-(* helper lemma : if the sum of two terms is a subterm of another term t', then each component of the sum is
-   also a subterm of the other term t' *)
+(** This is a helper lemma for the sub_term relationship : if the sum of two terms is a subterm of another term t', then the left component of the sum is
+   also a subterm of the other term t' 
+   **)
 Lemma helper_2a:
   forall (t1 t2 t' : term),
   sub_term (t1 + t2) t' -> sub_term t1 t'.
@@ -85,8 +109,9 @@ Proof.
 Qed. 
 
   
-(* helper lemma : if the sum of two terms is a subterm of another term t', then each component of the sum is
-   also a subterm of the other term t' *)
+(**  This is a helper lemma for the sub_term relationship : if the sum of two terms is a subterm of another term t', then the right component of the sum is
+   also a subterm of the other term t' 
+   **)
 Lemma helper_2b:
   forall (t1 t2 t' : term),
   sub_term (t1 + t2) t' -> sub_term t2 t'.
@@ -98,7 +123,9 @@ pose proof in_dup_and_non_dup as H10. unfold term_unique_vars. unfold term_uniqu
  apply H4.  apply H0.
 Qed. 
 
-
+(**  This is a helper lemma for lists and their elements : if a variable is a member of a list, then it is equal to the first element 
+of that list or it is a member of the rest of the elements of that list.
+  **)
 Lemma elt_in_list:
  forall (x: var) (a : var) (l : list var),
   (In x (a::l)) ->
@@ -113,7 +140,9 @@ destruct H1.
 Qed.
 
 
-
+(**  This is a similar lemma to the previous one, for lists and their elements : if a variable is not a member of a list, then it is not equal to the first element 
+of that list and it is a member of the rest of the elements of that list.
+  **)
 Lemma elt_not_in_list:
  forall (x: var) (a : var) (l : list var),
   ~ (In x (a::l)) ->
@@ -124,6 +153,9 @@ pose proof not_in_cons. specialize (H0 var x a l). destruct H0.
 specialize (H0 H). apply H0.
 Qed.
 
+(**  This is a lemma for an intuitive statement for the variables of a term : a variable x belongs to the list of unique variables 
+(term_unique_vars) found within the variable-term that is constructed by variable itself (VAR x).
+  **)
 Lemma in_list_of_var_term_of_var:
 forall (x : var),
   In x (term_unique_vars (VAR x)).
@@ -134,7 +166,9 @@ Qed.
 
 
 
-
+(**  This is a lemma for an intuitive statement for the variables of a term : a variable x belongs to the list of unique variables 
+(term_unique_vars) found within the variable-term that is constructed by variable itself (VAR x).
+  **)
 Lemma var_in_out_list:
   forall (x : var) (lvar : list var),
   (In x lvar) \/ ~ (In x lvar).
@@ -146,10 +180,21 @@ Qed.
 
 
 
-(** 3.2 Proof that Lownheim's algorithm unifes a given term **)
+(** * Proof that Lownheim's algorithm unifes a given term **)
+
+(** In this sub-section, we prove that our own defined lowenheim builder from lowenheim_formula.v (build_lowenheim_subst), produces
+a unifier; that is, given unifiable term and one of unifier of the term, it also produces another unifier of this term (and as explained in 
+terms.v, a unifier is a substitution that when applied to term it produces a term equivalent to the ground term T0.
+**)
 
 
+(** This is a helper lemma for the skeleton function defined on lowenheim_formula.v : If we apply a substitution on a term-variable 
+VAR x , and that substitution is created by the skeleton function build_on_list_of_vars applied on a single input variable x, then the resulting
+term is equivalent to :  the resuting term from applying a substitution on a term-variable 
+VAR x , and that substitution being created by the skeleton function build_on_list_of_vars applied on an input list of variables that contains
+variable x.
 
+**)
 Lemma helper1_easy:
  forall (x: var) (lvar : list var) (sig1 sig2 : subst) (s : term),
  (In x lvar) ->
@@ -183,10 +228,13 @@ Qed.
 
 
 
-(* helper lemma: applying two different substitutions on the same variable give the same result. 
-    one subsitution containtains only replacement, and it is for this variable. The other subsitution
-    contains the previous replacement but also more replacements other variables (so the subsitution for 
-    the extra variables do not affect the application of the subsitution *)
+(** 
+This is another helper lemma for the skeleton function build_on_list_of_vars and it can be rephrased this way: applying two different substitutions on the same term-variable give the same result. 
+    One subsitution containing only one replacement, and for its own variable. The other subsitution
+    contains the previous replacement but also more replacements for other variables (that are obviously not in the variables
+     of our term-variable). So, the replacements for 
+    the extra variables do not affect the application of the subsitution - hence the resulting term. 
+ *)
 Lemma helper_1:
 forall (t' s : term) (v : var) (sig1 sig2 : subst),
   sub_term (VAR v) t' -> 
@@ -204,7 +252,15 @@ Qed.
 
 
 
-(* Lemma 10.4.5*)
+(**
+Lemma 10.4.5 from book X on page 254-255 . 
+This a very significant lemma used later for the proof that our lownheim builder function (not the Main function, but the 
+builder function), gives a unifier (not necessarily an mgu, that would be a next step of the proof). 
+It states that is a term is t a sub_term of another term t' , then applying a substitution - a substitution created by the giving the list of
+variables of term t' on the skeleton function build_list_of_vars -, on the term t, a term that has the same format : 
+(s + T1) * sig1(t) + s*sig2(t) as the each replacements of each variable on any ubsistution created 
+by skeleton function : (s + T1) * sig1(x) + s*sig2(x) .
+*)
 
 Lemma subs_distr_vars_ver2 :
   forall (t t' : term) (s : term) (sig1 sig2 : subst),
@@ -258,7 +314,13 @@ Qed.
 
 
 
-(* Utilizing lemma 10.4.5 with specific sigmas gives a substituion the unifies the term *)
+(**
+This is an intermediate lemma occuring by the previous lemma 10.4.5 .
+Utilizing lemma 10.4.5 and also using two sigmas for the skeleton function build_on_list_vars
+gives a substituion the unifies the term; the two sigmas being a known unifier of the term and the identity 
+substitution.
+*)
+
 Lemma specific_sigmas_unify:
   forall (t : term) (tau : subst),
   (unifier t tau) -> 
@@ -273,7 +335,10 @@ Lemma specific_sigmas_unify:
   -  apply sub_term_id.
 Qed.
 
-(* Our lowenheim's subsitution builder unifies any given term *)
+(** This is the resulting lemma from this sub-section :
+Our lowenheim's subsitution builder produces a unifier for an input term; namely, a substitution that 
+unifies the term, given that term is unifiable and we know an already existing unifier tau. 
+*)
 Lemma lownheim_unifies:
   forall (t : term) (tau : subst),
   (unifier t tau) -> 
@@ -284,12 +349,30 @@ Qed.
 
 
 
-(** 3.3 Proof that Lownheim's algorithm produces a most general unifier **)
+(** * Proof that Lownheim's algorithm produces a most general unifier **)
+
+(** In the previous sub-section we proved that our lowenheim builder produces a unifier, if we already know an existing unifier
+of the term. In this sub-section we prove that that unifier is a most general unifier. 
+**)
 
 
-(** 3.3.a Proof that Lownheim's algorithm produces a reproductive unifier **)
+(**  **Proof that Lownheim's algorithm produces a reproductive unifier **)
+
+(**
+In this sector we will prove that our lowenheim builder gives a unifier that is reproductive; this will help us in the proof
+that the resulting unifier is an mgu, since a reproductive unifier is a "stronger" property than an mgu.
+
+**)
 
 
+(** This is a lemma for an intuitive statement for the skeleton function build_on_list_vars : if a variable x is in a list l, and we
+apply a substitution created by the build_on_list_vars function given input list l, on the term-variable VAR x, then we get the replacement
+for that particular variable that was contained in the original substitution. So basically if build_on_list_of_vars is applied on a list
+of variables l (x1,x2,x3...xn), then the resulting substitution is in the format [(x1, (s + T1) * sig1(x1) + s*sig2(x1)),. , .] for each
+xi. If we apply that substitution on the term-variable x1, we will get the initial format of the replacement : (s + T1) * sig1(x1) + s*sig2(x1)).
+It can be thought as "reverse application" of the skeleton function.
+
+**)
 Lemma lowenheim_rephrase1_easy :
   forall (l : list var) (x : var) (sig1 : subst) (sig2 : subst) (s : term),
   (In x l) -> 
@@ -312,7 +395,10 @@ Qed.
 
 
 
+(** This is a helper lemma for an intuitive statement : if a variable x is found on a list of variables l, then applying the subsitution
+created by the build_id_subst function given input list l, on the term-variable VAR x, we will get the same VAR x back. 
 
+**)
 Lemma helper_3a:
 forall (x: var) (l: list var),
 In x l -> 
@@ -333,8 +419,11 @@ Qed.
     
 
 
-(* lemma: applying lowenheim's subtitution on any variable of a term gives us the initial format 
-  of the replacement for that variable (lowenheim's reverse application ) *)
+(** 
+This is a lemma for an intuitive statement for the lowenheim builder,very similar to lemma lowenheim_rephrase1_easy : 
+ applying lowenheim's subtitution given an input term t,on any term-variable of the term t, gives us the initial format 
+  of the replacement for that variable (lowenheim's reverse application ) 
+  *)
 Lemma lowenheim_rephrase1 :
   forall (t : term) (tau : subst) (x : var),
   (unifier t tau) -> 
@@ -353,9 +442,15 @@ Qed.
 
 
 
+(**
+This is a lemma for an intuitive statement for the skeleton function build_on_list_vars tha resemebles a lot 
+lowenheim_rephrase1_easy : 
+if a variable x is not in a list l, and we
+apply a substitution created by the build_on_list_vars function given input list l, on the term-variable VAR x, 
+then we get the term-variable VAR xback; that is expected since the replacements in the substitution should not contain
+any entry with variable x.
 
-
-
+*)
 Lemma lowenheim_rephrase2_easy :
   forall (l : list var) (x : var) (sig1 : subst) (sig2 : subst) (s : term),
   ~ (In x l) -> 
@@ -374,8 +469,11 @@ Qed.
 
 
 
-(* lemma: applying lowenheim's subtitution on any variable not in the term gives us the same term
-  (no replacement is applied/ found since the variable is not in the term) *)
+(** This is a lemma for an intuitive statement for the lowenheim builder,very similar to lemma lowenheim_rephrase2_easy
+ and lowenheim_rephrase1: 
+ applying lowenheim's subtitution given an input term t, on any term-variable not of the ones of term t, gives us back 
+  the same term-variable.
+  *)
 
 Lemma lowenheim_rephrase2 :
   forall (t : term) (tau : subst) (x : var),
@@ -392,7 +490,8 @@ Qed.
   
 
 
-(* lowenheim's algorithm gives a reproductive unifier *)
+(** This is the resulting lemma of the sector: our lowenheim builder build_lownheim_subst gives a reproductive unifier 
+*)
 Lemma lowenheim_reproductive:
   forall (t : term) (tau : subst),
   (unifier t tau) -> 
@@ -420,9 +519,18 @@ Qed.
 
 
 
+(**  **Proof that Lowenheim's algorithm produces a most general unifier **)
 
-(** 3.3.b lowenheim builder gives  a most general unifier  **)
+(**
+In this sector we will prove that our lowenheim builder gives a unifier that is most general; this will help us a lot in the top-level
+proof that the Main_Lownheim function gives an mgu.
 
+**)
+
+
+(** Here is the sector's resulting lemma. Given a unifiable term t, a unifier of t, then our lowenheim builder
+(build_lownheim_subst) gives a most general unifier (mgu) .
+**)
 
 Lemma lowenheim_most_general_unifier:
   forall (t : term) (tau : subst),
