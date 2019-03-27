@@ -1710,4 +1710,3 @@ Proof.
   + simpl. reflexivity.
 Qed.
   
-

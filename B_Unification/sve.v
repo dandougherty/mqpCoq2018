@@ -1,51 +1,57 @@
-
-(** * Intro *)
-
-(** Here we implement the algorithm for successive variable elimination. The
-    basic idea is to remove a variable from the problem, solve that simpler 
-    problem, and build a solution from the simpler solution. The algorithm is
-    recursive, so variables are removed and problems generated until we are left
-    with either of two problems; 1 =B 0 or 0 =B 0. In the former case, the whole
-    original problem is not unifiable. In the latter case, the problem is solved
-    without any need to substitute since there are no variables. From here, we
-    begin the process of building up substitutions until we reach the original
-    problem. *)
-
-(* begin hide *)
 Require Import List.
 Import ListNotations.
 Require Import Arith.
 Require Import Permutation.
-Require Import FunctionalExtensionality.
 
 Require Export poly_unif.
-(* end hide *)
 
+(** * Introduction *)
+
+(** Here we implement the algorithm for successive variable elimination. The
+    basic idea is to remove a variable from the problem, solve that simpler
+    problem, and build a solution from the simpler solution. The algorithm is
+    recursive, so variables are removed and problems are generated until we are
+    left with either of two problems; $1 \stackrel{?}{\approx}_{B} 0$ or
+    $0 \stackrel{?}{\approx}_{B} 0$. In the former case, the whole original
+    problem is not unifiable. In the latter case, the problem is solved without
+    any need to substitute since there are no variables. From here, we begin the
+    process of building up substitutions until we reach the original problem. *)
 
 
 (** * Eliminating Variables *)
 
 (** This section deals with the problem of removing a variable [x] from a term
-    [t]. The first thing to notice is that [t] can be written in polynomial form
-    [p]. This polynomial is just a set of monomials, and each monomial a set of
-    variables. We can now seperate the polynomials into two sets [qx] and [r].
-    The term [qx] will be the set of monomials in [p] that contain the variable
-    [x]. The term [q], or the quotient, is [qx] with the [x] removed from each
-    monomial. The term [r], or the remainder, will be the monomials that do not
-    contain [x]. The original term can then be written as [x * q + r]. *)
+    _t_. The first thing to notice is that _t_ can be written in polynomial form
+    $t\downarrow_{P}$. This polynomial is just a set of monomials, and each
+    monomial a set of variables. We can now seperate the polynomials into two
+    sets [qx] and [r]. The term [qx] will be the set of monomials in
+    $t\downarrow_{P}$ that contain the variable [x]. The term [q], or the
+    quotient, is [qx] with the [x] removed from each monomial. The term [r], or
+    the remainder, will be the monomials in $t\downarrow_{P}$ that do not
+    contain [x]. The original term can then be written as $x \ast q + r$. *)
 
 (** Implementing this procedure is pretty straightforward. We define a function
     [div_by_var] that produces two polynomials given a polynomial [p] and a
     variable [x] to eliminate from it. The first step is dividing [p] into [qx]
     and [r] which is performed using a partition over [p] with the predicate
-    [has_var]. The second step is to remove [x] from [qx] using the helper 
-    [elim_var] which just maps over the given polynomial removing the given 
-    variable. *)
+    [has_var]. The second step is to remove [x] from [qx] using the helper
+    [elim_var]. *)
+
+(** The function [has_var] determines whether a variable appears in a monomial.
+    *)
 
 Definition has_var (x : var) := existsb (beq_nat x).
 
+(** The function [elim_var] removes a variable from each monomial in a
+    polynomial. It is possible that this leaves the term not in polynomial form
+    so it is then repaired with [make_poly]. *)
+
 Definition elim_var (x : var) (p : poly) : poly :=
   make_poly (map (remove var_eq_dec x) p).
+
+(** The function [div_by_var] produces a quotient [q] and remainder [r] from a
+    polynomial [p] and variable [x] such that $p \approx_{B} x \ast q + r$ and
+    [x] does not occur in [r]. *)
 
 Definition div_by_var (x : var) (p : poly) : prod poly poly :=
   let (qx, r) := partition (has_var x) p in
@@ -55,10 +61,13 @@ Definition div_by_var (x : var) (p : poly) : prod poly poly :=
 (** We would also like to prove some lemmas about varaible elimination that
     will be helpful in proving the full algorithm correct later. The main lemma
     below is [div_eq], which just asserts that after eliminating [x] from [p]
-    into [q] and [r] the term can be put back together as in [p = x * q + r].
-    This fact turns out to be rather hard to prove and needs the help of 10 or
-    so other sudsidiary lemmas. *)
+    into [q] and [r] the term can be put back together as in
+    $p \approx_{B} x \ast q + r$. This fact turns out to be rather hard to prove
+    and needs the help of 10 or so other sudsidiary lemmas. *)
 
+
+(** After eliminating a variable [x] from a polynomial to produdce [r], [x] does
+    not occur in [r]. *)
 
 Lemma elim_var_not_in_rem : forall x p r,
   elim_var x p = r ->
@@ -79,7 +88,10 @@ Proof.
   auto.
 Qed.
 
-Lemma elim_var_poly : forall x p,
+(** Eliminating a variable from a polynomial produces a term in polynomial form.
+    *)
+
+Lemma elim_var_is_poly : forall x p,
   is_poly (elim_var x p).
 Proof.
   intros.
@@ -87,178 +99,53 @@ Proof.
   apply make_poly_is_poly.
 Qed.
 
-Lemma NoDup_map_remove : forall x p,
-  is_poly p ->
-  (forall m, In m p -> In x m) ->
-  NoDup (map (remove var_eq_dec x) p).
-Proof.
-  intros x p Hp Hx. induction p.
-  - simpl. auto.
-  - simpl. apply NoDup_cons.
-    + intro. apply in_map_iff in H. destruct H as [y []]. assert (y = a).
-      * apply poly_cons in Hp. destruct Hp. unfold is_poly in H1. destruct H1.
-        apply H3 in H0 as H4. apply (remove_Sorted_eq x); auto. split; intro.
-        apply Hx. intuition. apply Hx. intuition.
-      * rewrite H1 in H0. unfold is_poly in Hp. destruct Hp.
-        apply NoDup_MonoSorted in H2 as H4. apply NoDup_cons_iff in H4 as []. 
-        contradiction.
-    + apply IHp.
-      * apply poly_cons in Hp. apply Hp.
-      * intros m H. apply Hx. intuition.
-Qed.
+Hint Resolve elim_var_is_poly.
+
+(** The next four lemmas deal with the following scenario: Let [p] be a term in
+    polynomial form, [x] be a variable that occurs in each monomial of [p], and
+    [r = elim_var x p]. *)
+
+(** The term [r] is a permutation of removing [x] from [p]. Another way of
+    looking at this statement is when [elim_var] repairs the term produced from
+    removing a variable it only sorts that term. *)
 
 Lemma elim_var_map_remove_Permutation : forall p x,
   is_poly p ->
   (forall m, In m p -> In x m) ->
-  Permutation (elim_var x p)
-              (map (remove var_eq_dec x) p).
+  Permutation (elim_var x p) (map (remove var_eq_dec x) p).
 Proof.
   intros p x H H0. destruct p as [|a p].
   - simpl. unfold elim_var, make_poly, MonoSort.sort. auto.
-  - simpl. unfold elim_var. simpl. unfold make_poly. pose (MonoSort.Permuted_sort (nodup_cancel mono_eq_dec (map make_mono (remove var_eq_dec x a :: map (remove var_eq_dec x) p)))).
-    assert (Permutation (nodup_cancel mono_eq_dec (map make_mono (remove var_eq_dec x a :: map (remove var_eq_dec x) p))) (remove var_eq_dec x a :: map (remove var_eq_dec x) p)).
-    + clear p0. rewrite unsorted_poly.
-      * apply Permutation_refl.
-      * rewrite <- map_cons. apply NoDup_map_remove; auto.
-      * apply poly_cons in H. intros m Hin. destruct Hin.
-        -- rewrite <- H1. apply remove_is_mono. apply H.
-        -- apply in_map_iff in H1 as [y []]. rewrite <- H1. apply remove_is_mono.
-           destruct H. unfold is_poly in H. destruct H. apply H4. auto.
-    + apply Permutation_sym in p0. apply (Permutation_trans p0 H1).
+  - simpl. unfold elim_var. simpl. unfold make_poly.
+    rewrite <- Permutation_MonoSort_l. rewrite unsorted_poly; auto.
+    + rewrite <- map_cons. apply NoDup_map_remove; auto.
+    + apply poly_cons in H. intros m Hin. destruct Hin.
+      * rewrite <- H1. apply remove_is_mono. apply H.
+      * apply in_map_iff in H1 as [y []]. rewrite <- H1. apply remove_is_mono.
+        destruct H. unfold is_poly in H. destruct H. apply H4. auto.
 Qed.
 
-Lemma NoDup_map_app : forall x l,
-  is_poly l ->
-  (forall m, In m l -> ~ In x m) ->
-  NoDup (map make_mono (map (fun a : list var => a ++ [x]) l)).
-Proof.
-  intros x l Hp Hin. induction l.
-  - simpl. auto.
-  - simpl. apply NoDup_cons.
-    + intros H. rewrite map_map in H. apply in_map_iff in H as [m []]. assert (a=m).
-      * apply poly_cons in Hp as []. apply Permutation_Sorted_mono_eq.
-        -- apply Permutation_sort_mono_eq in H. rewrite no_nodup_NoDup in H.
-           rewrite no_nodup_NoDup in H.
-           ++ pose (Permutation_cons_append m x). pose (Permutation_cons_append a x).
-              apply (Permutation_trans p) in H. apply Permutation_sym in p0.
-              apply (Permutation_trans H) in p0. apply Permutation_cons_inv in p0.
-              apply Permutation_sym. auto.
-           ++ apply Permutation_NoDup with (l:=(x::a)). apply Permutation_cons_append.
-              apply NoDup_cons. apply Hin. intuition. unfold is_mono in H2.
-              apply NoDup_VarSorted in H2. auto.
-           ++ apply Permutation_NoDup with (l:=(x::m)). apply Permutation_cons_append.
-              apply NoDup_cons. apply Hin. intuition. unfold is_poly in H1.
-              destruct H1. apply H3 in H0. unfold is_mono in H0.
-              apply NoDup_VarSorted in H0. auto.
-        -- unfold is_mono in H2. apply Sorted_VarSorted. auto.
-        -- unfold is_poly in H1. destruct H1. apply H3 in H0. apply Sorted_VarSorted. auto.
-      * rewrite <- H1 in H0. unfold is_poly in Hp. destruct Hp.
-        apply NoDup_MonoSorted in H2. apply NoDup_cons_iff in H2 as []. contradiction.
-    + apply IHl. apply poly_cons in Hp. apply Hp. intros m H. apply Hin. intuition.
-Qed.
-
-Lemma mulPP_Permutation : forall x a0 l,
-  is_poly (a0::l) ->
-  (forall m, In m (a0::l) -> ~ In x m) ->
-  Permutation (mulPP [[x]] (a0 :: l)) ((make_mono (a0++[x]))::(mulPP [[x]] l)).
-Proof.
-  intros x a0 l Hp Hx. unfold mulPP, distribute. simpl. unfold make_poly. 
-  pose (MonoSort.Permuted_sort (nodup_cancel mono_eq_dec
-        (map make_mono ((a0 ++ [x]) :: concat (map (fun a : list var => [a ++ [x]]) l))))).
-  apply Permutation_sym in p. apply (Permutation_trans p). simpl map.
-  rewrite no_nodup_cancel_NoDup; clear p.
-  - apply perm_skip. apply Permutation_trans with (l':=(nodup_cancel mono_eq_dec (map make_mono (concat (map (fun a : list var => [a ++ [x]]) l))))).
-    + rewrite no_nodup_cancel_NoDup; auto. rewrite concat_map. apply NoDup_map_app.
-      apply poly_cons in Hp. apply Hp. intros m H. apply Hx. intuition.
-    + apply MonoSort.Permuted_sort.
-  - rewrite <- map_cons. rewrite concat_map.
-    rewrite <- map_cons with (f:=(fun a : list var => a ++ [x])).
-    apply NoDup_map_app; auto.
-Qed.
-
-Lemma mulPP_map_app_permutation : forall (x:var) (l l' : poly),
-  is_poly l ->
-  (forall m, In m l -> ~ In x m) ->
-  Permutation l l' ->
-  Permutation (mulPP [[x]] l) (map (fun a => (make_mono(a ++ [x]))) l').
-Proof.
-  intros x l l' Hp H H0. generalize dependent l'. induction l; induction l'.
-  - intros. unfold mulPP, distribute, make_poly, MonoSort.sort. simpl. auto.
-  - intros. apply Permutation_nil_cons in H0. contradiction.
-  - intros. apply Permutation_sym in H0. apply Permutation_nil_cons in H0. contradiction.
-  - intros. clear IHl'. destruct (mono_eq_dec a a0).
-    + rewrite e in *. pose (mulPP_Permutation x a0 l Hp H). apply (Permutation_trans p). simpl.
-      apply perm_skip. apply IHl.
-      * clear p. apply poly_cons in Hp. apply Hp.
-      * intros m Hin. apply H. intuition.
-      * apply Permutation_cons_inv in H0. auto.
-    + apply Permutation_incl in H0 as H1. destruct H1. apply incl_cons_inv in H1 as [].
-      destruct H1; try (rewrite H1 in n; contradiction). apply in_split in H1.
-      destruct H1 as [l1 [l2]]. rewrite H1 in H0.
-      pose (Permutation_middle (a0::l1) l2 a). apply Permutation_sym in p.
-      simpl in p. apply (Permutation_trans H0) in p. 
-      apply Permutation_cons_inv in p. rewrite H1. simpl. rewrite map_app. simpl.
-      pose (Permutation_middle ((make_mono (a0 ++ [x]) :: map 
-        (fun a1 : list var => make_mono (a1 ++ [x])) l1)) (map 
-        (fun a1 : list var => make_mono (a1 ++ [x])) l2) (make_mono (a++[x]))).
-      simpl in p0. simpl. apply Permutation_trans with (l':=(make_mono (a ++ [x])
-      :: make_mono (a0 ++ [x])
-         :: map (fun a1 : list var => make_mono (a1 ++ [x])) l1 ++
-            map (fun a1 : list var => make_mono (a1 ++ [x])) l2)); auto. clear p0.
-      rewrite <- map_app. rewrite <- (map_cons (fun a1 : list var => make_mono (a1 ++ [x])) a0 (@app (list var) l1 l2)).
-      pose (mulPP_Permutation x a l Hp H). apply (Permutation_trans p0). apply perm_skip.
-      apply IHl.
-      * clear p0. apply poly_cons in Hp. apply Hp.
-      * intros m Hin. apply H. intuition.
-      * apply p.
-Qed.
+(** The term $(x \ast r)\downarrow_{P}$ is a permutation of the result of
+    removing [x] from [p], appending [x] to the end of each monomial, and
+    repairing each monomial. The proof relies on the [mulPP_map_app_permutation]
+    lemma from the [poly] library, which has a simpler goal but does much of the
+    heavy lifting. *)
 
 Lemma rebuild_map_permutation : forall p x,
   is_poly p ->
   (forall m, In m p -> In x m) ->
   Permutation (mulPP [[x]] (elim_var x p))
-              (map (fun a => (make_mono(a ++ [x]))) (map (remove var_eq_dec x) p)).
+              (map (fun a => make_mono (a ++ [x]))
+                   (map (remove var_eq_dec x) p)).
 Proof.
-  intros p x H H0. apply mulPP_map_app_permutation.
-  - apply elim_var_poly.
+  intros p x H H0. apply mulPP_map_app_permutation; auto.
   - apply (elim_var_not_in_rem x p); auto.
   - apply elim_var_map_remove_Permutation; auto.
 Qed.
 
-Lemma p_map_Permutation : forall p x,
-  is_poly p ->
-  (forall m, In m p -> In x m) ->
-  Permutation p (map (fun a => (make_mono(a ++ [x]))) (map (remove var_eq_dec x) p)).
-Proof.
-  intros p x H H0. rewrite map_map. induction p.
-  - auto.
-  - simpl. assert (make_mono (@app var (remove var_eq_dec x a) [x]) = a).
-    + unfold make_mono. rewrite no_nodup_NoDup.
-      * apply Permutation_Sorted_mono_eq.
-        -- apply Permutation_trans with (l':=(remove var_eq_dec x a ++ [x])).
-           apply Permutation_sym. apply VarSort.Permuted_sort.
-           pose (in_split x a). destruct e as [l1 [l2 e]]. apply H0. intuition.
-           rewrite e. apply Permutation_trans with (l':=(x::remove var_eq_dec x (l1++x::l2))).
-           apply Permutation_sym. apply Permutation_cons_append.
-           apply Permutation_trans with (l':=(x::l1++l2)). apply perm_skip.
-           rewrite remove_distr_app. replace (x::l2) with ([x]++l2); auto.
-           rewrite remove_distr_app. simpl. destruct (var_eq_dec x x); try contradiction.
-           rewrite app_nil_l. repeat rewrite not_In_remove; try apply Permutation_refl;
-           try (apply poly_cons in H as []; unfold is_mono in H1;
-           apply NoDup_VarSorted in H1; rewrite e in H1; apply NoDup_remove_2 in H1).
-           intros x2. apply H1. intuition. intros x1. apply H1. intuition.
-           apply Permutation_middle.
-        -- apply VarSort.LocallySorted_sort.
-        -- apply poly_cons in H as []. unfold is_mono in H1.
-           apply Sorted_VarSorted. auto.
-      * apply Permutation_NoDup with (l:=(x::remove var_eq_dec x a)).
-        apply Permutation_cons_append. apply NoDup_cons.
-        apply remove_In. apply NoDup_remove. apply poly_cons in H as [].
-        unfold is_mono in H1. apply NoDup_VarSorted. auto.
-    + rewrite H1. apply perm_skip. apply IHp.
-      * apply poly_cons in H. apply H.
-      * intros m Hin. apply H0. intuition.
-Qed.
+(** The term [p] is a permutation of ($x \ast r)\downarrow_{P}$. Proof of this
+    fact relies on the lengthy [map_app_remove_Permutation] lemma from [poly].
+    *)
 
 Lemma elim_var_permutation : forall p x, 
   is_poly p ->
@@ -266,9 +153,12 @@ Lemma elim_var_permutation : forall p x,
   Permutation p (mulPP [[x]] (elim_var x p)).
 Proof.
   intros p x H H0. pose (rebuild_map_permutation p x H H0).
-  apply Permutation_sym in p0. pose (p_map_Permutation p x H H0).
+  apply Permutation_sym in p0.
+  pose (map_app_remove_Permutation p x H H0).
   apply (Permutation_trans p1 p0).
 Qed.
+
+(** Finally, $p = (x \ast r)\downarrow_{P}$. *)
 
 Lemma elim_var_mul : forall x p,
   is_poly p ->
@@ -281,6 +171,9 @@ Proof.
   - pose (mulPP_is_poly [[x]] (elim_var x p)). unfold is_poly in i.
     apply Sorted_MonoSorted. apply i.
 Qed.
+
+(** The function [has_var] is an equivalent boolean version of the [In]
+    predicate. *)
 
 Lemma has_var_eq_in : forall x m,
   has_var x m = true <-> In x m.
@@ -295,10 +188,14 @@ Proof.
   - exists x. rewrite Nat.eqb_eq. auto.
 Qed.
 
-Lemma part_var_eq_in : forall x p i o,
-  partition (has_var x) p = (i, o) ->
-  ((forall m, In m i -> In x m) /\
-   (forall m, In m o -> ~ In x m)).
+(** Let a polynomial [p] be partitioned by [has_var x] into two sets [qx] and
+    [r]. Obviously, every monomial in [qx] contains [x] and no monomial in [r]
+    contains [x]. *)
+
+Lemma part_var_eq_in : forall x p qx r,
+  partition (has_var x) p = (qx, r) ->
+  ((forall m, In m qx -> In x m) /\
+   (forall m, In m r -> ~ In x m)).
 Proof.
   intros.
   split; intros.
@@ -309,6 +206,8 @@ Proof.
     + rewrite <- has_var_eq_in. rewrite H. auto.
     + apply H0.
 Qed.
+
+(** The function [div_by_var] produces two terms both in polynomial form. *)
 
 Lemma div_is_poly : forall x p q r,
   is_poly p ->
@@ -324,13 +223,13 @@ Proof.
   rewrite Hr in Hpr.
   apply part_var_eq_in in Hpart as [Hin Hout].
   split.
-  - rewrite <- Hq. apply elim_var_poly.
+  - rewrite <- Hq; auto.
   - apply Hpr.
 Qed.
 
 (** As explained earlier, given a polynomial [p] decomposed into a variable [x],
-    a quotient [q], and a remainder [r], [div_eq] asserts that [p = x * q + r].
-    *)
+    a quotient [q], and a remainder [r], [div_eq] asserts that
+    $p = (x \ast q + r)\downarrow_{P}$. *)
 
 Lemma div_eq : forall x p q r,
   is_poly p ->
@@ -338,16 +237,13 @@ Lemma div_eq : forall x p q r,
   p = addPP (mulPP [[x]] q) r.
 Proof.
   intros x p q r HP HD.
-  
   assert (HE := HD).
   unfold div_by_var in HE.
   destruct ((partition (has_var x) p)) as [qx r0] eqn:Hqr.
   injection HE. intros Hr Hq.
-
   assert (HIH: forall m, In m qx -> In x m). intros.
   apply has_var_eq_in.
   apply (part_fst_true _ _ _ _ _ Hqr _ H).
-
   assert (is_poly q /\ is_poly r) as [HPq HPr].
   apply (div_is_poly _ _ _ _ HP HD).
   assert (is_poly qx /\ is_poly r0) as [HPqx HPr0].
@@ -359,17 +255,8 @@ Proof.
   apply Hqr.
 Qed.
 
-Lemma has_var_in : forall x m,
-  In x m -> has_var x m = true.
-Proof. 
-  intros.
-  unfold has_var.
-  apply existsb_exists.
-  exists x.
-  split; auto.
-  symmetry.
-  apply beq_nat_refl.
-Qed.
+(** Given a variable [x], [div_by_var] produces two polynomials neither of which
+    contain [x]. *)
 
 Lemma div_var_not_in_qr : forall x p q r,
   div_by_var x p = (q, r) ->
@@ -386,7 +273,7 @@ Proof.
   - rewrite Hr in Hqxr.
     symmetry in Hqxr.
     intros. intro.
-    apply has_var_in in H1.
+    apply has_var_eq_in in H1.
     apply Bool.negb_false_iff in H1.
     revert H1.
     apply Bool.eq_true_false_abs.
@@ -395,17 +282,14 @@ Proof.
     apply (part_snd_false _ _ _ _ _ Hqxr).
 Qed.
 
-(** The second main lemma about varaible elimination is below. Given that a term
-    [p] has been decomposed into the form [x * q + r], we can define [p' = (q +
-    1) * r]. The lemma [div_build_unif] states that any unifier of [p =B 0] is
-    also a unifier of [p' =B 0]. Much of this proof relies on the axioms of
-    polynomial arithmetic. *)
-
-(** This helper function [build_poly] is used to construct [p' = (q + 1) * r]
-    given the quotient and remainder as inputs. *)
+(** This helper function [build_poly] is used to construct
+    $p' = ((q + 1) * r)\downarrow_{P}$ given the two polynomials [q] and [r] as
+    input. *)
 
 Definition build_poly (q r : poly) : poly := 
   mulPP (addPP [[]] q) r.
+
+(** The function [build_poly] produces a term in polynomial form. *)
 
 Lemma build_poly_is_poly : forall q r,
   is_poly (build_poly q r).
@@ -413,58 +297,41 @@ Proof.
   unfold build_poly. auto.
 Qed.
 
+Hint Resolve build_poly_is_poly.
+
+(** The second main lemma about varaible elimination is below. Given that a term
+    [p] has been decomposed into the form $(x \ast q + r)\downarrow_{P}$, we can
+    define $p' = ((q + 1) * r)\downarrow_{P}$. The lemma [div_build_unif] states
+    that any unifier of $p \stackrel{?}{\approx}_{B} 0$ is also a unifier of
+    $p' \stackrel{?}{\approx}_{B} 0$. Much of this proof relies on the axioms of
+    polynomial arithmetic. *)
+
 Lemma div_build_unif : forall x p q r s,
-  is_poly_subst s ->
   is_poly p ->
   div_by_var x p = (q, r) ->
   unifier s p ->
   unifier s (build_poly q r).
 Proof.
   unfold build_poly, unifier.
-  intros x p q r s Hps HPp HD Hsp0.
+  intros x p q r s HPp HD [Hps Hsp0].
   apply (div_eq _ _ _ _ HPp) in HD as Hp.
-
   (* multiply both sides of Hsp0 by s(q+1) *)
   assert (exists q1, q1 = addPP [[]] q) as [q1 Hq1]. eauto.
   assert (exists sp, sp = substP s p) as [sp Hsp]. eauto.
   assert (exists sq1, sq1 = substP s q1) as [sq1 Hsq1]. eauto.
-  rewrite <- Hsp in Hsp0.
-  assert (mulPP sp sq1 = mulPP [] sq1).
-    rewrite Hsp0. auto.
-  rewrite mulPP_0 in H.
-  rewrite <- H.
-  rewrite Hsp, Hsq1.
+  rewrite <- (mulPP_0 (substP s q1)).
+  rewrite <- Hsp0.
   rewrite Hp, Hq1.
   rewrite <- substP_distr_mulPP; auto.
   f_equal.
-
-  assert (HMx: is_mono [x]). auto.
   apply (div_is_poly x p q r HPp) in HD.
   destruct HD as [HPq HPr].
-  assert (is_mono [x] /\ is_poly q). auto.
-
   rewrite mulPP_addPP_1; auto.
 Qed.
 
-Lemma div_by_var_nil : forall x q r,
-  div_by_var x [] = (q, r) ->
-  q = [] /\ r = [].
-Proof.
-  intros x q r H. unfold div_by_var, elim_var, make_poly, MonoSort.sort in H.
-  simpl in H. inversion H. auto.
-Qed.
-
-Hint Unfold vars div_by_var elim_var make_poly MonoSort.sort.
-Hint Resolve div_by_var_nil.
-
-Lemma incl_not_in : forall A a (l m : list A),
-  incl l (a :: m) ->
-  ~ In a l ->
-  incl l m.
-Proof.
-  intros A a l m Hincl Hnin. unfold incl in *. intros a0 Hin.
-  simpl in Hincl. destruct (Hincl a0); auto. rewrite H in Hnin. contradiction.
-Qed.
+(** Given a polynomial [p] and a variable [x], [div_by_var] produces two
+    polynomials [q] and [r] that have no more variables than [p] has. Obviously,
+    [q] and [r] don't contain [x] either. *)
 
 Lemma incl_div : forall x p q r xs,
   is_poly p -> 
@@ -477,21 +344,27 @@ Proof.
   apply Permutation_incl in Hpart as []. inversion H0. clear H2.
   assert (incl (vars q) (vars p)). unfold incl, vars in *. intros a Hin.
     apply nodup_In. apply nodup_In in Hin. apply In_concat_exists in Hin.
-    destruct Hin as [m[]]. rewrite <- H5 in H2. unfold elim_var in H2.
+    destruct Hin as [m []]. rewrite <- H5 in H2. unfold elim_var in H2.
     apply In_sorted in H2. apply nodup_cancel_in in H2. rewrite map_map in H2.
-    apply in_map_iff in H2. destruct H2 as [mx[]]. rewrite <- H2 in H4.
+    apply in_map_iff in H2. destruct H2 as [mx []]. rewrite <- H2 in H4.
     rewrite make_mono_In in H4. apply In_remove in H4. apply In_concat_exists.
     exists mx. split; auto. apply H3. intuition.
   assert (incl (vars r) (vars p)). rewrite H6 in H3. unfold incl, vars in *.
-    intros a Hin. apply nodup_In. apply nodup_In in Hin. apply In_concat_exists in Hin.
-    destruct Hin as [l[]]. apply In_concat_exists. exists l. split; auto.
-    apply H3. intuition.
+    intros a Hin. apply nodup_In. apply nodup_In in Hin.
+    apply In_concat_exists in Hin. destruct Hin as [l []].
+    apply In_concat_exists. exists l. split; auto. apply H3. intuition.
   split.
-  - rewrite H5. apply incl_tran with (n:=(x::xs)) in H2; auto. apply incl_not_in in H2; auto.
-    apply div_var_not_in_qr in Hdiv as [Hq _]. apply in_mono_in_vars in Hq. auto.
-  - apply incl_tran with (n:=(x::xs)) in H4; auto. apply incl_not_in in H4; auto.
-    apply div_var_not_in_qr in Hdiv as [_ Hr]. apply in_mono_in_vars in Hr. auto.
+  - rewrite H5. apply incl_tran with (n:=(x::xs)) in H2; auto.
+    apply incl_not_in in H2; auto. apply div_var_not_in_qr in Hdiv as [Hq _].
+    apply in_mono_in_vars in Hq. auto.
+  - apply incl_tran with (n:=(x::xs)) in H4; auto.
+    apply incl_not_in in H4; auto. apply div_var_not_in_qr in Hdiv as [_ Hr].
+    apply in_mono_in_vars in Hr. auto.
 Qed.
+
+(** Given a term [p] decomposed into the form $(x \ast q + r)\downarrow_{P}$,
+    then the polynomial $p' = ((q + 1) * r)\downarrow_{P}$ has no more variables
+    than [p] and does not contain [x]. *)
 
 Lemma div_vars : forall x xs p q r,
   is_poly p -> 
@@ -509,18 +382,21 @@ Proof.
   - apply Hincl.
 Qed.
 
+Hint Resolve div_vars.
 
 
 (** * Building Substitutions *)
 
 (** This section handles how a solution is built from subproblem solutions.
-    Given that a term [p] has been decomposed into the form [x * q + r], we can
-    define [p' = (q + 1) * r]. The lemma [reprod_build_subst] states that if
-    some substitution [s] is a reproductive unifier of [p' =B 0], then we can
-    build a substitution [s'] which is a reproductive unifier of [p =B 0]. The
-    way [s'] is built from [s] is defined in [build_subst]. Another replacement
-    is added to [s] of the form [x -> x * (s(q) + 1) + s(r)] to construct [s'].
-    *)
+    Given that term [p] decomposed into $(x \ast q + r)\downarrow_{P}$ and
+    $p' = ((q + 1) * r)\downarrow_{P}$, the lemma [reprod_build_subst] states
+    that if some substitution $\sigma$ is a reproductive unifier of
+    $p' \stackrel{?}{\approx}_{B} 0$, then we can build a substitution $\sigma'$
+    which is a reproductive unifier of $p \stackrel{?}{\approx}_{B} 0$. The way
+    $\sigma'$ is built from $\sigma$ is defined in [build_subst]. Another
+    replacement is added to $\sigma$ of the form
+    $\{x \mapsto (x \ast (\sigma(q) + 1) + \sigma(r))\downarrow_{P}\}$ to
+    construct $\sigma'$. *)
 
 Definition build_subst (s : subst) (x : var) (q r : poly) : subst :=
   let q1 := addPP [[]] q in
@@ -529,7 +405,10 @@ Definition build_subst (s : subst) (x : var) (q r : poly) : subst :=
   let xs  := (x, addPP (mulPP [[x]] q1s) rs) in
   xs :: s.
 
-Lemma build_subst_poly : forall s x q r,
+(** The function [build_subst] produces a substitution whose range only
+    contains polynomials. *)
+
+Lemma build_subst_is_poly : forall s x q r,
   is_poly_subst s ->
   is_poly_subst (build_subst s x q r).
 Proof.
@@ -541,17 +420,22 @@ Proof.
   - apply (H x0). auto.
 Qed.
 
+(** Given that term [p] decomposed into $(x \ast q + r)\downarrow_{P}$,
+    $p' = ((q + 1) * r)\downarrow_{P}$, and $\sigma$ is a reproductive unifier
+    of $p' \stackrel{?}{\approx}_{B} 0$, then the substitution $\sigma'$ built
+    from $\sigma$ unifies $p \stackrel{?}{\approx}_{B} 0$. *)
+
 Lemma build_subst_is_unif : forall x p q r s,
-  is_poly_subst s ->
   is_poly p ->
   div_by_var x p = (q, r) ->
   reprod_unif s (build_poly q r) ->
   unifier (build_subst s x q r) p.
 Proof.
-  intros x p q r s Hps Hpoly Hdiv Hreprod.
-  unfold unifier. unfold reprod_unif in Hreprod.
-  destruct Hreprod as [Hunif Hreprod].
-  unfold unifier in Hunif.
+  unfold reprod_unif, unifier.
+  intros x p q r s Hpoly Hdiv [[Hps Hunif] Hreprod].
+  assert (is_poly_subst (build_subst s x q r)).
+    apply build_subst_is_poly; auto.
+  split; auto.
   unfold build_poly in Hunif.
   assert (Hnqr := Hdiv).
   apply div_var_not_in_qr in Hnqr.
@@ -559,14 +443,12 @@ Proof.
   assert (HpolyQR := Hdiv).
   apply div_is_poly in HpolyQR as [HpolyQ HpolyR]; auto.
   apply div_eq in Hdiv; auto.
-
   rewrite Hdiv.
   rewrite substP_distr_addPP; auto.
   rewrite substP_distr_mulPP; auto.
   unfold build_subst.
   rewrite (substP_cons _ _ Hnq).
   rewrite (substP_cons _ _ Hnr).
-
   assert (Hsx: (substP
         ((x,
          addPP
@@ -577,12 +459,11 @@ Proof.
          (mulPP [[x]]
             (substP s (addPP [[]] q)))
          (substP s r))).
-    unfold substP. simpl. unfold inDom. simpl.
+    unfold substP. simpl.
     rewrite <- beq_nat_refl.
     rewrite mulPP_1r; auto. rewrite app_nil_r.
     rewrite no_make_poly; auto.
   rewrite Hsx.
-
   rewrite substP_distr_addPP; auto.
   rewrite substP_1.
   rewrite mulPP_distr_addPPr; auto.
@@ -600,40 +481,38 @@ Proof.
   rewrite (mulPP_comm r [[]]); auto.
   rewrite <- mulPP_distr_addPP; auto.
   rewrite addPP_comm; auto.
-  apply build_subst_poly; auto.
 Qed.
 
+(** Given that term [p] decomposed into $(x \ast q + r)\downarrow_{P}$,
+    $p' = ((q + 1) * r)\downarrow_{P}$, and $\sigma$ is a reproductive unifier
+    of $p' \stackrel{?}{\approx}_{B} 0$, then the substitution $\sigma'$ built
+    from $\sigma$ is reproductive with regards to unifiers of
+    $p \stackrel{?}{\approx}_{B} 0$. *)
 
 Lemma build_subst_is_reprod : forall x p q r s,
-(*   is_poly_subst s -> *)
   is_poly p ->
   div_by_var x p = (q, r) ->
   reprod_unif s (build_poly q r) ->
-  inDom x s = false ->
-  is_poly_subst s ->
   forall t, unifier t p ->
-            is_poly_subst t ->
             subst_comp (build_subst s x q r) t t.
 Proof.
-  intros x p q r s HpolyP Hdiv Hreprod Hin HpsS t HunifT HpsT.
+  unfold reprod_unif.
+  intros x p q r s HpolyP Hdiv [[HpsS HunifS] Hsub_comp] t HunifT.
   assert (HunifT' := HunifT).
-  apply (div_build_unif _ _ _ _ _ HpsT HpolyP Hdiv) in HunifT'.
-  unfold reprod_unif in Hreprod.
-  destruct Hreprod as [HunifS Hsub_comp].
+  destruct HunifT as [HpsT HunifT].
+  apply (div_build_unif _ _ _ _ _ HpolyP Hdiv) in HunifT'.
   unfold subst_comp in *.
   intros y.
   destruct (y =? x) eqn:Hyx.
   - unfold build_subst.
-    assert (H: (substP
-        ((x, addPP (mulPP [[x]] (substP s (addPP [[]] q))) (substP s r)) :: s)
-          [[y]]) =
-        (addPP (mulPP [[x]] (substP s (addPP [[]] q))) (substP s r))).
+    assert (H: (substP ((x, addPP (mulPP [[x]] (substP s (addPP [[]] q)))
+                                  (substP s r)) :: s) [[y]]) =
+               (addPP (mulPP [[x]] (substP s (addPP [[]] q))) (substP s r))).
       unfold substP. simpl.
       rewrite Hyx.
       rewrite mulPP_1r; auto. rewrite app_nil_r.
       rewrite no_make_poly; auto.
     rewrite H.
-
     rewrite substP_distr_addPP; auto.
     rewrite substP_distr_mulPP; auto.
     pose (div_is_poly _ _ _ _ HpolyP Hdiv); destruct a.
@@ -675,17 +554,19 @@ Proof.
     inversion H1.
 Qed.
 
+(** Given that term [p] decomposed into $(x \ast q + r)\downarrow_{P}$,
+    $p' = ((q + 1) * r)\downarrow_{P}$, and a reproductive unifier $\sigma$ of
+    $p' \stackrel{?}{\approx}_{B} 0$, then the substitution $\sigma'$ built from
+    $\sigma$ is a reproductive unifier $p \stackrel{?}{\approx}_{B} 0$ based on
+    the previous two lemmas. *)
+
 Lemma reprod_build_subst : forall x p q r s,
   is_poly p ->
   div_by_var x p = (q, r) ->
   reprod_unif s (build_poly q r) ->
-  inDom x s = false ->
-  is_poly_subst s ->
   reprod_unif (build_subst s x q r) p.
 Proof.
-  intros.
-  unfold reprod_unif.
-  split.
+  intros. unfold reprod_unif. split.
   - apply build_subst_is_unif; auto.
   - apply build_subst_is_reprod; auto.
 Qed.
@@ -700,26 +581,30 @@ Qed.
     one variable at a time, creating simpler problems. Once the simplest problem
     has been reached, to which the solution is already known, every solution to
     each subproblem can be built from the solution to the successive subproblem.
-    Formally, given the polynomials [p = x * q + r] and [p' = (q + 1) * r], the
-    solution to [p =B 0] is built from the solution to [p' =B 0]. If [s] solves
-    [p' =B 0], then [s' = s U (x -> x * (s(q) + 1) + s(r))] solves [p =B 0]. *)
+    Formally, given the polynomials $p = (x \ast q + r)\downarrow_{P}$ and
+    $p' = ((q + 1) * r)\downarrow_{P}$, the solution to
+    $p \stackrel{?}{\approx}_{B} 0$ is built from the solution to
+    $p' \stackrel{?}{\approx}_{B} 0$. If $\sigma$ solves
+    $p' \stackrel{?}{\approx}_{B} 0$, then $\sigma \cup \{x \mapsto (x \ast
+    (\sigma(q) + 1) + \sigma(r))\downarrow_{P}\}$ solves
+    $p \stackrel{?}{\approx}_{B} 0$. *)
 
 (** The function [sve] is the final result, but it is [sveVars] which actually
     has all of the meat. Due to Coq's rigid type system, every recursive
     function must be obviously terminating. This means that one of the arguments
     must decrease with each nested call. It turns out that Coq's type checker
     is unable to deduce that continually building polynomials from the quotient
-    and remainder of previous ones will eventually result in 0 or 1. So instead
-    we add a fuel argument that explicitly decreases per recursive call. We use
-    the set of variables in the polynomial for this purpose, since each
-    subsequent call has one less variable. *)
+    and remainder of previous ones will eventually result in [0] or [1]. So
+    instead we add a fuel argument that explicitly decreases per recursive call.
+    We use the set of variables in the polynomial for this purpose, since each
+    subsequent call has at least one less variable. *)
 
 Fixpoint sveVars (varlist : list var) (p : poly) : option subst :=
   match varlist with
   | [] => 
       match p with
-      | [] => Some [] (* p = 1, Identity substitution *)
-      | _  => None    (* p = 0, No solution *)
+      | [] => Some [] (* p = 0, Identity substitution *)
+      | _  => None    (* p = 1, No solution *)
       end
   | x :: xs =>
       let (q, r) := div_by_var x p in
@@ -729,6 +614,9 @@ Fixpoint sveVars (varlist : list var) (p : poly) : option subst :=
       | Some s => Some (build_subst s x q r)
       end
   end.
+
+(** The function [sve] simply calls [sveVars] with an initial fuel of [vars p].
+    *)
 
 Definition sve (p : poly) : option subst := sveVars (vars p) p.
 
@@ -740,53 +628,20 @@ Definition sve (p : poly) : option subst := sveVars (vars p) p.
     beginning, the correctness of a unification algorithm is proven for two
     cases. If the algorithm produces a solution for a problem, then the solution
     must be most general. If the algorithm produces no solution, then the
-    problem must not be unifiable. These statements have been formalized in the
+    problem must be not unifiable. These statements have been formalized in the
     theorem [sve_correct] with the help of the predicates [mgu] and [unifiable]
-    as defined in the library [poly_unif.v]. The two cases of the proof are
+    as defined in the library [poly_unif]. The two cases of the proof are
     handled seperately by the lemmas [sveVars_some] and [sveVars_none].
 *)
 
-
-Lemma sve_in_vars_in_unif : forall xs y p,
-  NoDup xs ->
-  incl (vars p) xs ->
-  is_poly p ->
-  ~ In y xs ->
-  forall s, sveVars xs p = Some s ->
-            inDom y s = false.
-Proof.
-  induction xs as [|x xs].
-  - intros y p Hdup H H0 H1 s H2. simpl in H2. destruct p; inversion H2. auto.
-  - intros y p Hdup H H0 H1 s H2.
-    assert (exists qr, div_by_var x p = qr) as [[q r] Hqr]. eauto.
-    simpl in H2.
-    rewrite Hqr in H2.
-    destruct (sveVars xs (build_poly q r)) eqn:Hs0; inversion H2.
-
-    assert (Hvars: incl (vars (build_poly q r)) xs).
-      apply (div_vars x xs p q r H0 H Hqr).
-
-    assert (Hpoly: is_poly (build_poly q r)). simpl.
-      apply build_poly_is_poly.
-
-    assert (Hny: ~ In y xs).
-      simpl in H1. intro. auto.
-
-    apply NoDup_cons_iff in Hdup as Hnin. destruct Hnin as [Hnin Hdup0].
-    apply (IHxs _ _ Hdup0 Hvars Hpoly Hny) in Hs0.
-
-    unfold inDom. unfold build_subst.
-    simpl.
-    apply Bool.orb_false_intro.
-    + apply Nat.eqb_neq. simpl in H1. intro. auto.
-    + unfold inDom in Hs0. apply Hs0.
-Qed.
+(** If [sveVars] produces a substitution $\sigma$, then the range of $\sigma$
+    only contains polynomials. *)
 
 Lemma sveVars_poly_subst : forall xs p,
   incl (vars p) xs ->
   is_poly p ->
   forall s, sveVars xs p = Some s ->
-  is_poly_subst s.
+            is_poly_subst s.
 Proof.
   induction xs as [|x xs]; intros.
   - simpl in H1. destruct p; inversion H1. unfold is_poly_subst.
@@ -796,16 +651,12 @@ Proof.
     simpl in H1.
     rewrite Hqr in H1.
     destruct (sveVars xs (build_poly q r)) eqn:Hs0; inversion H1.
-
-    assert (Hvars: incl (vars (build_poly q r)) xs).
-      apply (div_vars x xs p q r H0 H Hqr).
-
-    assert (Hpoly: is_poly (build_poly q r)).
-      apply build_poly_is_poly.
-
-    apply (IHxs _ Hvars Hpoly) in Hs0.
-    apply build_subst_poly; auto.
+    apply IHxs in Hs0; eauto.
+    apply build_subst_is_poly; auto.
 Qed.
+
+(** If [sveVars] produces a substitution $\sigma$ for the polynomial [p], then
+    $\sigma$ is a most general unifier of $p \stackrel{?}{\approx}_{B} 0$. *)
 
 Lemma sveVars_some :  forall (xs : list var) (p : poly),
   NoDup xs ->
@@ -817,7 +668,6 @@ Proof.
   intros xs p Hdup H H0 s H1.
   apply reprod_is_mgu.
   revert xs p Hdup H H0 s H1.
-
   induction xs as [|x xs].
   - intros. simpl in H1. destruct p; inversion H1.
     apply empty_reprod_unif.
@@ -826,22 +676,14 @@ Proof.
     simpl in H1.
     rewrite Hqr in H1.
     destruct (sveVars xs (build_poly q r)) eqn:Hs0; inversion H1.
-
-    assert (Hvars: incl (vars (build_poly q r)) xs).
-      apply (div_vars x xs p q r H0 H Hqr).
-
-    assert (Hpoly: is_poly (build_poly q r)).
-      apply build_poly_is_poly.
-
     apply NoDup_cons_iff in Hdup as Hnin. destruct Hnin as [Hnin Hdup0].
-
-    assert (Hin: inDom x s0 = false).
-      apply (sve_in_vars_in_unif _ _ _ Hdup0 Hvars Hpoly Hnin _ Hs0).
-
-    apply (sveVars_poly_subst _ _ Hvars Hpoly) in Hs0 as HpsS0.
-    apply (IHxs _ Hdup0 Hvars Hpoly) in Hs0.
-    apply (reprod_build_subst _ _ _ _ _ H0 Hqr Hs0 Hin HpsS0).
+    apply sveVars_poly_subst in Hs0 as HpsS0; eauto.
+    apply IHxs in Hs0; eauto.
+    apply reprod_build_subst; auto.
 Qed.
+
+(** If [sveVars] does not produce a substitution for the polynomial [p], then
+    the problem $p \stackrel{?}{\approx}_{B} 0$ is not unifiable. *)
 
 Lemma sveVars_none : forall (xs : list var) (p : poly),
   NoDup xs ->
@@ -850,7 +692,6 @@ Lemma sveVars_none : forall (xs : list var) (p : poly),
   sveVars xs p = None ->
   ~ unifiable p.
 Proof.
-  
   induction xs as [|x xs].
   - intros p Hdup H H0 H1. simpl in H1. destruct p; inversion H1. intro.
     unfold unifiable in H2. destruct H2. unfold unifier in H2.
@@ -865,26 +706,21 @@ Proof.
     simpl in H1.
     rewrite Hqr in H1.
     destruct (sveVars xs (build_poly q r)) eqn:Hs0; inversion H1.
-
-    assert (Hvars: incl (vars (build_poly q r)) xs).
-      apply (div_vars x xs p q r H0 H Hqr).
-
-    assert (Hpoly: is_poly (build_poly q r)).
-      apply build_poly_is_poly.
-
     apply NoDup_cons_iff in Hdup as Hnin. destruct Hnin as [Hnin Hdup0].
-
-    apply (IHxs _ Hdup0 Hvars Hpoly) in Hs0.
+    apply IHxs in Hs0; eauto.
     unfold not, unifiable in *.
     intros.
     apply Hs0.
-    destruct H2 as [s [Hps Hs]].
+    destruct H2 as [s Hu].
     exists s.
-    split; auto.
-    apply (div_build_unif _ _ _ _ _ Hps H0 Hqr Hs).
+    apply (div_build_unif x p); auto.
 Qed.
 
 Hint Resolve NoDup_vars incl_refl.
+
+(** If [sveVars] produces a substitution $\sigma$ for the polynomial [p], then
+    $\sigma$ is a most general unifier of $p \stackrel{?}{\approx}_{B} 0$.
+    Otherwise, $p \stackrel{?}{\approx}_{B} 0$ is not unifiable. *)
 
 Lemma sveVars_correct : forall (p : poly),
   is_poly p ->
@@ -894,12 +730,14 @@ Lemma sveVars_correct : forall (p : poly),
   end.
 Proof.
   intros.
-  remember (sveVars (vars p) p).
-  destruct o.
+  destruct (sveVars (vars p) p) eqn: Hsve.
   - apply (sveVars_some (vars p)); auto.
   - apply (sveVars_none (vars p)); auto.
 Qed.
 
+(** If [sve] produces a substitution $\sigma$ for the polynomial [p], then
+    $\sigma$ is a most general unifier of $p \stackrel{?}{\approx}_{B} 0$.
+    Otherwise, $p \stackrel{?}{\approx}_{B} 0$ is not unifiable. *)
 
 Theorem sve_correct : forall (p : poly),
   is_poly p ->
