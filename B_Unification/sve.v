@@ -21,7 +21,7 @@ Require Export poly_unif.
 (** * Eliminating Variables *)
 
 (** This section deals with the problem of removing a variable [x] from a term
-    [t]. The first thing to notice is that [t] can be written in polynomial form
+    _t_. The first thing to notice is that _t_ can be written in polynomial form
     $t\downarrow_{P}$. This polynomial is just a set of monomials, and each
     monomial a set of variables. We can now seperate the polynomials into two
     sets [qx] and [r]. The term [qx] will be the set of monomials in
@@ -37,20 +37,21 @@ Require Export poly_unif.
     [has_var]. The second step is to remove [x] from [qx] using the helper
     [elim_var]. *)
 
-(** The function [has_var] determines whether a variable appears in a monomial. *)
+(** The function [has_var] determines whether a variable appears in a monomial.
+    *)
 
 Definition has_var (x : var) := existsb (beq_nat x).
 
-(** The function [elim_var] removes a variable from each monomial in a polynomial. It is
-    possible that this leaves the term not in polynomial form so it is then
-    repaired with [make_poly]. *)
+(** The function [elim_var] removes a variable from each monomial in a
+    polynomial. It is possible that this leaves the term not in polynomial form
+    so it is then repaired with [make_poly]. *)
 
 Definition elim_var (x : var) (p : poly) : poly :=
   make_poly (map (remove var_eq_dec x) p).
 
-(** The function [div_by_var] produces a quotient [q] and remainder [r] from a polynomial [p]
-    and variable [x] such that $p \approx_{B} x \ast q + r$ and [x] does not
-    occur in [r]. *)
+(** The function [div_by_var] produces a quotient [q] and remainder [r] from a
+    polynomial [p] and variable [x] such that $p \approx_{B} x \ast q + r$ and
+    [x] does not occur in [r]. *)
 
 Definition div_by_var (x : var) (p : poly) : prod poly poly :=
   let (qx, r) := partition (has_var x) p in
@@ -404,7 +405,7 @@ Definition build_subst (s : subst) (x : var) (q r : poly) : subst :=
   let xs  := (x, addPP (mulPP [[x]] q1s) rs) in
   xs :: s.
 
-(** The function [build_subst] produces a substitution whose domain only
+(** The function [build_subst] produces a substitution whose range only
     contains polynomials. *)
 
 Lemma build_subst_is_poly : forall s x q r,
@@ -633,7 +634,7 @@ Definition sve (p : poly) : option subst := sveVars (vars p) p.
     handled seperately by the lemmas [sveVars_some] and [sveVars_none].
 *)
 
-(** If [sveVars] produces a substitution $\sigma$, then the domain of $\sigma$
+(** If [sveVars] produces a substitution $\sigma$, then the range of $\sigma$
     only contains polynomials. *)
 
 Lemma sveVars_poly_subst : forall xs p,

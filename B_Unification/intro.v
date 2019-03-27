@@ -66,9 +66,9 @@
 (** ** Semantic Unification *)
 
 (** This kind of unification involves an equational theory. Given a set of
-    identities [E], we write that two terms [s] and [t] are equal with regards
+    identities [E], we write that two terms [s] and _t_ are equal with regards
     to [E] as $s \approx_{E} t$. This means that identities of [E] can be
-    applied to [s] as [s'] and [t] as [t'] in some way to make them
+    applied to [s] as [s'] and _t_ as [t'] in some way to make them
     syntactically equal, [s' = t']. As an example, let [C] be the set
     $\{f(x, y) \approx f(y, x)\}$. This theory axiomatizes the commutativity
     of the function [f]. Knowing this, the problem
@@ -97,7 +97,7 @@
     t_{1} \stackrel{?}{\approx}_{B} 0, ..., s_{n} + t_{n}
     \stackrel{?}{\approx}_{B} 0\}$ using a simple fact. The equation
     $s \approx_{B} t$ is equivalent to $s + t \approx_{B} 0$ since
-    adding [t] to both sides of the equation turns the right hand side into
+    adding _t_ to both sides of the equation turns the right hand side into
     [t + t] which simplifies to [0]. Then, given a problem $\{t_{1}
     \stackrel{?}{\approx}_{B} 0, ..., t_{n} \stackrel{?}{\approx}_{B} 0\}$, we
     can transform it into

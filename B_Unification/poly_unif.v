@@ -1,10 +1,10 @@
 Require Import List.
 Import ListNotations.
 Require Import Arith.
-Import Nat.
 Require Import Permutation.
 
 Require Export poly.
+
 
 (** * Introduction *)
 
@@ -27,19 +27,19 @@ Definition repl := prod var poly.
 
 Definition subst := list repl.
 
-(** Since the _poly_ data type doesn't enforce the properties of actual
-    polynomials, the _is_poly_ predicate is used to check if a term is in
-    polynomial form. Likewise, the _is_poly_subst_ predicate below verifies that
+(** Since the [poly] data type doesn't enforce the properties of actual
+    polynomials, the [is_poly] predicate is used to check if a term is in
+    polynomial form. Likewise, the [is_poly_subst] predicate below verifies that
     every term in the range of the substitution is a polynomial. *)
 
 Definition is_poly_subst (s : subst) : Prop :=
   forall x p, In (x, p) s -> is_poly p.
 
 (** The next three functions implement how substitutions are applied to terms.
-    At the top level, _substP_ applies a substitution to a polynomial by calling
-    _substM_ on each monomial. From there, _substV_ is called on each variable.
+    At the top level, [substP] applies a substitution to a polynomial by calling
+    [substM] on each monomial. From there, [substV] is called on each variable.
     Because variables and monomials are converted to polynomials, the process
-    isn't simplying mapping application across the lists. _substM_ and _substP_
+    isn't simplying mapping application across the lists. [substM] and [substP]
     must multiply and add each polynomial together respectively. *)
 
 Fixpoint substV (s : subst) (x : var) : poly :=
@@ -58,7 +58,7 @@ Definition substP (s : subst) (p : poly) : poly :=
   make_poly (concat (map (substM s) p)).
 
 (** Useful in later proofs is the ability to rewrite the unfolded definition of
-    _substP_ as just the function call. *)
+    [substP] as just the function call. *)
 
 Lemma substP_refold : forall s p,
   make_poly (concat (map (substM s) p)) = substP s p.
@@ -94,7 +94,7 @@ Hint Resolve substP_is_poly substM_is_poly.
 
 (** The lemma below states that a substitution applied to a variable in
     polynomial form is equivalent to the substitution applied to just the
-    variable. This fact only holds when the substitution's domain consists of
+    variable. This fact only holds when the substitution's range consists of
     polynomials. *)
 
 Lemma subst_var_eq : forall x s,
@@ -176,9 +176,9 @@ Qed.
 
 (** Below is the statement and proof that substitution distributes over
     polynomial addition. Given a substitution [s] and two terms in polynomial
-    form [p] and [q], it is shown that [s(p + q) = s(p) + s(q)]. The proof
-    relies heavily on facts about permutations proven in the _list_util_
-    library. *)
+    form [p] and [q], it is shown that
+    $s(p + q)\downarrow_{P} = (s(p) + s(q))\downarrow_{P}$. The proof relies
+    heavily on facts about permutations proven in the [list_util] library. *)
 
 Lemma substP_distr_addPP : forall p q s,
   is_poly p ->
@@ -222,9 +222,10 @@ Qed.
 
 (** The next six lemmas deal with proving that substitution distributes over
     polynomial multiplication. Given a substitution [s] and two terms in
-    polynomial form [p] and [q], it is shown that [s(p * q) = s(p) * s(q)]. The
-    proof turns out to be much more difficult than the one for addition because
-    the underlying arithmetic operation is more complex. *)
+    polynomial form [p] and [q], it is shown that
+    $s(p \ast q)\downarrow_{P} = (s(p) \ast s(q))\downarrow_{P}$. The proof
+    turns out to be much more difficult than the one for addition because the
+    underlying arithmetic operation is more complex. *)
 
 (** If two monomials are permutations (obviously not in monomial form), then
     applying any substitution to either will produce the same result. A weaker
@@ -249,7 +250,7 @@ Proof.
 Qed.
 
 (** Adding duplicate variables to a monomial doesn't change the result of
-    applying a substitution. This is only true if the substitution's domain
+    applying a substitution. This is only true if the substitution's range
     only has polynomials. *)
 
 Lemma substM_nodup_pointless : forall s m,
@@ -422,8 +423,8 @@ Qed.
     property about substitutions or polynomials. *)
 
 (** A _unifier_ for a given polynomial [p] is a substitution [s] such that
-    [s(p) = 0]. This definition also includes that the domain of the
-    substitution only contain terms in polynomial form. *)
+    $s(p)\downarrow_{P} = 0$. This definition also includes that the range of
+    the substitution only contain terms in polynomial form. *)
 
 Definition unifier (s : subst) (p : poly) : Prop :=
   is_poly_subst s /\ substP s p = [].
@@ -433,16 +434,17 @@ Definition unifier (s : subst) (p : poly) : Prop :=
 Definition unifiable (p : poly) : Prop :=
   exists s, unifier s p.
 
-(** A substitution [u] is a composition of two substitutions [s] and [t] if
-    [u(x) = t(s(x))] for every variable [x]. The lemma _subst_comp_poly_ below
-    extends this definition from variables to polynomials. *)
+(** A substitution [u] is a _composition_ of two substitutions [s] and _t_ if
+    $u(x)\downarrow_{P} = t(s(x))\downarrow_{P}$ for every variable [x]. The
+    lemma [subst_comp_poly] below extends this definition from variables to
+    polynomials. *)
 
 Definition subst_comp (s t u : subst) : Prop :=
   forall x,
   substP t (substP s [[x]]) = substP u [[x]].
 
-(** A substitution [s] is _more general_ than a substitution [t] if there exists
-    a third substitution [u] such that [t] is a composition of [u] and [s]. *)
+(** A substitution [s] is _more general_ than a substitution _t_ if there exists
+    a third substitution [u] such that _t_ is a composition of [u] and [s]. *)
 
 Definition more_general (s t : subst) : Prop :=
   exists u, subst_comp s u t.
@@ -457,9 +459,9 @@ Definition mgu (s : subst) (p : poly) : Prop :=
   more_general s t.
 
 (** Given a polynomial [p], a substitution [s] is a _reproductive unifier_ of
-    [p] if [t] is a composition of itself and [s] for every unifier [t] of [p].
+    [p] if _t_ is a composition of itself and [s] for every unifier _t_ of [p].
     This property is similar but stronger than most general because the
-    substitution that composes with [s] is restricted to [t], whereas in most
+    substitution that composes with [s] is restricted to _t_, whereas in most
     general it can be any substitution. *)
 
 Definition reprod_unif (s : subst) (p : poly) : Prop :=
@@ -480,7 +482,7 @@ Proof.
   intros p s [].
   split; auto.
   intros.
-  exists t0.
+  exists t.
   intros.
   apply H0; auto.
 Qed.
