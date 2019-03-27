@@ -941,7 +941,7 @@ Qed.
 (**
     These lemmas about [partition] and [filter] are now put to use in two
     important lemmas about [partition]. If some list [l] is partitioned into
-    two lists [(t, f)], then every element in [t] must return true for the
+    two lists [(t, f)], then every element in _t_ must return true for the
     filtering predicate and every element in [f] must return false.
   *)
 
