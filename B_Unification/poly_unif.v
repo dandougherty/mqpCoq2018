@@ -10,7 +10,7 @@ Require Export poly.
 
 (** This section deals with defining substitutions and their properties using
     a polynomial representation. As with the inductive term representation,
-    substitutions are just list of replacements, where variables are swapped
+    substitutions are just lists of replacements, where variables are swapped
     with polynomials instead of terms. Crucial to the proof of correctness in
     the following chapter, substitution is proven to distribute over polynomial
     addition and multiplication. Definitions are provided for unifier,
@@ -270,7 +270,7 @@ Qed.
 
 (** The idea behind the following two lemmas is that substitutions
     distribute over multiplication of a monomial and polynomial. The specifics
-    of both are convoluted yet easier to prove than distribution over two
+    of both are convoluted, yet easier to prove than distribution over two
     polynomials. *)
 
 Lemma substM_distr_mulMP : forall m n s,
