@@ -16,18 +16,19 @@ Require Import Omega.
     this algorithm lends itself well to a new representation of terms as
     polynomials.
 
-    A polynomial is a list of monomials being added together, where a monomial
-    is a list of variables being multiplied together. Since one of the rules is
-    that x * x = x, we can guarantee that there are no repeated variables in
-    any given monomial. Similarly, because x + x = 0, we can guarantee that
-    there are no repeated monomials in a polynomial.
+    A _polynomial_ is a list of monomials being added together, where a
+    _monomial_ is a list of variables being multiplied together. Since one of
+    the rules is that $x \ast x \approx_{B} x$, we can guarantee that there are
+    no repeated variables in any given monomial. Similarly, because
+    $x + x \approx_{B} 0$, we can guarantee that there are no repeated monomials
+    in a polynomial.
 
     Because of these properties, as well as the commutativity of addition and
     multiplication, we can represent both monomials and polynomials as
     unordered sets of variables and monomials, respectively. For simplicity
     when implementing and comparing these polynomials in Coq, we have opted
     to use the standard list structure, instead maintaining that the lists
-    are maintained in our polynomial form after each stage. 
+    are maintained in our polynomial form after each stage.
 
     In order to effectively implement polynomial lists in this way, a set of
     utilities are needed to allow us to easily perform operations on these
@@ -44,10 +45,10 @@ Require Import Omega.
     are not equal.
 
     In all cases throughout this project, the comparator used will be the
-    standard nat compare function.
+    standard nat [compare] function.
 
-    For example, [[1;2;3]] is less than [[1;2;4]], and [[1;2]] is greater than [[1]].
-  *)
+    For example, [[1;2;3]] is less than [[1;2;4]], and [[1;2]] is greater than
+    [[1]]. *)
 
 Fixpoint lex {T : Type} (cmp : T -> T -> comparison) (l1 l2 : list T)
               : comparison :=
@@ -62,10 +63,8 @@ Fixpoint lex {T : Type} (cmp : T -> T -> comparison) (l1 l2 : list T)
       end
   end.
 
-(** 
-    There are some important but relatively straightforward properties of this
-    function that are useful to prove. First, reflexivity: 
-  *)
+(** There are some important but relatively straightforward properties of this
+    function that are useful to prove. First, _reflexivity_: *)
 
 Lemma lex_nat_refl : forall (l : list nat), lex compare l l = Eq.
 Proof.
@@ -75,12 +74,10 @@ Proof.
   - simpl. rewrite compare_refl. apply IHl.
 Qed.
 
-(** 
-    Next, antisymmetry. This allows us to take a predicate or hypothesis about
+(** Next, _antisymmetry_. This allows us to take a predicate or hypothesis about
     the comparison of two polynomials and reverse it.
 
-    For example, [a < b] implies [b > a].
-  *)
+    For example, [a < b] implies [b > a]. *)
 
 Lemma lex_nat_antisym : forall (l1 l2 : list nat),
   lex compare l1 l2 = CompOpp (lex compare l2 l1).
@@ -99,11 +96,9 @@ Proof.
       * reflexivity.
 Qed.
 
-(** 
-    It is also useful to convert from the result of [lex compare] to a hypothesis
-    about equality in Coq. Clearly, if [lex compare] returns [Eq], the lists are
-    exactly equal, and if it returns [Lt] or [Gt] they are not.
-  *)
+(** It is also useful to convert from the result of [lex compare] to a
+    hypothesis about equality in Coq. Clearly, if [lex compare] returns [Eq],
+    the lists are exactly equal, and if it returns [Lt] or [Gt] they are not. *)
 
 Lemma lex_eq : forall n m,
   lex compare n m = Eq <-> n = m.
@@ -145,13 +140,11 @@ Proof.
   - intros. apply lex_neq. auto.
 Qed.
 
-(**
-    It is also useful to be able to flip the arguments of a call to [lex compare],
-    since these two comparisons impact each other directly.
+(** It is also useful to be able to flip the arguments of a call to
+    [lex compare], since these two comparisons impact each other directly.
 
-    If [lex] returns that [n = m], then this also means that [m = n]. More
-    interesting is that if [n < m], then [m > n].
-  *)
+    If [lex compare] returns that [n = m], then this also means that [m = n].
+    More interesting is that if [n < m], then [m > n]. *)
 
 Lemma lex_rev_eq : forall n m,
   lex compare n m = Eq <-> lex compare m n = Eq.
@@ -169,12 +162,10 @@ Proof.
   - destruct (lex compare n m) eqn:H0; inversion H. reflexivity.
 Qed.
 
-(** 
-    Lastly is a property over lists. The comparison of two lists stays the same
+(** Lastly is a property over lists. The comparison of two lists stays the same
     if the same new element is added onto the front of each list. Similarly, if
     the item at the front of two lists is equal, removing it from both does not
-    chance the lists' comparison.
-  *)
+    change the lists' comparison. *)
 
 Lemma lex_nat_cons : forall (l1 l2 : list nat) n,
   lex compare l1 l2 = lex compare (n::l1) (n::l2).
@@ -187,25 +178,21 @@ Hint Resolve lex_nat_refl lex_nat_antisym lex_nat_cons.
 
 (** * Extensions to the Standard Library *)
 
-(**
-    There were some facts about the standard library list functions that we
+(** There were some facts about the standard library list functions that we
     found useful to prove, as they repeatedly came up in proofs of our more
     complex custom list functions.
 
     Specifically, because we are comparing sorted lists, it is often easier
     to disregard the sortedness of the lists and instead compare them as
-    Permutations of one another. As a result, many of the lemmas in the
-    rest of this file revolve around proving that two lists are Permutations
-    of one another.
-  *)
+    permutations of one another. As a result, many of the lemmas in the
+    rest of this file revolve around proving that two lists are permutations
+    of one another. *)
 
 (** ** Facts about [In]  *)
 (* ========== in ========== *)
-(** 
-    First, a very simple fact about [In]. This mostly follows from the
-    standard library lemma [Permutation_in], but is more convenient for
-    some of our proofs when formalized like this.
-  *)
+(** First, a very simple fact about [In]. This mostly follows from the standard
+    library lemma [Permutation_in], but is more convenient for some of our
+    proofs when formalized like this. *)
 
 Lemma Permutation_not_In : forall (A:Type) a (l l':list A),
   Permutation l l' ->
@@ -216,10 +203,8 @@ Proof.
   apply (Permutation_in a) in H; auto.
 Qed.
 
-(**
-    Something else that seems simple but proves very useful to know is that
-    if there are no elements [In] a list, that list must be empty.
-  *)
+(** Something else that seems simple but proves very useful to know is that if
+    there are no elements in a list, that list must be empty. *)
 
 Lemma nothing_in_empty : forall {A} (l:list A),
   (forall a, ~ In a l) ->
@@ -233,12 +218,10 @@ Qed.
 
 (** ** Facts about [incl] *)
 (* ========== incl ========== *)
-(**
-    Next are some useful lemmas about [incl]. First is that if one list is
+(** Next are some useful lemmas about [incl]. First is that if one list is
     included in another, but one element of the second list is not in the first,
     then the first list is still included in the second with that element
-    removed.
-  *)
+    removed. *)
 
 Lemma incl_not_in : forall A a (l m : list A),
   incl l (a :: m) ->
@@ -249,11 +232,9 @@ Proof.
   simpl in Hincl. destruct (Hincl a0); auto. rewrite H in Hnin. contradiction.
 Qed.
 
-(**
-    We also found it useful to relate [Permutation] to [incl]; if two lists are
+(** We also found it useful to relate [Permutation] to [incl]; if two lists are
     permutations of each other, then they must be set equivalent, or contain
-    all of the same elements.
-  *)
+    all of the same elements. *)
 
 Lemma Permutation_incl : forall {A} (l m : list A),
   Permutation l m -> incl l m /\ incl m l.
@@ -263,12 +244,10 @@ Proof.
   + unfold incl. intros a. apply (Permutation_in _ H0).
 Qed.
 
-(**
-    Unfortunately, the definition above cannot be changed into an iff
-    relation, as incl proves nothing about the counts in the lists. We can,
-    however, prove that if some [m] includes all the elements of a list, then
-    it also includes all the elements of all permutations of that list.
-  *)
+(** Unfortunately, the definition above cannot be changed into an iff
+    relation, as [incl] proves nothing about the lengths of the lists. We can,
+    however, prove that if some list [m] includes a list [l], then [m] includes
+    all permutations of [l]. *)
 
 Lemma incl_Permutation : forall {A:Type} (l l' m:list A),
   Permutation l l' ->
@@ -279,10 +258,8 @@ Proof.
   apply incl_tran with (m:=l); auto.
 Qed.
 
-(**
-    A really simple lemma is that if some [l] is included in the empty
-    list, then that list must also be empty.
-  *)
+(** A really simple lemma is that if some list [l] is included in the empty
+    list, then [l] must also be empty. *)
 
 Lemma incl_nil : forall {X:Type} (l:list X),
   incl l [] <-> l = [].
@@ -292,10 +269,8 @@ Proof.
   - intros a Hin. destruct l; [auto | rewrite H in Hin; auto].
 Qed.
 
-(**
-    The last fact about [incl] is simply a new way of formalizing the
-    definition that is convenient for some proofs.
-  *)
+(** The last fact about [incl] is simply a new way of formalizing the definition
+    that is convenient for some proofs. *)
 
 Lemma incl_cons_inv : forall (A:Type) (a:A) (l m : list A),
   incl (a :: l) m -> In a m /\ incl l m.
@@ -309,11 +284,9 @@ Qed.
 
 (** ** Facts about [count_occ] *)
 (* ========== count_occ ========== *)
-(**
-    Next is some facts about [count_occ]. Firstly, if two lists are permutations
+(** Next is some facts about [count_occ]. Firstly, if two lists are permutations
     of each other, than every element in the first list has the same number of
-    occurences in the second list.
-  *)
+    occurences in the second list. *)
 
 Lemma count_occ_Permutation : forall (A:Type) Aeq_dec a (l l':list A),
   Permutation l l' ->
@@ -326,11 +299,9 @@ Proof.
   - rewrite <- IHPermutation2. rewrite IHPermutation1. auto.
 Qed.
 
-(**
-    [count_occ] also distributes over app, instead becoming addition, which
-    is useful especially when dealing with count occurences of concatenated
-    lists during induction.
-  *)
+(** The function [count_occ] also distributes over list concatenating, instead
+    becoming addition. This is useful especially when dealing with count
+    occurences of lists during induction. *)
 
 Lemma count_occ_app : forall (A:Type) a (l m:list A) Aeq_dec,
   count_occ Aeq_dec (l++m) a = add (count_occ Aeq_dec l a) (count_occ Aeq_dec m a).
@@ -340,13 +311,11 @@ Proof.
   - simpl. destruct (Aeq_dec a0 a); simpl; auto.
 Qed.
 
-(** 
-    It is also convenient to reason about the relation between [count_occ]
-    and [remove]. If the element being removed is the same as the one being
-    counted, then the count is obviously 0; if the elements are different,
-    then the count is the same with or without the remove.
-  *)
-  
+(** It is also convenient to reason about the relation between [count_occ] and
+    [remove]. If the element being removed is the same as the one being counted,
+    then the count is obviously [0]. If the elements are different, then the
+    count is the same with or without the remove. *)
+
 Lemma count_occ_remove : forall {A} Aeq_dec (a:A) p,
   count_occ Aeq_dec (remove Aeq_dec a p) a = 0.
 Proof.
@@ -374,11 +343,9 @@ Qed.
 
 (** ** Facts about [concat] *)
 (* ========== concat ========== *)
-(**
-    Similarly to the lemma [Permutation_map], [Permutation_concat] shows that
-    if two lists are permutations of each other then the concatenation of each
-    list are also permutations.
-  *)
+(** Similarly to the lemma [Permutation_map], [Permutation_concat] shows that
+    if two lists are permutations of each other then the flattening of each
+    list are also permutations. *)
 
 Lemma Permutation_concat : forall {A} (l m:list (list A)),
   Permutation l m ->
@@ -395,12 +362,10 @@ Proof.
   - apply Permutation_trans with (l':=(concat l')); auto.
 Qed.
 
-(** 
-    Before the creation of this lemma, it was relatively hard to reason about
-    whether elements are in the concatenation of a list of lists. This lemma
+(** Before the creation of this next lemma, it was relatively hard to reason
+    about whether elements are in the flattening of a list of lists. This lemma
     states that if there is a list in the list of lists that contains the
-    desired element, then that element will be in the concatenated version.
-  *)
+    desired element, then that element will be in the flattened version. *)
 
 Lemma In_concat_exists : forall (A:Type) ll (a:A),
   (exists l, In l ll /\ In a l) <-> In a (concat ll).
@@ -417,12 +382,10 @@ Proof.
       * destruct IHll; auto. exists x. intuition.
 Qed.
 
-(**
-    This particular lemma is useful if the function being mapped returns
-    a list of its input type. If the resulting lists are concatenated after,
-    then the result is the same as mapping the function without converting
-    the output to lists.
-  *)
+(** This particular lemma is useful if the function being mapped returns a list
+    of its input type. If the resulting lists are flattened after, then the
+    result is the same as mapping the function without converting the output to
+    lists. *)
 
 Lemma concat_map : forall {A B:Type} (f:A->B) (l:list A),
   concat (map (fun a => [f a]) l) = map f l.
@@ -432,11 +395,9 @@ Proof.
   - simpl. f_equal. apply IHl.
 Qed.
 
-(**
-    Another fact similar to the last is that if you concatenate the result
-    of mapping a function that maps a function over a list, we can rearrange
-    the order of the concat and the maps.
-  *)
+(** Another fact similar to the last is that if you flatten the result of
+    mapping a function that maps a function over a list, we can rearrange the
+    order of the [concat] and the [map]s. *)
 
 Lemma concat_map_map : forall A B C l (f:B->C) (g:A->list B),
   concat (map (fun a => map f (g a)) l) =
@@ -446,10 +407,8 @@ Proof.
   simpl. rewrite map_app. f_equal. auto.
 Qed.
 
-(**
-    Lastly, if you [map] a function that converts every element of a list
-    to [nil], and then [concat] the list of [nil]s, you end with [nil].
-  *)
+(** Lastly, if you [map] a function that converts every element of a list to
+    [nil], and then [concat] the list of [nil]s, you end with [nil]. *)
 
 Lemma concat_map_nil : forall {A} (p:list A),
   concat (map (fun x => []) p) = (@nil A).
@@ -461,10 +420,8 @@ Qed.
 
 (** ** Facts about [Forall] and [existsb] *)
 (* ========== forall ========== *)
-(**
-    This is similar to the inverse of [Forall]; any element in the list
-    must hold the specified relation if [Forall Rel] is true of the list.
-  *)
+(** This is similar to the inverse of [Forall]; any element in the list must
+    hold the specified relation [Rel] if [Forall Rel] is true of the list. *)
 
 Lemma Forall_In : forall (A:Type) (l:list A) a Rel,
   In a l -> Forall Rel l -> Rel a.
@@ -472,31 +429,27 @@ Proof.
   intros A l a Rel Hin Hfor. apply (Forall_forall Rel l); auto.
 Qed.
 
-(**
-    In Coq, [existsb] is effectively the "or" to [Forall]'s "and" when
-    reasoning about lists. If there does not exist a single element in the
-    list where [f] is true, then [(f a)] must be false for all elements of
-    the list.
-  *)
+(** In Coq, [existsb] is effectively the "or" to [Forall]'s "and" when reasoning
+    about lists. If there does not exist a single element in a list [l] where
+    the predicate [p] holds, then [p a] must be false for any element [a] of
+    [l]. *)
 
-Lemma existsb_false_forall : forall {A} f (l:list A),
-  existsb f l = false ->
-  (forall a, In a l -> (f a) = false).
+Lemma existsb_false_forall : forall {A} p (l:list A),
+  existsb p l = false ->
+  (forall a, In a l -> p a = false).
 Proof.
-  intros A f l H a Hin. destruct (f a) eqn:Hfa.
-  - exfalso. rewrite <- Bool.negb_true_iff in H. apply (Bool.eq_true_false_abs _ H).
-    rewrite Bool.negb_false_iff. apply existsb_exists. exists a. split; auto.
-  - auto.
+  intros A p l H a Hin. destruct (p a) eqn:Hpa; auto.
+  exfalso. rewrite <- Bool.negb_true_iff in H.
+  apply (Bool.eq_true_false_abs _ H). rewrite Bool.negb_false_iff.
+  apply existsb_exists. exists a. split; auto.
 Qed.
 
-(**
-    Similarly to Forall_In, this lemma is just another way of formalizing
-    the definition of Forall that proves useful when dealing with
-    [StronglySorted] lists.
-  *)
+(** Similarly to [Forall_In], this lemma is just another way of formalizing the
+    definition of [Forall] that proves useful when dealing with [StronglySorted]
+    lists. *)
 
-Lemma Forall_cons_iff : forall (A:Type) Rel a (l:list A),
-  Forall Rel (a::l) <-> Forall Rel l /\ Rel a.
+Lemma Forall_cons_iff : forall (A:Type) Rel (a:A) l,
+  Forall Rel (a :: l) <-> Forall Rel l /\ Rel a.
 Proof.
   intros A Rel a l. split.
   - intro H. split.
@@ -506,43 +459,35 @@ Proof.
   - intros []. apply Forall_cons; auto.
 Qed.
 
-(**
-    If a relation holds for all elements of a list l, then the relation
-    still holds if some elements are removed from the list.
-  *)
+(** If a relation holds for all elements of a list [l], then the relation
+    still holds if some elements are removed from [l]. *)
 
-Lemma Forall_remove : forall (A:Type) Aeq_dec Rel a (l:list A),
+Lemma Forall_remove : forall (A:Type) Aeq_dec Rel (a:A) l,
   Forall Rel l -> Forall Rel (remove Aeq_dec a l).
 Proof.
-  intros A Aeq_dec Rel a l H. induction l.
-  - simpl. auto.
-  - simpl. apply Forall_cons_iff in H. destruct (Aeq_dec a a0).
+  intros A Aeq_dec Rel a l H. induction l; auto. simpl.
+  apply Forall_cons_iff in H. destruct (Aeq_dec a a0).
+  - apply IHl. apply H.
+  - apply Forall_cons_iff. split.
     + apply IHl. apply H.
-    + apply Forall_cons_iff. split.
-      * apply IHl. apply H.
-      * apply H.
+    + apply H.
 Qed.
 
-(**
-    This next lemma is particularly useful for relating [StronglySorted]
-    lists to [Sorted] lists; if some comparator holds for all elements
-    of [p], then this can be converted to the [HdRel] proposition used by
-    [Sorted].
-  *)
+(** This next lemma is particularly useful for relating [StronglySorted] lists
+    to [Sorted] lists; if some relation holds between all elements of a list,
+    then this can be converted to the [HdRel] proposition used by [Sorted]. *)
 
-Lemma Forall_HdRel : forall {X:Type} c a (p:list X),
-  Forall (c a) p -> HdRel c a p.
+Lemma Forall_HdRel : forall {X:Type} c (x:X) l,
+  Forall (c x) l -> HdRel c x l.
 Proof.
-  intros X c a p H. destruct p.
+  intros X c x l H. destruct l.
   - apply HdRel_nil.
   - apply HdRel_cons. apply Forall_inv in H. auto.
 Qed.
 
-(**
-    Lastly, if some property [(c a)] is true for all elements in a list [p],
+(** Lastly, if some property [(c a)] is true for all elements in a list [p],
     and the elements of a second list [g] are all included in [p], then the
-    property is also true for the elements in [g].
-  *)
+    property is also true for the elements in [g]. *)
 
 Lemma Forall_incl : forall {X:Type} (c:X->X->Prop) a (p g:list X),
   Forall (c a) p -> incl g p -> Forall (c a) g.
