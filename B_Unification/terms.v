@@ -722,10 +722,6 @@ Hint Resolve trans_compat.
 Lemma apply_subst_compat : forall  (t t' : term),
      t == t' -> forall (sigma: subst), (apply_subst t sigma) == (apply_subst t' sigma).
 Proof.
-intros. induction t, t'.
-- reflexivity.
-- simpl. apply H.
-- simpl.
 Admitted.
 
 Add Parametric Morphism : apply_subst with
@@ -1714,4 +1710,3 @@ Proof.
   + simpl. reflexivity.
 Qed.
   
-
