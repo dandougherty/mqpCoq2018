@@ -361,14 +361,6 @@ Proof.
       { specialize (IHlvar H).  simpl. right. apply IHlvar. } }
 Qed.  
 
-(*
-Lemma decA: forall x y : var, {x = y} + {x <> y}.
-Proof.
-Admitted.
-
-Definition term_unique_vars (t : term) : var_set :=
-  (nodup decA (term_vars t)).
-*)
 
 (** ** Examples **)
 
@@ -1682,6 +1674,12 @@ intros. induction t1.
       { simpl. rewrite H. reflexivity. }
       { simpl. rewrite <- H. reflexivity. }
 Qed.
+
+(** Being able to simplify a term can be a usefool tool. Being able to use
+the simplified version of the term as the equivalent version of the original term
+can also be useful since many of our functions simplify the term first.
+
+**)
 
 Lemma simplify_eqv :
  forall (t : term),

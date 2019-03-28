@@ -22,24 +22,24 @@ mentioned above.
 (** * Auxillary declarations and their lemmas useful for the final proofs **)
 
 (** In this section we provide definitions and proofs of helper functions, Propositions and lemmas that will be later used
-  in the proofs.
+  in other proofs.
 
 **)
 
-(** This is the definition of a sub_term. A sub_term is a Proposition, or a relationship between two terms. When a term t is a sub_term
+(** This is the definition of an under_term. An under_term is a Proposition, or a relationship between two terms. When a term t is an under_term
 of a term t' then each of the unique variables found within t are also found within the unique variables of t'. 
 **)
 
-Definition sub_term (t : term) (t' : term) : Prop :=
+Definition under_term (t : term) (t' : term) : Prop :=
   forall (x : var ),
   (In x (term_unique_vars t) ) -> (In x (term_unique_vars t')) .
 
-(** This is a simple lemma for sub_terms that states that a term is a sub_term of itself. 
+(** This is a simple lemma for under_terms that states that a term is an under_term of itself. 
 **)
 
-Lemma sub_term_id :
+Lemma under_term_id :
   forall (t : term),
-  sub_term t t.
+  under_term t t.
 Proof.
  intros. firstorder.
 Qed.
@@ -97,15 +97,15 @@ intros. induction t1.
 Qed.
 
 
-(** This is a helper lemma for the sub_term relationship : if the sum of two terms is a subterm of another term t', then the left component of the sum is
+(** This is a helper lemma for the under_term relationship : if the sum of two terms is a subterm of another term t', then the left component of the sum is
    also a subterm of the other term t' 
    **)
    
 Lemma helper_2a:
   forall (t1 t2 t' : term),
-  sub_term (t1 + t2) t' -> sub_term t1 t'.
+  under_term (t1 + t2) t' -> under_term t1 t'.
 Proof.
- intros.  unfold sub_term in *. intros. specialize (H x).
+ intros.  unfold under_term in *. intros. specialize (H x).
  pose proof in_dup_and_non_dup as H10. unfold term_unique_vars. unfold term_unique_vars in *.
  pose proof tv_h1 as H7. apply H. specialize (H7 t1 t2 x). specialize (H10 x (term_vars (t1 + t2))). destruct H10 . 
  apply H1. apply H7. pose proof in_dup_and_non_dup as H10. specialize (H10 x (term_vars t1)). destruct H10.
@@ -113,15 +113,15 @@ Proof.
 Qed. 
 
   
-(**  This is a helper lemma for the sub_term relationship : if the sum of two terms is a subterm of another term t', then the right component of the sum is
+(**  This is a helper lemma for the under_term relationship : if the sum of two terms is a subterm of another term t', then the right component of the sum is
    also a subterm of the other term t' 
    **)
    
 Lemma helper_2b:
   forall (t1 t2 t' : term),
-  sub_term (t1 + t2) t' -> sub_term t2 t'.
+  under_term (t1 + t2) t' -> under_term t2 t'.
 Proof.
-intros.  unfold sub_term in *. intros. specialize (H x). 
+intros.  unfold under_term in *. intros. specialize (H x). 
 pose proof in_dup_and_non_dup as H10. unfold term_unique_vars. unfold term_unique_vars in *.
  pose proof tv_h2 as H7. apply H. specialize (H7 t1 t2 x). specialize (H10 x (term_vars (t1 + t2))). destruct H10 . 
  apply H1. apply H7. pose proof in_dup_and_non_dup as H10. specialize (H10 x (term_vars t2)). destruct H10.
@@ -245,12 +245,12 @@ This is another helper lemma for the skeleton function build_on_list_of_vars and
  
 Lemma helper_1:
 forall (t' s : term) (v : var) (sig1 sig2 : subst),
-  sub_term (VAR v) t' -> 
+  under_term (VAR v) t' -> 
   apply_subst (VAR v) (build_on_list_of_vars (term_unique_vars t') s sig1 sig2)
   == 
   apply_subst (VAR v) (build_on_list_of_vars (term_unique_vars (VAR v)) s sig1 sig2).
 Proof.
- intros.  unfold sub_term in H. specialize (H v). pose proof in_list_of_var_term_of_var as H3.
+ intros.  unfold under_term in H. specialize (H v). pose proof in_list_of_var_term_of_var as H3.
  specialize (H3 v).  specialize (H H3).  pose proof helper1_easy as H2. 
  specialize (H2 v (term_unique_vars t') sig1 sig2 s).  apply H2. apply H.
 Qed.
@@ -263,8 +263,8 @@ Qed.
 (**
 Lemma 10.4.5 from book X on page 254-255 . 
 This a very significant lemma used later for the proof that our lownheim builder function (not the Main function, but the 
-builder function), gives a unifier (not necessarily an mgu, that would be a next step of the proof). 
-It states that is a term is t a sub_term of another term t' , then applying a substitution - a substitution created by the giving the list of
+builder function), gives a unifier (not necessarily an mgu, which would be a next step of the proof). 
+It states that if a term t is an under_term of another term t' , then applying a substitution - a substitution created by the giving the list of
 variables of term t' on the skeleton function build_list_of_vars -, on the term t, a term that has the same format : 
 (s + T1) * sig1(t) + s*sig2(t) as the each replacements of each variable on any ubsistution created 
 by skeleton function : (s + T1) * sig1(x) + s*sig2(x) .
@@ -272,7 +272,7 @@ by skeleton function : (s + T1) * sig1(x) + s*sig2(x) .
 
 Lemma subs_distr_vars_ver2 :
   forall (t t' : term) (s : term) (sig1 sig2 : subst),
-  (sub_term t t') ->
+  (under_term t t') ->
   apply_subst t (build_on_list_of_vars  (term_unique_vars t') s sig1 sig2)
     ==
   (s + T1) * (apply_subst t sig1) + s * (apply_subst t sig2).
@@ -340,7 +340,7 @@ Lemma specific_sigmas_unify:
   - rewrite id_subst. rewrite mul_comm with (x := t + T1). rewrite distr. rewrite mul_x_x. rewrite mul_id_sym. rewrite sum_x_x.
     rewrite sum_id. 
     unfold unifier in H. rewrite H. rewrite mul_T0_x_sym. reflexivity.
-  -  apply sub_term_id.
+  -  apply under_term_id.
 Qed.
 
 (** This is the resulting lemma from this sub-section :
@@ -580,10 +580,10 @@ nil substitution, but that case should not normally be considered. This function
 for the substitution type not the option substitution type (option subst).
 **)
 
-Definition convert_to_subst (so : subst_option) : subst :=
+Definition convert_to_subst (so : option subst) : subst :=
   match so with
-  | Some_subst s => s
-  | None_subst => nil (*not considered*)
+  | Some s => s
+  | None => nil (* normally not considered *)
   end.
 
 
@@ -655,7 +655,7 @@ contained within the Some subst option are also equal.
 *)
 
 Lemma eq_some_eq_subst (s1 s2: subst) :
-  (Some_subst s1 = Some_subst s2) -> s1 = s2.
+  (Some s1 = Some s2) -> s1 = s2.
 Proof.
   intros.   congruence.
 Qed.
@@ -667,7 +667,7 @@ a Proposition about the return type of the find_unifier function to an equivalen
 *)
 
 Lemma None_is_not_Some (t: term):
-  (find_unifier t) = None_subst -> (forall (sig: subst), ~ (find_unifier t) = Some_subst sig).
+  (find_unifier t) = None -> (forall (sig: subst), ~ (find_unifier t) = Some sig).
 Proof.
   intros.
   congruence.
@@ -679,7 +679,7 @@ then it is not True (true not in "boolean format" but as a Proposition) that the
 *)
 
 Lemma Some_is_not_None (sig: subst) (t: term):
-  (find_unifier t) = Some_subst sig -> ~ (find_unifier t = None_subst).
+  (find_unifier t) = Some sig -> ~ (find_unifier t = None).
 Proof.
   intros.
   congruence.
@@ -691,7 +691,7 @@ then it is True (true not in "boolean format" but as a Proposition) that the fin
 *)
 
 Lemma not_None_is_Some (t: term) :
-  ~ (find_unifier t = None_subst) -> exists sig : subst, (find_unifier t) = Some_subst sig.
+  ~ (find_unifier t = None) -> exists sig : subst, (find_unifier t) = Some sig.
 Proof.
   intros H.
   destruct (find_unifier t) as [ti | ].
@@ -750,7 +750,7 @@ Qed.
 
 Lemma some_subst_unifiable:
  forall (t : term),
-  (exists sig, (find_unifier t) = Some_subst sig) -> (unifiable t).
+  (exists sig, (find_unifier t) = Some sig) -> (unifiable t).
 Proof.
  intros.
  destruct H as [sig1 H1].
@@ -802,7 +802,7 @@ Qed.
 *)
 
 Lemma not_Some_is_None (t: term) :
- ( ~ exists (sig : subst), (find_unifier t) = Some_subst sig) -> (find_unifier t) = None_subst.
+ ( ~ exists (sig : subst), (find_unifier t) = Some sig) -> (find_unifier t) = None.
 Proof.
   apply contrapositive_opposite.
   intros H.
@@ -817,13 +817,13 @@ t as input
 
 Lemma not_unifiable_find_unifier_none_subst :
 forall (t : term),
-   ~ (unifiable t) -> (find_unifier t) = None_subst.
+   ~ (unifiable t) -> (find_unifier t) = None.
 Proof.
 intros.
  pose proof some_subst_unifiable.
  specialize (H0 t).
  pose proof contrapositive.
- specialize (H1 ((exists sig : subst, find_unifier t = Some_subst sig)) ((unifiable t))).
+ specialize (H1 ((exists sig : subst, find_unifier t = Some sig)) ((unifiable t))).
  specialize (H1 H0). specialize (H1 H).
  pose proof not_Some_is_None.
  specialize (H2 t H1).
@@ -845,7 +845,7 @@ then that subst containtes withint the option is a unifier of t.
 
 Lemma Some_subst_unifiable :
 forall (t : term) (sig : subst),
-   (find_unifier t) = Some_subst sig -> (unifier t sig).
+   (find_unifier t) = Some sig -> (unifier t sig).
 Proof.
 intros.
  induction t.
@@ -894,7 +894,7 @@ Qed.
 Lemma unif_some_subst :
  forall (t: term),
  (exists sig1, (unifier t sig1)) ->
- (exists sig2, (find_unifier t) = Some_subst sig2).
+ (exists sig2, (find_unifier t) = Some sig2).
 Proof.
  intros.
  destruct H as [sig1 H].
@@ -905,7 +905,7 @@ Admitted.
 *)
 
 Lemma not_Some_not_unifiable (t: term) :
- ( ~ exists (sig : subst), (find_unifier t) = Some_subst sig) -> ~ (unifiable t).
+ ( ~ exists (sig : subst), (find_unifier t) = Some sig) -> ~ (unifiable t).
 Proof.
  intros.
  pose proof not_Some_is_None.
@@ -927,11 +927,11 @@ Qed.
 
 Lemma unifiable_find_unifier_some_subst :
 forall (t : term),
-   (unifiable t) -> (exists (sig : subst), (find_unifier t) = Some_subst sig).
+   (unifiable t) -> (exists (sig : subst), (find_unifier t) = Some sig).
 Proof.
 intros. 
  pose proof contrapositive.
- specialize (H0 ( ~ exists (sig : subst), (find_unifier t) = Some_subst sig) (~ (unifiable t))).
+ specialize (H0 ( ~ exists (sig : subst), (find_unifier t) = Some sig) (~ (unifiable t))).
  pose proof not_Some_not_unifiable.
  specialize (H1 t). specialize (H0 H1). apply NNPP in H0.
  -  apply H0.
@@ -939,7 +939,6 @@ intros.
 Qed.
 
 
- 
 
 (** Lemma to show that if a term is unifiable, then find_unifier returns a unifier 
 *)
@@ -959,10 +958,6 @@ intros.
  unfold unifier in H1.
  apply H1.
 Qed.
-
-
-
-
 
 
 
@@ -1012,7 +1007,7 @@ Lemma lowenheim_main_most_general_unifier:
  forall (t: term),
  ((unifiable t) -> most_general_unifier t (convert_to_subst (Lowenheim_Main t)))
  /\ 
- (~(unifiable t) -> (Lowenheim_Main t) = None_subst ).
+ (~(unifiable t) -> (Lowenheim_Main t) = None ).
 Proof.
  intros. 
  split. 
@@ -1022,3 +1017,4 @@ Proof.
  - intros. pose proof not_unifiable_find_unifier_none_subst. 
    specialize (H0 t H). unfold Lowenheim_Main. rewrite H0. reflexivity.
 Qed.
+
