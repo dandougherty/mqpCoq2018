@@ -11,7 +11,7 @@ Require Export Classical_Prop.
 
 (** *Introduction **)
 
-(** In this section we provide a proof that our main Lowenheim_Main function defined in lowenheim_formula.v provides a unifier 
+(** In this chapter we provide a proof that our main Lowenheim_Main function defined in lowenheim_formula.v provides a unifier 
    that is most general. Our final top level proof (found at the end of this file) proves two statements:
       1) if a term is unifiable, then our own defined Lowenheim_Main function produces a most general unifier (mgu)
       2) if a term is not unifiable, then our own defined Lownheim_Main function produces a None substitution
@@ -21,7 +21,7 @@ mentioned above.
 
 (** * Auxillary declarations and their lemmas useful for the final proofs **)
 
-(** In this sub-section we provide definitions and proofs of helper functions, Propositions and lemmas that will be later used
+(** In this section we provide definitions and proofs of helper functions, Propositions and lemmas that will be later used
   in the proofs.
 
 **)
@@ -29,12 +29,14 @@ mentioned above.
 (** This is the definition of a sub_term. A sub_term is a Proposition, or a relationship between two terms. When a term t is a sub_term
 of a term t' then each of the unique variables found within t are also found within the unique variables of t'. 
 **)
+
 Definition sub_term (t : term) (t' : term) : Prop :=
   forall (x : var ),
   (In x (term_unique_vars t) ) -> (In x (term_unique_vars t')) .
 
 (** This is a simple lemma for sub_terms that states that a term is a sub_term of itself. 
 **)
+
 Lemma sub_term_id :
   forall (t : term),
   sub_term t t.
@@ -45,6 +47,7 @@ Qed.
 (** This is a lemma to prove the summation distribution property of the function term_vars: the term_vars of a sum of two_terms
 is equal to the concantentation of the term_vars of each individual term of the original sum.
 **)
+
 Lemma term_vars_distr :
 forall (t1 t2 : term),
  (term_vars (t1 + t2)) = (term_vars t1) ++ (term_vars t2).
@@ -60,8 +63,8 @@ Qed.
 
 (** This is a lemma to prove an intuitive statement: if a variable is within the term_vars (list of variables) of a term, then it is also
 within the term vars of the sum of that term and any other term.
-
 **)
+
 Lemma tv_h1:
 forall (t1 t2 : term) ,
 forall (x : var),
@@ -78,8 +81,8 @@ Qed.
 
 (** This is a lemma similar to the previous one, to prove an intuitive statement: if a variable is within the term_vars (list of variables) of a term, then it is also
 within the term vars of the sum of that term and any other term, but being added from the left side.
-
 **)
+
 Lemma tv_h2:
 forall (t1 t2 : term) ,
 forall (x : var),
@@ -97,6 +100,7 @@ Qed.
 (** This is a helper lemma for the sub_term relationship : if the sum of two terms is a subterm of another term t', then the left component of the sum is
    also a subterm of the other term t' 
    **)
+   
 Lemma helper_2a:
   forall (t1 t2 t' : term),
   sub_term (t1 + t2) t' -> sub_term t1 t'.
@@ -112,6 +116,7 @@ Qed.
 (**  This is a helper lemma for the sub_term relationship : if the sum of two terms is a subterm of another term t', then the right component of the sum is
    also a subterm of the other term t' 
    **)
+   
 Lemma helper_2b:
   forall (t1 t2 t' : term),
   sub_term (t1 + t2) t' -> sub_term t2 t'.
@@ -126,6 +131,7 @@ Qed.
 (**  This is a helper lemma for lists and their elements : if a variable is a member of a list, then it is equal to the first element 
 of that list or it is a member of the rest of the elements of that list.
   **)
+  
 Lemma elt_in_list:
  forall (x: var) (a : var) (l : list var),
   (In x (a::l)) ->
@@ -143,6 +149,7 @@ Qed.
 (**  This is a similar lemma to the previous one, for lists and their elements : if a variable is not a member of a list, then it is not equal to the first element 
 of that list and it is a member of the rest of the elements of that list.
   **)
+  
 Lemma elt_not_in_list:
  forall (x: var) (a : var) (l : list var),
   ~ (In x (a::l)) ->
@@ -182,7 +189,7 @@ Qed.
 
 (** * Proof that Lownheim's algorithm unifes a given term **)
 
-(** In this sub-section, we prove that our own defined lowenheim builder from lowenheim_formula.v (build_lowenheim_subst), produces
+(** In this section, we prove that our own defined lowenheim builder from lowenheim_formula.v (build_lowenheim_subst), produces
 a unifier; that is, given unifiable term and one of unifier of the term, it also produces another unifier of this term (and as explained in 
 terms.v, a unifier is a substitution that when applied to term it produces a term equivalent to the ground term T0.
 **)
@@ -193,8 +200,8 @@ VAR x , and that substitution is created by the skeleton function build_on_list_
 term is equivalent to :  the resuting term from applying a substitution on a term-variable 
 VAR x , and that substitution being created by the skeleton function build_on_list_of_vars applied on an input list of variables that contains
 variable x.
-
 **)
+
 Lemma helper1_easy:
  forall (x: var) (lvar : list var) (sig1 sig2 : subst) (s : term),
  (In x lvar) ->
@@ -235,6 +242,7 @@ This is another helper lemma for the skeleton function build_on_list_of_vars and
      of our term-variable). So, the replacements for 
     the extra variables do not affect the application of the subsitution - hence the resulting term. 
  *)
+ 
 Lemma helper_1:
 forall (t' s : term) (v : var) (sig1 sig2 : subst),
   sub_term (VAR v) t' -> 
@@ -339,6 +347,7 @@ Qed.
 Our lowenheim's subsitution builder produces a unifier for an input term; namely, a substitution that 
 unifies the term, given that term is unifiable and we know an already existing unifier tau. 
 *)
+
 Lemma lownheim_unifies:
   forall (t : term) (tau : subst),
   (unifier t tau) -> 
@@ -351,7 +360,7 @@ Qed.
 
 (** * Proof that Lownheim's algorithm produces a most general unifier **)
 
-(** In the previous sub-section we proved that our lowenheim builder produces a unifier, if we already know an existing unifier
+(** In the previous section we proved that our lowenheim builder produces a unifier, if we already know an existing unifier
 of the term. In this sub-section we prove that that unifier is a most general unifier. 
 **)
 
@@ -359,7 +368,7 @@ of the term. In this sub-section we prove that that unifier is a most general un
 (**  **Proof that Lownheim's algorithm produces a reproductive unifier **)
 
 (**
-In this sector we will prove that our lowenheim builder gives a unifier that is reproductive; this will help us in the proof
+In this sub-section we will prove that our lowenheim builder gives a unifier that is reproductive; this will help us in the proof
 that the resulting unifier is an mgu, since a reproductive unifier is a "stronger" property than an mgu.
 
 **)
@@ -371,8 +380,8 @@ for that particular variable that was contained in the original substitution. So
 of variables l (x1,x2,x3...xn), then the resulting substitution is in the format [(x1, (s + T1) * sig1(x1) + s*sig2(x1)),. , .] for each
 xi. If we apply that substitution on the term-variable x1, we will get the initial format of the replacement : (s + T1) * sig1(x1) + s*sig2(x1)).
 It can be thought as "reverse application" of the skeleton function.
-
 **)
+
 Lemma lowenheim_rephrase1_easy :
   forall (l : list var) (x : var) (sig1 : subst) (sig2 : subst) (s : term),
   (In x l) -> 
@@ -397,8 +406,8 @@ Qed.
 
 (** This is a helper lemma for an intuitive statement : if a variable x is found on a list of variables l, then applying the subsitution
 created by the build_id_subst function given input list l, on the term-variable VAR x, we will get the same VAR x back. 
-
 **)
+
 Lemma helper_3a:
 forall (x: var) (l: list var),
 In x l -> 
@@ -424,6 +433,7 @@ This is a lemma for an intuitive statement for the lowenheim builder,very simila
  applying lowenheim's subtitution given an input term t,on any term-variable of the term t, gives us the initial format 
   of the replacement for that variable (lowenheim's reverse application ) 
   *)
+  
 Lemma lowenheim_rephrase1 :
   forall (t : term) (tau : subst) (x : var),
   (unifier t tau) -> 
@@ -449,8 +459,8 @@ if a variable x is not in a list l, and we
 apply a substitution created by the build_on_list_vars function given input list l, on the term-variable VAR x, 
 then we get the term-variable VAR xback; that is expected since the replacements in the substitution should not contain
 any entry with variable x.
-
 *)
+
 Lemma lowenheim_rephrase2_easy :
   forall (l : list var) (x : var) (sig1 : subst) (sig2 : subst) (s : term),
   ~ (In x l) -> 
@@ -492,6 +502,7 @@ Qed.
 
 (** This is the resulting lemma of the sector: our lowenheim builder build_lownheim_subst gives a reproductive unifier 
 *)
+
 Lemma lowenheim_reproductive:
   forall (t : term) (tau : subst),
   (unifier t tau) -> 
@@ -519,16 +530,16 @@ Qed.
 
 
 
-(**  **Proof that Lowenheim's algorithm produces a most general unifier **)
+(**  **Proof that Lowenheim's algorithm (our lowenheim builder) produces a most general unifier **)
 
 (**
-In this sector we will prove that our lowenheim builder gives a unifier that is most general; this will help us a lot in the top-level
+In this sub-section we will prove that our lowenheim builder gives a unifier that is most general; this will help us a lot in the top-level
 proof that the Main_Lownheim function gives an mgu.
 
 **)
 
 
-(** Here is the sector's resulting lemma. Given a unifiable term t, a unifier of t, then our lowenheim builder
+(** Here is the sub-section's resulting lemma. Given a unifiable term t, a unifier of t, then our lowenheim builder
 (build_lownheim_subst) gives a most general unifier (mgu) .
 **)
 
@@ -544,12 +555,30 @@ Qed.
 
 
 
-(** 3.4 extension to include Main function and subst_option *)
+(** * Proof of correctness of our main lowenheim function - Lowenheim_Main *)
+
+(** In this section we prove that our own defined Lownheim function satisfies its two main requirements:
+      1) if a term is unifiable, then Lowenheim_Main function produces a most general unifier (mgu).
+      2) if a term is not unifiable, then Lownheim_Main function produces a None substitution.
+  The final top-level proofs is at the end of this section. To get there, we prove a series of intermediate lemmas that are needed for the 
+  final proof.
+
+**)
 
 
-(** 3.4.a utilities *)
+(** ** Utilities *)
 
-(* Utility lemmas used in the final proof section*)
+
+(** In this section we provide helper "utility" helper lemmas and functions that are used in the proofs of intermediate lemmas
+that are in turn used in the final proof.
+
+**)
+
+(** This is a function that converts a subst option (substitution option) to a subst (substitution). It is designed to be used mainly
+for subst options that are "Some subst". If the input subst option is not "Some" and is "None" then the return type is the 
+nil substitution, but that case should not normally be considered. This function is useful because many functions and lemmas are defined
+for the substitution type not the option substitution type (option subst).
+**)
 
 Definition convert_to_subst (so : subst_option) : subst :=
   match so with
@@ -559,6 +588,9 @@ Definition convert_to_subst (so : subst_option) : subst :=
 
 
 
+(** This is an intuitive helper lemma that proves that if an empty substitution is applied on any term t, then the resulting term
+is the same input term t.
+*)
 
 Lemma empty_subst_on_term:
  forall (t : term),
@@ -572,12 +604,20 @@ Proof.
  - simpl. rewrite IHt1. rewrite IHt2. reflexivity.
 Qed.
 
+(** This another intutive helper lemma that states that if the empty substitution is applied on any term t, and the
+resulting term is equivalent to the ground term T0, then the input term t must be equivalent to the ground term T0.
+*)
+
 Lemma app_subst_T0:
  forall (t : term),
  apply_subst t [] == T0 -> t == T0.
 Proof.
 intros. rewrite empty_subst_on_term in H. apply H.
 Qed.
+
+(** This is another intutitve lemma that uses classical logic for it proof. It states that any term t, can be equivalent to the ground term
+T0 or it cannot be equivalent to it.
+*)
 
 Lemma T0_or_not_T0:
  forall (t : term),
@@ -586,12 +626,22 @@ Proof.
  intros. pose proof classic. specialize (H (t == T0)). apply H.
 Qed.
 
+(** This is another intuitive helper lemma that states: if applying a substitution sig on a term t gives a term equivalent to T0
+then there exists a substitution that applying it to term t gives a term equivalent to T0.
+*)
+
 Lemma exists_subst:
  forall (t : term) (sig : subst),
  apply_subst t sig == T0 -> exists s, apply_subst t s == T0.
 Proof.
  intros. exists sig. apply H.
 Qed.
+
+
+(** This is another intuitive helper lemma that states: if applying a substitution sig on a term t gives a term equivalent to T0
+then there exists a substitution that applying it to term t gives a term equivalent to T0 (which is obvious since we already know sig exists
+for that task.
+*)
 
 Lemma t_id_eqv :
  forall (t : term),
@@ -600,6 +650,9 @@ Proof.
  intros. reflexivity.
 Qed.
 
+(**  This a helper lemma that states : if two subst options (specifically Some subst) are equal then the subst (substitutions) 
+contained within the Some subst option are also equal.
+*)
 
 Lemma eq_some_eq_subst (s1 s2: subst) :
   (Some_subst s1 = Some_subst s2) -> s1 = s2.
@@ -607,6 +660,11 @@ Proof.
   intros.   congruence.
 Qed.
 
+(**  This a helper lemma that states : if the find_unifier function (the one that tries to find a ground unifier for term t) does not find a unifier (returns None subst) for an input term t
+then it not True (true not in "boolean format" but as a Proposition) that the find_unifier function produces a Some subst.
+This lemma and the following ones that are similar, are very useful for the intermediate proofs because we are able to convert
+a Proposition about the return type of the find_unifier function to an equivalent one, e.g. from None subst to Some subst and vice versa.
+*)
 
 Lemma None_is_not_Some (t: term):
   (find_unifier t) = None_subst -> (forall (sig: subst), ~ (find_unifier t) = Some_subst sig).
@@ -615,6 +673,10 @@ Proof.
   congruence.
 Qed.
 
+(**  This a helper lemma similar to the previous one that states : if the find_unifier function (the one that tries to find a ground unifier 
+for term t) finds a unifier (returns Some subst) for an input term t
+then it is not True (true not in "boolean format" but as a Proposition) that the find_unifier function produces a None subst.
+*)
 
 Lemma Some_is_not_None (sig: subst) (t: term):
   (find_unifier t) = Some_subst sig -> ~ (find_unifier t = None_subst).
@@ -623,6 +685,10 @@ Proof.
   congruence.
 Qed.
 
+(**  This a helper lemma similar to the previous ones that states : if the find_unifier function (the one that tries to find a ground unifier 
+for term t) does not find a unifier that returns None subst for an input term t
+then it is True (true not in "boolean format" but as a Proposition) that the find_unifier function produces a Some subst.
+*)
 
 Lemma not_None_is_Some (t: term) :
   ~ (find_unifier t = None_subst) -> exists sig : subst, (find_unifier t) = Some_subst sig.
@@ -633,6 +699,10 @@ Proof.
   - congruence.
 Qed.
 
+(** This is an intutitive helper lemma that uses classical logic to prove the validity of an alternate 
+version of the contrapositive proposition: 
+if p then q -> not q then not p, but with each entity (proposition q or p) negated.
+*)
 
 Lemma contrapositive_opposite :
   forall p q,  (~p -> ~q) -> q ->p.
@@ -641,6 +711,9 @@ Proof.
   apply NNPP. firstorder.
 Qed.
 
+(** This is an intutitive helper lemma that uses classical logic to prove the validity of the contrapositive proposition: 
+if p then q -> not q then not p .
+*)
 
 Lemma contrapositive :
 forall (p q : Prop),  (p -> q) -> ( ~q -> ~p).
@@ -654,15 +727,27 @@ Qed.
 
 
 
-(** 3.4.b actual final proof extension *)
+(** ** Intermediate lemmas   *)
+
+(** In this sub-section we prove a series of lemmas for each of the two statements of the final proof, which were:
+      1) if a term is unifiable, then Lowenheim_Main function produces a most general unifier (mgu).
+      2) if a term is not unifiable, then Lownheim_Main function produces a None substitution.
+
+*)
 
 
 
-(* -- None_subst case -- *)
+(** *** None subst case *)
+
+(** In this sector we prove intermediate lemmas usefule for the second statement of the final proof:
+     if a term is not unifiable, then Lownheim_Main function produces a None substitution.
+*)
 
 
 
-(* Lemma to show that if find unifier returns Some, the term is unifiable *)
+(** Lemma to show that if find unifier returns Some subst, the term is unifiable 
+*)
+
 Lemma some_subst_unifiable:
  forall (t : term),
   (exists sig, (find_unifier t) = Some_subst sig) -> (unifiable t).
@@ -713,7 +798,9 @@ Qed.
 
 
 
-(* Lemma to show that if no subst makes find_unifier to return Some, the it returns None_susbt *)
+(** Lemma to show that if no subst makes find_unifier to return Some subst, the it returns None susbt 
+*)
+
 Lemma not_Some_is_None (t: term) :
  ( ~ exists (sig : subst), (find_unifier t) = Some_subst sig) -> (find_unifier t) = None_subst.
 Proof.
@@ -724,7 +811,10 @@ Proof.
 Qed.
 
 
-(* Lemma to show that if a term is not unifiable, it returns None_subst *)
+(* Lemma to show that if a term t is not unifiable, the find_unifier function returns None subst with
+t as input
+*)
+
 Lemma not_unifiable_find_unifier_none_subst :
 forall (t : term),
    ~ (unifiable t) -> (find_unifier t) = None_subst.
@@ -742,10 +832,17 @@ Qed.
 
 
 
-(* -- Some_subst case -- *)
+(** *** Some subst case  *)
+
+(** In this sector we prove intermediate lemmas usefule for the first statement of the final proof:
+     if a term is unifiable, then Lowenheim_Main function produces a most general unifier (mgu).
+*)
 
 
-(* Lemma to show that if find unifier rewturns Some subst, then that subst is a unifier *)
+(** Lemma to show that if find_unifier on an input term t returns Some subst,
+then that subst containtes withint the option is a unifier of t. 
+*)
+
 Lemma Some_subst_unifiable :
 forall (t : term) (sig : subst),
    (find_unifier t) = Some_subst sig -> (unifier t sig).
@@ -791,7 +888,9 @@ intros.
 Qed.
 
 
-(* Lemma to show that if there is a unifier, then there is a 'ground unifier' *)
+(** Lemma to show that if there is a unifier, then there is a 'ground unifier'.
+*)
+
 Lemma unif_some_subst :
  forall (t: term),
  (exists sig1, (unifier t sig1)) ->
@@ -802,7 +901,9 @@ Proof.
 Admitted.
 
 
-(* Lemma to show that if no subst makes find_unifier to return Some, the it returns None_susbt *)
+(** Lemma to show that if no subst makes find_unifier to return Some subst, the it returns None susbt 
+*)
+
 Lemma not_Some_not_unifiable (t: term) :
  ( ~ exists (sig : subst), (find_unifier t) = Some_subst sig) -> ~ (unifiable t).
 Proof.
@@ -821,7 +922,9 @@ Qed.
 
 
 
-(* Lemma to show that if a term is unifiable then find unifier returns Some subst *)
+(** Lemma to show that if a term is unifiable then find_unifier returns Some subst 
+*)
+
 Lemma unifiable_find_unifier_some_subst :
 forall (t : term),
    (unifiable t) -> (exists (sig : subst), (find_unifier t) = Some_subst sig).
@@ -838,7 +941,9 @@ Qed.
 
  
 
-(* Lemma to show that if a term is unifiable, then find_unifier returns a unifier *)
+(** Lemma to show that if a term is unifiable, then find_unifier returns a unifier 
+*)
+
 Lemma find_unifier_is_unifier:
  forall (t : term),
   (unifiable t) -> (unifier t (convert_to_subst (find_unifier t))).
@@ -862,8 +967,17 @@ Qed.
 
 
 
-(* ----- Gluing everything together for the final proof ------ *)
+(** ** Gluing everything together for the final proof *)
 
+(** In this sub-section we prove the two top-level final proof lemmas. Both of these proofs use the intermediate lemmas proved
+in the previous subs-section
+*)
+
+
+(**
+The first one states that given a uniable term t and
+the fact that our lowenheim builder produces an mgu, then the Lowenheim Main function also produces an mgu.
+*)
 
 Lemma builder_to_main:
  forall (t : term),
@@ -882,6 +996,17 @@ specialize (H1 H2). unfold Lowenheim_Main. destruct (find_unifier t).
    unfold more_general_substitution. exists s'. unfold substitution_composition. 
    intros. simpl. reflexivity. 
 Qed.
+
+
+(**
+This the final top-level lemma that encapsulates all our efforts so far. It proves the two main statements required for the final
+proof. The two statements, as phrased in the beggining of the chapter are:
+      1) if a term is unifiable, then our own defined Lowenheim_Main function produces a most general unifier (mgu).
+      2) if a term is not unifiable, then our own defined Lownheim_Main function produces a None substitution.
+The two Propositions are related with the "/\" symbol (namely, the Propositional "and") and each is proven seperately using the 
+intermediate lemmas proved above. This is why the final top-level proof is relatively short, because a lot of the singnificant
+components of the proof have already been proven as intermediate lemmas.
+*)
 
 Lemma lowenheim_main_most_general_unifier:
  forall (t: term),
