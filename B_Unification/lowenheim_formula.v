@@ -10,6 +10,7 @@
 
 Require Export terms.
 
+
 Require Import List.
 Import ListNotations.
 
@@ -46,7 +47,8 @@ Fixpoint build_on_list_of_vars (list_var : var_set) (s : term) (sig1 : subst) (s
 
 (** This is the function to build a lowenheim subsitution for a term t , given the term t and a unifier of t, using the previously
   defined skeleton function. The list of variables is the variables within t and the substitions are the identical
-  subtitution and the unifer of the term. 
+  subtitution and the unifer of the term. This fuction will often be referred in the rest
+  of the document as our 'lownheim builder' or the 'lownheim substitution builder', etc.
   *)
   
 Definition build_lowenheim_subst (t : term) (tau : subst) : subst :=
@@ -57,7 +59,7 @@ Definition build_lowenheim_subst (t : term) (tau : subst) : subst :=
 (** *Lowenheim's algorithm  **)
 
 (** In this subsection we enhance Lowenheim's builder
-   to be a complete algorithm that is able to find ground substitutions 
+   to the level of a complete algorithm that is able to find ground substitutions 
     before feeding them to the main formula to generate a most general
     unifier 
     *)
@@ -76,18 +78,21 @@ Definition update_term (t : term) (s' : subst) : term :=
 Definition term_is_T0 (t : term) : bool :=
   (identical t T0).
 
-(** Definition of new data type to represent both a substitution and a none-substitution (which is
-  different than the empty substitution), as return types. A "Some substitution" is an entity that contains 
-  a substituion, whereas "None substitution" is an entity to represent the "absence" os a subsitution (similar to a casted nil).
+(** In this development we have the need to be able to represent both the presence and the absence of
+a substitution. In case for example our find_unifier function cannot find a unifier for an 
+input term, we need to be able to return a (subst nil) type, like a substitution option that
+states no subst was found. We are using the built-in "Some" and "None" inductive options to 
+ (that are used as "Some subst" and "None") to represent 
+some substitution and no-substition repsectively. The type of the two above is the inductive 
+"option {A:type}" that can be attahed to any type; in our case it is "option subst". 
   *)
-Inductive subst_option: Type :=
-    | Some_subst : subst -> subst_option
-    | None_subst : subst_option. 
 
 
-(** A function to find a single ground unifier , recursively. 
+(** Our lownheim builder works when we provide an already existing unifier
+of the input term t. For our implementation to be complete we need to be able to generate
+that initial unifier ourselves. That is why we define a function to find a single ground unifier , recursively. 
 It finds a substitution with ground terms that makes the given (input) term equivalent to T0.
-To use it, start with an empty list of replacements as the input s - subst 
+To use it, start with an empty list of replacements as the input s - subst. 
 *)
 
 Fixpoint rec_subst (t : term) (vars : var_set) (s : subst) : subst :=
@@ -122,10 +127,10 @@ Compute (rec_subst  ((VAR 0) * (VAR 1)) (cons 0 (cons 1 nil)) nil) .
 
 (** Function to find a ground unifier of the input term, if it exists.
 *)
-Fixpoint find_unifier (t : term) : subst_option :=
+Fixpoint find_unifier (t : term) : option subst :=
   match (update_term t  (rec_subst t (term_unique_vars t) nil) ) with
-    | T0 => Some_subst (rec_subst t (term_unique_vars t) nil)
-    | _ => None_subst
+    | T0 => Some (rec_subst t (term_unique_vars t) nil)
+    | _ => None
   end.
 
 
@@ -135,13 +140,15 @@ Compute (find_unifier  ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) * ( (VAR 2) +
 
 
 
-(** ** Here is the main lowenheim's formula; given a term, produce an MGU that makes it equivalent to T0,
-if there is one. Otherwise, returns "None subst" *)
+(** ** Here is the main lowenheim's formula; given a term, produce an MGU (a most general 
+substitution that makes it equivalent to T0),
+if there is one. Otherwise, returns "None". This function is oftern referred in the rest 
+of the document as 'Lowenheim Main' function or 'Main Lowenheim' function, etc. *)
 
-Definition Lowenheim_Main (t : term) : subst_option :=
+Definition Lowenheim_Main (t : term) : option subst :=
   match (find_unifier t) with
-    | Some_subst s => Some_subst (build_lowenheim_subst t s)
-    | None_subst => None_subst
+    | Some s => Some (build_lowenheim_subst t s)
+    | None => None
   end.  
 
 Compute (find_unifier ((VAR 0) * (VAR 1)) )  .
@@ -169,9 +176,9 @@ Compute (Lowenheim_Main (( VAR 0) + (VAR 0) + T1)).
   *)
 Definition Test_find_unifier (t : term) : bool :=
   match (find_unifier t) with
-    | Some_subst s =>
+    | Some s =>
       (term_is_T0 (update_term t s))
-    | None_subst => true (*is this the correct output ? *)
+    | None => true 
   end. 
 
 Compute (Test_find_unifier (T1)).
@@ -183,8 +190,8 @@ Compute (Test_find_unifier ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) * ( (VAR 
    by the lowenheim main function *)
 Definition apply_lowenheim_main (t : term) : term :=
   match (Lowenheim_Main t) with
-  | Some_subst s => (apply_subst t s)
-  | None_subst => T1
+  | Some s => (apply_subst t s)
+  | None => T1
   end.
 
 Compute (Lowenheim_Main ((VAR 0) * (VAR 1) )).
