@@ -88,7 +88,7 @@ Definition term_is_T0 (t : term) : bool :=
     [find_unifier] function cannot find a unifier for an input term, we need to
     be able to return a [subst nil] type, like a substitution option that states
     no substition was found. We are using the built-in [Some] and [None]
-    inductive options (that are used as $Some \sigma$ and [None]) to represent
+    inductive options (that are used as [Some] $\sigma$ and [None]) to represent
     some substitution and no substition repsectively. The type of the two above
     is the inductive [option {A:type}] that can be attached to any type; in our
     case it is [option subst]. *)
@@ -161,7 +161,7 @@ Compute (Lowenheim_Main (( VAR 0) + (VAR 0) + T1)).
 (* end hide *)
 
 
-(** * Lowenheim's functions testing *)
+(** * Lowenheim's Functions Testing *)
 
 (** In this subsection we explore ways to test the correctness of our
     Lownheim's functions on specific inputs. *)

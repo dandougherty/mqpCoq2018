@@ -354,14 +354,14 @@ Qed.
 
 
 
-(** * Proof That Lownheim's algorithm Produces a Most General Unifier *)
+(** * Proof That Lownheim's Algorithm Produces a Most General Unifier *)
 
 (** In the previous section we proved that our Lowenheim builder produces a
     unifier, if we already know an existing unifier of the term. In this
     section we prove that that unifier is a most general unifier. *)
 
 
-(** ** Proof That Lownheim's algorithm produces a reproductive unifier *)
+(** ** Proof That Lownheim's Algorithm Produces a Reproductive Unifier *)
 
 (** In this subsection we will prove that our Lowenheim builder gives a
     unifier that is reproductive; this will help us in the proof that the
@@ -543,8 +543,7 @@ Qed.
 
 
 
-(** * Proof of Correctness of Our Main Lowenheim Function -
-      [Lowenheim_Main] *)
+(** * Proof of Correctness of [Lowenheim_Main] *)
 
 (** In this section we prove that our own defined Lownheim function
     satisfies its two main requirements: 1) If a term is unifiable, then
@@ -562,7 +561,7 @@ Qed.
     proof. *)
 
 (** This is a function that converts a [option subst] to a [subst]. It is
-    designed to be used mainly for [option subst]s that are $Some \sigma$. If
+    designed to be used mainly for [option subst]s that are [Some] $\sigma$. If
     the input [option subst] is not [Some] and is [None] then it returns the
     [nil] substitution, but that case should not normally be considered. This
     function is useful because many functions and lemmas are defined for the
@@ -657,7 +656,7 @@ Qed.
 
 (** This a helper lemma similar to the previous one that states: if the
     [find_unifier] function (the one that tries to find a ground unifier for
-    term _t_) finds a unifier (returns $Some \sigma$) for an input term _t_ then
+    term _t_) finds a unifier (returns [Some] $\sigma$) for an input term _t_ then
     it is not [True] (true not in "boolean format" but as a proposition) that
     the [find_unifier] function produces a [None subst]. *)
 
@@ -819,7 +818,7 @@ Qed.
     produces a most general unifier (mgu). *)
 
 (** Lemma to show that if [find_unifier] on an input term _t_ returns
-    $Some \sigma$, then $\sigma$ is a unifier of _t_. *)
+    [Some] $\sigma$, then $\sigma$ is a unifier of _t_. *)
 
 Lemma Some_subst_unifiable : forall (t : term) (sig : subst),
   find_unifier t = Some sig -> unifier t sig.
@@ -884,7 +883,7 @@ Admitted.
 
 
 (** Lemma to show that if no substituion makes [find_unifier] return
-    $Some \sigma$, then it returns [None]. *)
+    [Some] $\sigma$, then it returns [None]. *)
 
 Lemma not_Some_not_unifiable (t: term) :
   (~ exists sig, find_unifier t = Some sig) ->
@@ -904,7 +903,7 @@ Qed.
 
 
 (** This lemma shows that if a term is unifiable then [find_unifier] returns
-    $Some \sigma$. *)
+    [Some] $\sigma$. *)
 
 Lemma unifiable_find_unifier_some_subst : forall (t : term),
   unifiable t ->
