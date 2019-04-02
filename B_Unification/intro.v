@@ -1,7 +1,18 @@
 
 (** * Introduction *)
 
-
+(**
+  In the field of computational theory, one problem of significance is that of equational unification; namely, the finding 
+of solutions to a given set of equations with respect to a set of relational axioms. While there are several variants of 
+equational unification, for the purposes of this paper we are going to limit our scope to that of Boolean unification, which 
+deals with the finding of unifiers for equations operating across Boolean rings. As any problem space would imply, there exists
+a great deal of research in the formal verification of unification algorithms; our research focused on two of these
+algorithms: Lowenheim's formula, and Succesive Variable Eliminaton. To conduct our research, we utilized the Coq proof assistant
+to create formal specifications of both of these algorithms' behaviors in addition to proving their correctness. While proofs
+for both of these algorithms already exist, prior to the writing of this paper, no formal treatment using a proof asssistant
+such as Coq had been undertaken, so it is hoped that our efforts provide yet another guarantee for the veritable correctness
+of these respective algorithms.
+**)
 
 
 (** * Unification *)
