@@ -117,10 +117,6 @@ Fixpoint rec_subst (t : term) (vars : var_set) (s : subst) : subst :=
       else rec_subst (update_term t ((v' , T0) :: s)) v ((v' , T0) :: s)
   end.
 
-(* begin hide *)
-Compute (rec_subst  ((VAR 0) * (VAR 1)) (cons 0 (cons 1 nil)) nil) .
-(* end hide *)
-
 
 (** Next is a function to find a ground unifier of the input term, if it exists.
     *)
@@ -129,13 +125,6 @@ Fixpoint find_unifier (t : term) : option subst :=
   | T0 => Some (rec_subst t (term_unique_vars t) [])
   | _ => None
   end.
-
-(* begin hide *)
-Compute (find_unifier ((VAR 0) * (VAR 1))). 
-Compute (find_unifier  ((VAR 0) + (VAR 1))). 
-Compute (find_unifier  ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) *
-                       ((VAR 2) + (VAR 0)) )). 
-(* end hide *)
 
 
 (** Here is the main Lowenheim's formula; given a term, produce an MGU (a
@@ -149,16 +138,6 @@ Definition Lowenheim_Main (t : term) : option subst :=
   | Some s => Some (build_lowenheim_subst t s)
   | None => None
   end.
-
-(* begin hide *)
-Compute (find_unifier ((VAR 0) * (VAR 1)) )  .
-Compute (Lowenheim_Main ((VAR 0) * (VAR 1))).
-Compute (Lowenheim_Main ((VAR 0) + (VAR 1)) ).
-Compute (Lowenheim_Main ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) *
-                        ((VAR 2) + (VAR 0)) ) ).
-Compute (Lowenheim_Main (T1)).
-Compute (Lowenheim_Main (( VAR 0) + (VAR 0) + T1)).
-(* end hide *)
 
 
 (** * Lowenheim's Functions Testing *)
@@ -176,12 +155,6 @@ Definition Test_find_unifier (t : term) : bool :=
   | None => true
   end.
 
-(* begin hide *)
-Compute (Test_find_unifier (T1)).
-Compute (Test_find_unifier ((VAR 0) * (VAR 1))).
-Compute (Test_find_unifier ((VAR 0) + (VAR 1) + (VAR 2) + T1 + (VAR 3) *
-                           ((VAR 2) + (VAR 0)) )).
-(* end hide *)
 
 (** Here is a function to apply Lowenheim's substitution on the term - the
     substitution produced by the Lowenheim main function. *)
@@ -191,10 +164,3 @@ Definition apply_lowenheim_main (t : term) : term :=
   | Some s => apply_subst t s
   | None => T1
   end.
-
-(* begin hide *)
-Compute (Lowenheim_Main ((VAR 0) * (VAR 1) )).
-Compute (apply_lowenheim_main ((VAR 0) * (VAR 1) ) ).
-Compute (Lowenheim_Main ((VAR 0) + (VAR 1) )).
-Compute  (apply_lowenheim_main ((VAR 0) + (VAR 1) ) ).
-(* end hide *)
