@@ -75,39 +75,51 @@ Notation "x * y" := (PRODUCT x y) (at level 40, left associativity).
     need to address later. *)
 
 Parameter eqv : term -> term -> Prop.
-(*  Notation for term equivalence *)
+(**  Notation for term equivalence *)
 Infix " == " := eqv (at level 70).
 
-(*  Commutatitivty across summations *)
+(** Set of fundamental axioms about the equivalence " == " relation. 
+ It forms the boolean ring (or system) on which lowenheim's formula and proof are developed.
+*)
+
+(**  Commutatitivty across summations *)
 Axiom sum_comm : forall x y, x + y == y + x.
 
-(*  Associativity across summations *)
+(**  Associativity across summations *)
 Axiom sum_assoc : forall x y z, (x + y) + z == x + (y + z).
 
-(*  Identity relation accross summations *)
+(**  Identity relation accross summations *)
 Axiom sum_id : forall x, T0 + x == x. 
 
-(*  Across boolean rings, summation x + x will always be 0 because x can only be
+(**  Across boolean rings, summation x + x will always be 0 because x can only be
    0 or 1*)
 Axiom sum_x_x : forall x, x + x == T0.
 
-(*  Commutativity across multiplications *)
+(**  Commutativity across multiplications *)
 Axiom mul_comm : forall x y, x * y == y * x.
 
-(*  Associativity across multiplications *)
+(**  Associativity across multiplications *)
 Axiom mul_assoc : forall x y z, (x * y) * z == x * (y * z).
 
-(*  Across bollean rings, x * x will always be x because x can only be 0 or 1 *)
+(**  Across bollean rings, x * x will always be x because x can only be 0 or 1 *)
 Axiom mul_x_x : forall x, x * x == x.
 
-(*  Multiplying anything by 0 is 0*)
+(**  Multiplying anything by 0 is 0*)
 Axiom mul_T0_x : forall x, T0 * x == T0.
 
-(*  Identity relation across multiplications *)
+(**  Identity relation across multiplications *)
 Axiom mul_id : forall x, T1 * x == x.
 
-(*  Distributivity relation *)
+(**  Distributivity relation *)
 Axiom distr : forall x y z, x * (y + z) == (x * y) + (x * z).
+
+
+
+(** Any axioms beyond this point of the development are not considered part of
+the 'fundamental axiom system',but they still need to exist for the development and proofs 
+to hold.
+
+*)
 
 (*  Across all equations, adding an expression to both sides does not
    break the equivalence of the relation *)
@@ -255,12 +267,12 @@ Qed.
     entries from it. For convenience, we also provide several examples to
     demonstrate the functionalities of these new definitions. *)
 
-(*  Definition of new type to represent a list (set) of variables (naturals) *)
+(**  Definition of new type to represent a list (set) of variables (naturals) *)
 Definition var_set := list var.
 Implicit Type vars: var_set.
 
 
-(*  Function to check to see if a variable is in a variable set *)
+(**  Function to check to see if a variable is in a variable set *)
 Fixpoint var_set_includes_var (v : var) (vars : var_set) : bool :=
   match vars with
     | nil => false
@@ -269,7 +281,7 @@ Fixpoint var_set_includes_var (v : var) (vars : var_set) : bool :=
   end.
 
 
-(*  Function to remove all instances of v from vars *)
+(**  Function to remove all instances of v from vars *)
 Fixpoint var_set_remove_var (v : var) (vars : var_set) : var_set :=
   match vars with
     | nil => nil
@@ -277,7 +289,7 @@ Fixpoint var_set_remove_var (v : var) (vars : var_set) : var_set :=
                                   else n :: (var_set_remove_var v n')
   end.
 
-(*  Function to return a unique var_set without duplicates. Found_vars should be
+(**  Function to return a unique var_set without duplicates. Found_vars should be
     empty for correctness guarantee *)
 Fixpoint var_set_create_unique (vars : var_set): var_set :=
   match vars with
@@ -287,7 +299,7 @@ Fixpoint var_set_create_unique (vars : var_set): var_set :=
                                    else n :: var_set_create_unique n'
   end.
 
-(*  Function to check if a given var_set is unique *)
+(**  Function to check if a given var_set is unique *)
 Fixpoint var_set_is_unique (vars : var_set): bool :=
   match vars with
     | nil => true
@@ -296,7 +308,7 @@ Fixpoint var_set_is_unique (vars : var_set): bool :=
                                    else var_set_is_unique n'
   end.
 
-(*  Function to get the variables of a term as a var_set *)
+(**  Function to get the variables of a term as a var_set *)
 Fixpoint term_vars (t : term) : var_set :=
   match t with
     | T0 => nil
@@ -306,10 +318,12 @@ Fixpoint term_vars (t : term) : var_set :=
     | SUM x y => (term_vars x) ++ (term_vars y)
   end.
 
-(*  Function to generate a list of unique variables that make up a given term *)
+(**  Function to generate a list of unique variables that make up a given term *)
 Definition term_unique_vars (t : term) : var_set :=
   var_set_create_unique (term_vars t).
 
+(** This is a group of helper lemmas for list of variables. 
+*)
 
 Lemma vs_includes_true : forall (x : var) (lvar : list var),
   var_set_includes_var x lvar = true -> In x lvar.
@@ -582,7 +596,7 @@ Proof.
   - simpl. rewrite IHt1. rewrite IHt2. reflexivity.
 Qed.
 
-(*  Helper lemmeas for proving apply_subst_compat *)
+(**  Helper lemmeas for the apply_subst properties *)
 
 Lemma sum_comm_compat t1 t2: forall (sigma: subst),
   apply_subst (t1 + t2) sigma == apply_subst (t2 + t1) sigma.
@@ -672,11 +686,17 @@ Proof.
 Qed.
 Hint Resolve trans_compat.
 
-Lemma apply_subst_compat : forall (t t' : term),
+(** This is an axiom that states that if two terms are equivalent then 
+applying any substitution on them will also produce equivalent terms.
+The reason we axiomatized this and we did not prove it as a lemma is because
+the set of our fundamental axioms is not an inductive relation, so it would be impossible
+to prove the lemma below with our fundamental axioms in the currrent format. 
+
+*)
+
+Axiom apply_subst_compat : forall (t t' : term),
   t == t' ->
   forall (sigma: subst), apply_subst t sigma == apply_subst t' sigma.
-Proof.
-Admitted.
 
 Add Parametric Morphism : apply_subst with
       signature eqv ==> eq ==> eqv as apply_subst_mor.
@@ -684,12 +704,12 @@ Proof.
   exact apply_subst_compat.
 Qed.
 
-(** An easy thing to prove right off the bat is that ground terms, i.e. terms
+(** An intuitive thing to prove for ground terms is that they (ground terms), i.e. terms
     with no variables, cannot be modified by applying substitutions to them.
     This will later prove to be very relevant when we begin to talk about
     unification. *)
 
-(*  Helpful lemma for showing substitutions do not affect ground terms *)
+(**  Helpful lemma for showing substitutions do not affect ground terms *)
 Lemma ground_term_cannot_subst : forall x,
   ground_term x ->
   forall s, apply_subst x s == x.
@@ -894,25 +914,25 @@ Qed.
     composing another one; or in other words, to say that a substitution is more
     general than another one. *)
 
-(*  substitution composition *)
-Definition substitution_composition (s s' delta : subst) (t : term) : Prop :=
+(**  Proposition of sequential substition application *)
+Definition substitution_factor_through (s s' delta : subst) : Prop :=
   forall (x : var), apply_subst (apply_subst (VAR x) s) delta ==
                     apply_subst (VAR x) s' .
 
-(*  more general unifier *)
-Definition more_general_substitution (s s': subst) (t : term) : Prop :=
-  exists delta, substitution_composition s s' delta t.
+(** Definition of a more general unifier *)
+Definition more_general_substitution (s s': subst) : Prop :=
+  exists delta, substitution_factor_through s s' delta .
 
 (** Now that we have articulated the concept of composing substitutions, let us
     now formulate the definition for a most general unifier. *)
 
-(*  A Most General Unifier (MGU) takes in a term and a substitution and tells
+(** Definition of a Most General Unifier (mgu) : A Most General Unifier (MGU) takes in a term and a substitution and tells
     whether or not said substitution is an mgu for the given term. *)
 Definition most_general_unifier (t : term) (s : subst) : Prop :=
-  unifier t s ->
+  unifier t s /\
   forall (s' : subst),
   unifier t s' ->
-  more_general_substitution s s' t.
+  more_general_substitution s s'.
 
 (** While this definition of a most general unifier is certainly valid, it is a
     somewhat unwieldy formulation. For this reason, let us now define an
@@ -923,28 +943,49 @@ Definition most_general_unifier (t : term) (s : subst) : Prop :=
     most general directly. *)
 
 Definition reproductive_unifier (t : term) (sig : subst) : Prop :=
-  unifier t sig ->
+  unifier t sig /\
   forall (tau : subst) (x : var),
   unifier t tau ->
   apply_subst (apply_subst (VAR x) sig ) tau == apply_subst (VAR x) tau.
 
+(** Lemma to show that a reproductive unifier is a most general unifier.
+Since the ultimate goal is to prove that a specific algorithm produces an mgu
+then if we could prove it is a reproductive unifier  then we could use this lemma
+to arrive at the desired conclusion.
+*)
 
 Lemma reproductive_is_mgu : forall (t : term) (u : subst),
   reproductive_unifier t u ->
   most_general_unifier t u.
 Proof.
   intros. unfold most_general_unifier. unfold reproductive_unifier in H.
-  unfold more_general_substitution . unfold substitution_composition.
-  intros. specialize (H H0). exists s'. intros. specialize (H s' x).
-  specialize (H H1). apply H.
+  unfold more_general_substitution . destruct H. split.
+ - apply H.
+ - intros. specialize (H0 s'). exists s'. unfold substitution_factor_through. intros.  specialize (H0 x).
+    specialize (H0 H1). apply H0.
 Qed.
+
+(** Lemma to show that if two terms are equivalent then for any subsitution that is an mgu 
+of one of the terms, then it is an mgu of the other term as well.
+*)
 
 Lemma most_general_unifier_compat : forall  (t t' : term),
   t == t' ->
   forall (sigma: subst),
   most_general_unifier t sigma <-> most_general_unifier t' sigma.
 Proof.
-Admitted.
+intros. split. 
+ - intros. unfold most_general_unifier. unfold unifier in H0. unfold unifier in *.
+   split. 
+   + unfold most_general_unifier in H0. destruct H0. unfold unifier in H0. rewrite H in H0. apply H0.
+   + intros. unfold most_general_unifier in H0. destruct H0.
+    specialize (H2 s'). unfold unifier in H0. symmetry in H. rewrite H in H1. unfold unifier in H2.
+    specialize (H2 H1). apply H2. 
+ -  unfold most_general_unifier.  intros. destruct H0 . split. 
+   + symmetry in H. unfold unifier in H0.  rewrite H in H0. unfold unifier.  apply H0.
+   +  intros. specialize (H1 s'). unfold unifier in H2. rewrite H in H2. unfold unifier in H1. 
+      specialize (H1 H2). apply H1. 
+Qed.    
 
 (** * Auxilliary Computational Operations and Simplifications *)
 
@@ -1683,4 +1724,3 @@ Proof.
     + simpl. reflexivity.
     + simpl. reflexivity.
 Qed.
-
