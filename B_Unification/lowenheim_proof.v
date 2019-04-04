@@ -1,8 +1,18 @@
+(***
+  Lowenheim's Formula Proof of Correctness
+
+  Authors:
+    Joseph St. Pierre
+    Spyridon Antonatos
+***)
+
 (*** Required Libraries
 ***)
 
 Require Export lowenheim_formula.
 
+Require Import List.
+Import ListNotations.
 Require Export EqNat.
 Require Import List.
 Import ListNotations.
@@ -504,24 +514,28 @@ Lemma lowenheim_reproductive: forall (t : term) (tau : subst),
   unifier t tau ->
   reproductive_unifier t (build_lowenheim_subst t tau).
 Proof.
-  intros. unfold reproductive_unifier. intros.
-  pose proof var_in_out_list. specialize (H2 x (term_unique_vars t)).
-  destruct H2.
-  - rewrite lowenheim_rephrase1.
-    + rewrite subst_sum_distr_opp. rewrite subst_mul_distr_opp.
-      rewrite subst_mul_distr_opp. unfold unifier in H1. rewrite H1.
-      rewrite mul_T0_x. rewrite subst_sum_distr_opp. rewrite H1.
-      rewrite ground_term_cannot_subst.
-      * rewrite sum_id. rewrite mul_id. rewrite sum_comm. rewrite sum_id.
-        reflexivity.
-      * unfold ground_term. intuition.
-    + apply H.
-    + apply H2.
-  - rewrite lowenheim_rephrase2.
-    + reflexivity.
-    + apply H.
-    + apply H2.
+  intros. unfold reproductive_unifier. intros. 
+  pose proof var_in_out_list. split. 
+ -  apply lownheim_unifies.  apply H.
+ - intros. specialize (H0 x (term_unique_vars t)). destruct H0.
+  {
+  rewrite lowenheim_rephrase1.
+  - rewrite subst_sum_distr_opp. rewrite subst_mul_distr_opp. rewrite subst_mul_distr_opp.
+    unfold unifier in H1. rewrite H1. rewrite mul_T0_x. rewrite subst_sum_distr_opp.
+    rewrite H1. rewrite ground_term_cannot_subst.
+    + rewrite sum_id. rewrite mul_id. rewrite sum_comm. rewrite sum_id. reflexivity.
+    + unfold ground_term. intuition.
+  - apply H.  
+  - apply H0. 
+  }
+  { rewrite lowenheim_rephrase2.
+    - reflexivity.
+    - apply H.
+    -  apply H0.
+  }
 Qed.
+
+
 
 
 (** ** Proof That Lowenheim's Algorithm Produces a Most General Unifier *)
@@ -964,10 +978,11 @@ Proof.
   - simpl in H2. unfold unifier in H2. apply app_subst_T0 in H2. simpl.
     repeat simpl in H1. pose proof most_general_unifier_compat.
     specialize (H3 t T0 H2). specialize (H3 []).
-    rewrite H3. unfold most_general_unifier. intros.
-    unfold more_general_substitution. exists s'.
-    unfold substitution_composition.
-    intros. simpl. reflexivity.
+    rewrite H3. unfold most_general_unifier. intros. 
+   unfold more_general_substitution. split. 
+  + apply empty_subst_on_term. 
+  +  intros. exists s'. unfold substitution_factor_through. 
+   intros. simpl. reflexivity. 
 Qed.
 
 
@@ -988,12 +1003,11 @@ Lemma lowenheim_main_most_general_unifier: forall (t: term),
  /\
  (~ unifiable t -> Lowenheim_Main t = None).
 Proof.
-  intros.
-  split.
-  - intros. apply builder_to_main.
-    + apply H.
-    + apply lowenheim_most_general_unifier. apply find_unifier_is_unifier.
-      apply H.
-  - intros. pose proof not_unifiable_find_unifier_none_subst.
-    specialize (H0 t H). unfold Lowenheim_Main. rewrite H0. reflexivity.
+ intros. 
+ split. 
+ - intros. apply builder_to_main.
+  +  apply H.
+  + apply lowenheim_most_general_unifier. apply find_unifier_is_unifier. apply H.
+ - intros. pose proof not_unifiable_find_unifier_none_subst. 
+   specialize (H0 t H). unfold Lowenheim_Main. rewrite H0. reflexivity.
 Qed.
