@@ -20,46 +20,49 @@ of these respective algorithms.
 
 (** Before defining what unification is, there is some terminology to
     understand. A _term_ is either a variable or a function applied to terms
-    [[1]]. By this definition, a constant term is just a nullary function. A
-    _variable_ is a symbol capable of taking on the value of any term. An
-    example of a term is [f(a, x)], where [f] is a function of two arguments,
-    [a] is a constant, and [x] is a variable. A term is _ground_ if no variables
-    occur in it [[2]]. The last example is not a ground term but [f(a, a)] would
-    be. *)
+    %\cite[p.~34]{baader1998rewriting}%. By this definition, a constant term is
+    just a nullary function. A _variable_ is a symbol capable of taking on the
+    value of any term. An example of a term is [f(a, x)], where [f] is a
+    function of two arguments, [a] is a constant, and [x] is a variable. A term
+    is _ground_ if no variables occur in it %\cite[p.~37]{baader1998rewriting}%.
+    The last example is not a ground term but [f(a, a)] would be. *)
 
 (** A _substitution_ is a mapping from variables to terms. The _domain_ of a
     substitution is the set of variables that do not get mapped to themselves.
-    The _range_ is the set of terms the are mapped to by the domain [[2]]. It is
-    common for substitutions to be referred to as mappings from terms to terms.
-    A substitution $\sigma$ can be extended to this form by defining
-    $\hat{\sigma}(s)$ for two cases of [s]. If [s] is a variable, then
-    $\hat{\sigma}(s) := \sigma(s)$. If [s] is a function $f(s_{1}, ..., s_{n})$,
-    then $\hat{\sigma}(s) := f(\hat{\sigma}(s_{1}), ..., \hat{\sigma}(s_{n}))$
-    [[3]]. *)
+    The _range_ is the set of terms the are mapped to by the domain
+    %\cite[p.~37]{baader1998rewriting}%. It is common for substitutions to be
+    referred to as mappings from terms to terms. A substitution $\sigma$ can be
+    extended to this form by defining $\hat{\sigma}(s)$ for two cases of [s]. If
+    [s] is a variable, then $\hat{\sigma}(s) := \sigma(s)$. If [s] is a function
+    $f(s_{1}, ..., s_{n})$, then
+    $\hat{\sigma}(s) := f(\hat{\sigma}(s_{1}), ..., \hat{\sigma}(s_{n}))$
+    %\cite[p.~38]{baader1998rewriting}%. *)
 
 (** Unification is the process of solving a set of equations between two terms.
-    The set of equations is referred to as a _unification problem_ [[4]]. The
-    process of solving one of these problems can be classified by the set of
-    terms considered and the equality of any two terms. The latter
-    property is what distinguishes two broad groups of algorithms, namely
-    syntactic and semantic unification. If two terms are only considered equal
-    if they are identical, then the unification is _syntactic_ [[4]]. If two
-    terms are equal with respect to an equational theory, then the unification
-    is _semantic_ [[5]]. *)
+    The set of equations is referred to as a _unification problem_
+    %\cite[p.~71]{baader1998rewriting}%. The process of solving one of these
+    problems can be classified by the set of terms considered and the equality
+    of any two terms. The latter property is what distinguishes two broad groups
+    of algorithms, namely syntactic and semantic unification. If two terms are
+    only considered equal if they are identical, then the unification is
+    _syntactic_ %\cite[p.~71]{baader1998rewriting}%. If two terms are equal with
+    respect to an equational theory, then the unification is _semantic_
+    %\cite[p.~224]{baader1998rewriting}%. *)
 
 (** The goal of unification is to solve a problem, which means to produce a
     substitution that unifies all equations of a problem. A substitution
     $\sigma$ _unifies_ an equation $s \stackrel{?}{=} t$ if applying $\sigma$ to
     both sides makes them equal $\sigma(s) = \sigma(t)$. If $\sigma$ unifies
     every equation in the problem S, we call $\sigma$ a _solution_ or _unifier_
-    of S [[4]]. *)
+    of [S] %\cite[p.~71]{baader1998rewriting}%. *)
 
 (** The goal of a unification algorithm is not just to produce a unifier but to
     produce one that is most general. A substitution is a _most general unifier_
     or _mgu_ of a problem if it is more general than every other solution to the
     problem. A substitution $\sigma$ is _more general_ than $\sigma'$ if there
     exists a third substitution $\delta$ such that
-    $\sigma'(u) = \delta(\sigma(u))$ for any term [u] [[4]]. *)
+    $\sigma'(u) = \delta(\sigma(u))$ for any term [u]
+    %\cite[p.~71]{baader1998rewriting}%. *)
 
 
 (** ** Syntatic Unification *)
@@ -69,9 +72,10 @@ of these respective algorithms.
     $y \ast x$ are not syntactically equal, but would be equal modulo
     commutativity of multiplication. Problems of this kind can be solved by
     repeated transformations until the solution pops out similar to solving a
-    linear system by Guassian elimination [[6]]. This version of unification is
-    considered a simpler version of semantic unification because it is the
-    special case where the set of equational identities is empty. *)
+    linear system by Guassian elimination %\cite[p.~73]{baader1998rewriting}%.
+    This version of unification is considered a simpler version of semantic
+    unification because it is the special case where the set of equational
+    identities is empty. *)
 
 
 (** ** Semantic Unification *)
@@ -85,7 +89,8 @@ of these respective algorithms.
     of the function [f]. Knowing this, the problem
     $\{f(x, a) \stackrel{?}{=} f(a, b)\}$ is unified by the substitution
     $\{x \mapsto b\}$ since $f(b, a) \approx_{C} f(a, b)$. In general, for an
-    arbitrary [E], the problem of [E]-unification is undecidable [[4]]. *)
+    arbitrary [E], the problem of [E]-unification is undecidable
+    %\cite[p.~71]{baader1998rewriting}%. *)
 
 
 (** ** Boolean Unification *)
@@ -97,8 +102,9 @@ of these respective algorithms.
     \approx x + (y + z), x + x \approx 0, 0 + x \approx x, x \ast (y + z)
     \approx (x \ast y) + (x \ast z), x \ast y \approx y \ast x, (x \ast y) \ast
     z \approx x ast (y ast z), x \ast x \approx x, 0 \ast x \approx 0, 1 \ast x
-    \approx x\}$ [[7]]. This set is equivalent to the theory of real numbers
-    with the addition of $x + x \approx_{B} 0$ and $x \ast x \approx_{B} x$. *)
+    \approx x\}$ %\cite[p.~250]{baader1998rewriting}%. This set is equivalent to
+    the theory of real numbers with the addition of $x + x \approx_{B} 0$ and
+    $x \ast x \approx_{B} x$. *)
 
 (** Although a unification problem is a set of equations between two terms, we
     will now show informally that a [B]-unification problem can be viewed as a
@@ -116,15 +122,6 @@ of these respective algorithms.
     Unifying both of these sets is equivalent because if any $t_{1}, ..., t_{n}$
     is [1] the problem is not unifiable. Otherwise, if every $t_{1}, ..., t_{n}$
     can be made to equal [0], then both problems will be solved. *)
-
-(*  [[1]] pg 34
-    [[2]] pg 37
-    [[3]] pg 38
-    [[4]] pg 71
-    [[5]] pg 224
-    [[6]] pg 73
-    [[7]] pg 250
- *)
 
 
 (** * Formal Verification *)
