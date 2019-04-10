@@ -34,8 +34,6 @@ Import ListNotations.
 (*  Define a variable to be a natural number *)
 Definition var := nat.
 
-Definition var_eq_dec := Nat.eq_dec.
-
 (** A _term_, as has already been previously described, is now inductively
     declared to hold either a constant value, a single variable, a sum of terms,
     or a product of terms. *)

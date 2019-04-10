@@ -494,14 +494,14 @@ Lemma build_subst_is_reprod : forall x p q r s,
   div_by_var x p = (q, r) ->
   reprod_unif s (build_poly q r) ->
   forall t, unifier t p ->
-            subst_comp (build_subst s x q r) t t.
+            subst_comp_eq (build_subst s x q r) t t.
 Proof.
   unfold reprod_unif.
   intros x p q r s HpolyP Hdiv [[HpsS HunifS] Hsub_comp] t HunifT.
   assert (HunifT' := HunifT).
   destruct HunifT as [HpsT HunifT].
   apply (div_build_unif _ _ _ _ _ HpolyP Hdiv) in HunifT'.
-  unfold subst_comp in *.
+  unfold subst_comp_eq in *.
   intros y.
   destruct (y =? x) eqn:Hyx.
   - unfold build_subst.
@@ -522,8 +522,8 @@ Proof.
     assert (Hdiv2 := Hdiv).
     apply div_eq in Hdiv; auto.
     apply div_is_poly in Hdiv2 as [HpolyQ HpolyR]; auto.
-    rewrite (subst_comp_poly s t t); auto.
-    rewrite (subst_comp_poly s t t); auto.
+    rewrite (subst_comp_eq_poly s t t); auto.
+    rewrite (subst_comp_eq_poly s t t); auto.
     rewrite mulPP_comm; auto.
     rewrite mulPP_distr_addPP; auto.
     rewrite mulPP_comm; auto.
@@ -750,3 +750,8 @@ Proof.
   apply sveVars_correct.
   auto.
 Qed.
+
+(** %
+\bibliographystyle{plain}
+\bibliography{intro}
+% *)
