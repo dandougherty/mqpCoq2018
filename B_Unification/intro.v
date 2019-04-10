@@ -227,7 +227,7 @@ for these reasons we set out to formally verify two algorithms across Boolean Un
 (** We chose to implement two data structures for representing the terms of a Boolean 
     unification problem, and two algorithms for performing unification. The two data 
     structures chosen are an inductive Term type and lists of lists representing 
-    polynomial-form terms. The two algorithms are Lowenheim\u2019s formula and successive 
+    polynomial-form terms. The two algorithms are Lowenheim's formula and successive 
     variable elimination.
 *)
 
@@ -236,12 +236,12 @@ for these reasons we set out to formally verify two algorithms across Boolean Un
 (** The data structure used to represent a Boolean unification problem completely 
     changes the shape of both the unification algorithm and the proof of correctness, 
     and is therefore a very important decision. For this development, we have selected 
-    two different representations of Boolean rings \u2013 first as a \u201cTerm\u201d inductive type, 
+    two different representations of Boolean rings -- first as a "Term" inductive type, 
     and then as lists of lists representing terms in polynomial form.
 *)
 
-(** The Term inductive type, used in the proof of Lowenheim\u2019s algorithm, is very simple 
-    and rather intuitive \u2013 a term in a Boolean ring is one of 5 things:
+(** The Term inductive type, used in the proof of Lowenheim's algorithm, is very simple 
+    and rather intuitive -- a term in a Boolean ring is one of 5 things:
     -	The number 0
     -	The number 1
     -	A variable
@@ -299,16 +299,16 @@ for these reasons we set out to formally verify two algorithms across Boolean Un
 (** ** Algorithms *)
 
 (** For unification algorithms, we once again followed the work laid out in _Term 
-    Rewriting and All That_ and implemented both Lowenheim\u2019s algorithm and successive 
+    Rewriting and All That_ and implemented both Lowenheim's algorithm and successive 
     variable elimination.
 *)
 
-(** The first solution, Lowenheim\u2019s algorithm, is built on top of the term inductive 
-    type. Lowenheim\u2019s is based on the idea that the Lowenheim formula can take a ground 
+(** The first solution, Lowenheim's algorithm, is built on top of the term inductive 
+    type. Lowenheim's is based on the idea that the Lowenheim formula can take a ground 
     unifier of a Boolean unification problem and turn it into a most general unifier. 
     The algorithm then of course first requires finding a ground solution, accomplished 
     through brute force, which is then passed through the formula to create a most 
-    general unifier. Lowenheim\u2019s algorithm is implemented in the file [lowenheim.v], 
+    general unifier. Lowenheim's algorithm is implemented in the file [lowenheim.v], 
     and the proof of correctness is in [lowenheim_proof.v].
 *)
 

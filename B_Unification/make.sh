@@ -11,3 +11,5 @@ bibtex all
 pdflatex all
 
 pdflatex all
+
+rm -f all.tex coqdoc.sty
