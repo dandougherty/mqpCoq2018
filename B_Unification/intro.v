@@ -94,50 +94,63 @@
 (** * Unification *)
 
 (** Before defining what unification is, there is some terminology to
-    understand. A _term_ is either a variable or a function applied to terms
-    %\cite[p.~34]{baader1998rewriting}%. By this definition, a constant term is
-    just a nullary function. A _variable_ is a symbol capable of taking on the
-    value of any term. An example of a term is [f(a, x)], where [f] is a
-    function of two arguments, [a] is a constant, and [x] is a variable. A term
-    is _ground_ if no variables occur in it %\cite[p.~37]{baader1998rewriting}%.
+    understand.
+    %\begin{definition} A \textbf{term} is either a variable or a function
+    applied to terms \cite[p.~34]{baader1998rewriting}. \end{definition}%
+    By this definition, a constant term is just a nullary function.
+    %\begin{definition} A \textbf{variable} is a symbol capable of taking on the
+    value of any term. \end{definition}%
+    An example of a term is [f(a, x)], where [f] is a function of two arguments,
+    [a] is a constant, and [x] is a variable.
+    %\begin{definition} A term is \textbf{ground} if no variables occur in it
+    \cite[p.~37]{baader1998rewriting}. \end{definition}%
     The last example is not a ground term but [f(a, a)] would be. *)
 
-(** A _substitution_ is a mapping from variables to terms. The _domain_ of a
-    substitution is the set of variables that do not get mapped to themselves.
-    The _range_ is the set of terms the are mapped to by the domain
-    %\cite[p.~37]{baader1998rewriting}%. It is common for substitutions to be
-    referred to as mappings from terms to terms. A substitution $\sigma$ can be
-    extended to this form by defining $\hat{\sigma}(s)$ for two cases of [s]. If
-    [s] is a variable, then $\hat{\sigma}(s) := \sigma(s)$. If [s] is a function
-    $f(s_{1}, ..., s_{n})$, then
-    $\hat{\sigma}(s) := f(\hat{\sigma}(s_{1}), ..., \hat{\sigma}(s_{n}))$
+(** %\begin{definition} A \textbf{substitution} is a mapping from variables to
+    terms. \end{definition}%
+    %\begin{definition} The \textbf{domain} of a substitution is the set of
+    variables that do not get mapped to themselves. \end{definition}%
+    %\begin{definition} The \textbf{range} is the set of terms that are mapped
+    to by the domain \cite[p.~37]{baader1998rewriting}. \end{definition}%
+    It is common for substitutions to be referred to as mappings from terms to
+    terms. A substitution $\sigma$ can be extended to this form by defining
+    $\hat{\sigma}(s)$ for two cases of [s]. If [s] is a variable, then
+    $\hat{\sigma}(s) := \sigma(s)$. If [s] is a function $f(s_{1}, ..., s_{n})$,
+    then $\hat{\sigma}(s) := f(\hat{\sigma}(s_{1}), ..., \hat{\sigma}(s_{n}))$
     %\cite[p.~38]{baader1998rewriting}%. *)
 
 (** Unification is the process of solving a set of equations between two terms.
-    The set of equations is referred to as a _unification problem_
-    %\cite[p.~71]{baader1998rewriting}%. The process of solving one of these
-    problems can be classified by the set of terms considered and the equality
-    of any two terms. The latter property is what distinguishes two broad groups
-    of algorithms, namely syntactic and semantic unification. If two terms are
-    only considered equal if they are identical, then the unification is
-    _syntactic_ %\cite[p.~71]{baader1998rewriting}%. If two terms are equal with
-    respect to an equational theory, then the unification is _semantic_
-    %\cite[p.~224]{baader1998rewriting}%. *)
+    %\begin{definition} The set of equations to solve is referred to as a
+    \textbf{unification problem} \cite[p.~71]{baader1998rewriting}.
+    \end{definition}%
+    The process of solving one of these problems can be classified by the set
+    of terms considered and the equality of any two terms. The latter property
+    is what distinguishes two broad groups of algorithms, namely syntactic and
+    semantic unification.
+    %\begin{definition} If two terms are only considered equal if they are
+    identical, then the unification is \textbf{syntactic}
+    \cite[p.~71]{baader1998rewriting}. \end{definition}%
+    %\begin{definition} If two terms are equal with respect to an equational
+    theory, then the unification is \textbf{semantic}
+    \cite[p.~224]{baader1998rewriting}. \end{definition}% *)
 
 (** The goal of unification is to solve a problem, which means to produce a
-    substitution that unifies all equations of a problem. A substitution
-    $\sigma$ _unifies_ an equation $s \stackrel{?}{=} t$ if applying $\sigma$ to
-    both sides makes them equal $\sigma(s) = \sigma(t)$. If $\sigma$ unifies
-    every equation in the problem S, we call $\sigma$ a _solution_ or _unifier_
-    of [S] %\cite[p.~71]{baader1998rewriting}%. *)
+    substitution that unifies all equations of a problem.
+    %\begin{definition} A substitution $\sigma$ \textbf{unifies} an equation
+    $s \stackrel{?}{=} t$ if applying $\sigma$ to both sides makes them equal
+    $\sigma(s) = \sigma(t)$. \end{definition}%
+    %\begin{definition} If $\sigma$ unifies every equation in the problem $S$,
+    we call $\sigma$ a \textbf{solution} or \textbf{unifier} of $S$
+    \cite[p.~71]{baader1998rewriting}. \end{definition}% *)
 
 (** The goal of a unification algorithm is not just to produce a unifier but to
-    produce one that is most general. A substitution is a _most general unifier_
-    or _mgu_ of a problem if it is more general than every other solution to the
-    problem. A substitution $\sigma$ is _more general_ than $\sigma'$ if there
-    exists a third substitution $\delta$ such that
-    $\sigma'(u) = \delta(\sigma(u))$ for any term [u]
-    %\cite[p.~71]{baader1998rewriting}%. *)
+    produce one that is most general.
+    %\begin{definition} A substitution $\sigma$ is \textbf{more general} than
+    $\sigma'$ if there exists a third substitution $\delta$ such that
+    $\sigma'(u) = \delta(\sigma(u))$ for any term $u$. \end{definition}%
+    %\begin{definition} A substitution is a \textbf{most general unifier} or
+    \textbf{mgu} of a problem if it is more general than every other solution
+    to the problem \cite[p.~71]{baader1998rewriting}. \end{definition}% *)
 
 
 (** ** Syntatic Unification *)
@@ -173,30 +186,49 @@
 (** In this paper, we focus on unfication modulo Boolean ring theory, also
     referred to as [B]-unification. The allowed terms in this theory are the
     constants 0 and 1 and binary functions [+] and $\ast$. The set of identities
-    [B] is defined as the set $\{x + y \approx y + x, (x + y) + z
-    \approx x + (y + z), x + x \approx 0, 0 + x \approx x, x \ast (y + z)
-    \approx (x \ast y) + (x \ast z), x \ast y \approx y \ast x, (x \ast y) \ast
-    z \approx x ast (y ast z), x \ast x \approx x, 0 \ast x \approx 0, 1 \ast x
-    \approx x\}$ %\cite[p.~250]{baader1998rewriting}%. This set is equivalent to
+    [B] is defined as follows:
+    %
+    \begin{gather*}
+      \left\{
+      \begin{aligned}
+        \begin{split}
+          x + y &\approx y + x, \\
+          (x + y) + z &\approx x + (y + z), \\
+          x + x &\approx 0, \\
+          0 + x &\approx x, \\
+          x \ast (y + z) &\approx (x \ast y) + (x \ast z), \\
+        \end{split}
+        \begin{split}
+          x \ast y &\approx y \ast x, \\
+          (x \ast y) \ast z &\approx x \ast (y \ast z), \\
+          x \ast x &\approx x, \\
+          0 \ast x &\approx 0, \\
+          1 \ast x &\approx x
+        \end{split}
+      \end{aligned}
+      \right\}
+    \end{gather*}
+    % %\cite[p.~250]{baader1998rewriting}%. This set is equivalent to
     the theory of real numbers with the addition of $x + x \approx_{B} 0$ and
     $x \ast x \approx_{B} x$. *)
 
 (** Although a unification problem is a set of equations between two terms, we
     will now show informally that a [B]-unification problem can be viewed as a
     single equation $t \stackrel{?}{\approx}_{B} 0$. Given a problem in its
-    normal form $\{s_{1} \stackrel{?}{\approx}_{B} t_{1}, ..., s_{n}
-    \stackrel{?}{\approx}_{B} t_{n}\}$, we can transform it into $\{s_{1} +
-    t_{1} \stackrel{?}{\approx}_{B} 0, ..., s_{n} + t_{n}
-    \stackrel{?}{\approx}_{B} 0\}$ using a simple fact. The equation
-    $s \approx_{B} t$ is equivalent to $s + t \approx_{B} 0$ since
-    adding _t_ to both sides of the equation turns the right hand side into
-    [t + t] which simplifies to 0. Then, given a problem $\{t_{1}
-    \stackrel{?}{\approx}_{B} 0, ..., t_{n} \stackrel{?}{\approx}_{B} 0\}$, we
-    can transform it into
-    $\{(t_{1} + 1) \ast ... \ast (t_{n} + 1) \stackrel{?}{\approx}_{B} 1\}$.
-    Unifying both of these sets is equivalent because if any $t_{1}, ..., t_{n}$
-    is 1 the problem is not unifiable. Otherwise, if every $t_{1}, ..., t_{n}$
-    can be made to equal 0, then both problems will be solved. *)
+    normal form %\begin{gather*} \{s_{1} \stackrel{?}{\approx}_{B} t_{1}, ...,
+    s_{n} \stackrel{?}{\approx}_{B} t_{n}\}, \end{gather*}% we can transform it
+    into %\begin{gather*} \{s_{1} + t_{1} \stackrel{?}{\approx}_{B} 0, ...,
+    s_{n} + t_{n} \stackrel{?}{\approx}_{B} 0\}\end{gather*}% using a simple
+    fact. The equation $s \approx_{B} t$ is equivalent to $s + t \approx_{B} 0$
+    since adding _t_ to both sides of the equation turns the right hand side
+    into [t + t] which simplifies to 0. Then, given a problem %\begin{gather*}
+    \{t_{1} \stackrel{?}{\approx}_{B} 0, ..., t_{n} \stackrel{?}{\approx}_{B} 0
+    \},\end{gather*}% we can transform it into %\begin{gather*}
+    \{(t_{1} + 1) \ast ... \ast (t_{n} + 1) \stackrel{?}{\approx}_{B} 1\}.
+    \end{gather*}% Unifying both of these sets is equivalent because if any
+    $t_{1}, ..., t_{n}$ is 1 the problem is not unifiable. Otherwise, if every
+    $t_{1}, ..., t_{n}$ can be made to equal 0, then both problems will be
+    solved. *)
 
 
 
