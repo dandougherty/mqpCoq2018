@@ -7,7 +7,6 @@ Require Import Permutation.
 Import Nat.
 
 Require Export list_util.
-Require Export terms.
 
 
 
@@ -31,14 +30,18 @@ Require Export terms.
     and the term [1] is represented as the polynomial containing only the empty
     monomial.
 
-    In addition to the definitions of [mono] and [poly], we also have a
-    definition for [mono_eq_dec]; this is a proof of decidability of monomials.
-    This makes use of a special Coq data structure that allows this to
-    be used as a comparison function - for example, we can
-    [destruct (mono_eq_dec a b)] to compare the two cases where [a = b] and
-    $a \neq b$. In addition to being useful in some proofs, this is also needed
-    by some functions, such as [remove] and [count_occ], since they compare
-    monomials. *)
+    In addition to the definitions of [var], [mono], and [poly], we also have
+    definitions for [var_eq_dec] amd [mono_eq_dec]; these are a proofs of
+    decidability of varailes and monomials respectively. They make use of a
+    special Coq data structure that allows them to be used as a comparison
+    function - for example, we can [destruct (mono_eq_dec a b)] to compare the
+    two cases where [a = b] and $a \neq b$. In addition to being useful in some
+    proofs, this is also needed by some functions, such as [remove] and
+    [count_occ], since they compare variables and monomials. *)
+
+Definition var := nat.
+
+Definition var_eq_dec := Nat.eq_dec.
 
 Definition mono := list var.
 

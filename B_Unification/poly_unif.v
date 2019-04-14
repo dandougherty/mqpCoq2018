@@ -436,10 +436,10 @@ Definition unifiable (p : poly) : Prop :=
 
 (** A substitution [u] is a _composition_ of two substitutions [s] and _t_ if
     $u(x)\downarrow_{P} = t(s(x))\downarrow_{P}$ for every variable [x]. The
-    lemma [subst_comp_poly] below extends this definition from variables to
+    lemma [subst_comp_eq_poly] below extends this definition from variables to
     polynomials. *)
 
-Definition subst_comp (s t u : subst) : Prop :=
+Definition subst_comp_eq (s t u : subst) : Prop :=
   forall x,
   substP t (substP s [[x]]) = substP u [[x]].
 
@@ -447,7 +447,7 @@ Definition subst_comp (s t u : subst) : Prop :=
     a third substitution [u] such that _t_ is a composition of [u] and [s]. *)
 
 Definition more_general (s t : subst) : Prop :=
-  exists u, subst_comp s u t.
+  exists u, subst_comp_eq s u t.
 
 (** Given a polynomial [p], a substitution [s] is the _most general unifier_ of
     [p] if [s] is more general than every unifier of [p]. *)
@@ -468,7 +468,7 @@ Definition reprod_unif (s : subst) (p : poly) : Prop :=
   unifier s p /\
   forall t,
   unifier t p ->
-  subst_comp s t t.
+  subst_comp_eq s t t.
 
 (** Because the notion of most general is weaker than reproductive, it can be
     proven to logically follow as shown below. Any unifier that is reproductive
@@ -478,7 +478,7 @@ Lemma reprod_is_mgu : forall p s,
   reprod_unif s p ->
   mgu s p.
 Proof.
-  unfold mgu, reprod_unif, more_general, subst_comp.
+  unfold mgu, reprod_unif, more_general, subst_comp_eq.
   intros p s [].
   split; auto.
   intros.
@@ -491,7 +491,7 @@ Qed.
     This comes from the implicit fact that if two substitutions agree on all
     variables then they agree on all terms. *)
 
-Lemma subst_comp_poly : forall s t u,
+Lemma subst_comp_eq_poly : forall s t u,
   is_poly_subst s ->
   is_poly_subst t ->
   is_poly_subst u ->
@@ -521,7 +521,7 @@ Qed.
 
 Lemma empty_reprod_unif : reprod_unif [] [].
 Proof.
-  unfold reprod_unif, more_general, subst_comp.
+  unfold reprod_unif, more_general, subst_comp_eq.
   split; auto. apply empty_unifier.
 Qed.
 
