@@ -558,6 +558,16 @@ Definition subst_equiv (s1 s2: subst) : Prop :=
 Definition subst_is_id_subst (t : term) (s : subst) : Prop :=
   apply_subst t s == t.
 
+(**
+  
+**)
+
+Fixpoint subst_compose (s s' : subst) : subst :=
+  match s' with
+    | [] => s
+    | (x, t) :: s'' => (x, apply_subst t s) :: (subst_compose s s'')
+  end.
+
 (** ** Lemmas **)
 
 (** Having now outlined the functionality of a subsitution, let us now begin to
@@ -895,13 +905,12 @@ Qed.
     general than another one. *)
 
 (*  substitution composition *)
-Definition substitution_composition (s s' delta : subst) (t : term) : Prop :=
-  forall (x : var), apply_subst (apply_subst (VAR x) s) delta ==
-                    apply_subst (VAR x) s' .
+Definition substitution_factors_through (s s' delta : subst) : Prop :=
+  subst_compose s s' = delta.
 
 (*  more general unifier *)
-Definition more_general_substitution (s s': subst) (t : term) : Prop :=
-  exists delta, substitution_composition s s' delta t.
+Definition more_general_substitution (s s': subst) : Prop :=
+  exists delta, substitution_factors_through s s' delta.
 
 (** Now that we have articulated the concept of composing substitutions, let us
     now formulate the definition for a most general unifier. *)
@@ -909,10 +918,10 @@ Definition more_general_substitution (s s': subst) (t : term) : Prop :=
 (*  A Most General Unifier (MGU) takes in a term and a substitution and tells
     whether or not said substitution is an mgu for the given term. *)
 Definition most_general_unifier (t : term) (s : subst) : Prop :=
-  unifier t s ->
+  unifier t s /\
   forall (s' : subst),
   unifier t s' ->
-  more_general_substitution s s' t.
+  more_general_substitution s s'.
 
 (** While this definition of a most general unifier is certainly valid, it is a
     somewhat unwieldy formulation. For this reason, let us now define an
@@ -924,17 +933,16 @@ Definition most_general_unifier (t : term) (s : subst) : Prop :=
 
 Definition reproductive_unifier (t : term) (sig : subst) : Prop :=
   unifier t sig ->
-  forall (tau : subst) (x : var),
+  forall (tau : subst),
   unifier t tau ->
-  apply_subst (apply_subst (VAR x) sig ) tau == apply_subst (VAR x) tau.
-
+  (subst_compose sig tau) = tau.
 
 Lemma reproductive_is_mgu : forall (t : term) (u : subst),
   reproductive_unifier t u ->
   most_general_unifier t u.
 Proof.
   intros. unfold most_general_unifier. unfold reproductive_unifier in H.
-  unfold more_general_substitution . unfold substitution_composition.
+  unfold more_general_substitution . unfold substitution_factors_through.
   intros. specialize (H H0). exists s'. intros. specialize (H s' x).
   specialize (H H1). apply H.
 Qed.
