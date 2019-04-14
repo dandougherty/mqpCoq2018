@@ -10,6 +10,7 @@
 
 Require Export terms.
 
+
 Require Import List.
 Import ListNotations.
 
@@ -100,31 +101,37 @@ Definition term_is_T0 (t : term) : bool :=
     substitution with ground terms that makes the given input term equivalent to
     [T0]. To use it, start with an empty list of replacements as the input
     [s : subst]. *)
-
-Fixpoint rec_subst (t : term) (vars : var_set) (s : subst) : subst :=
+  
+Fixpoint all_01_substs (vars : var_set) : list subst :=
   match vars with
-  | [] => s
-  | v' :: v =>
-    if (term_is_T0 (update_term (update_term t ((v' , T0) :: s))
-                                (rec_subst (update_term t ((v' , T0) :: s))
-                                           v ((v' , T0) :: s))))
-    then rec_subst (update_term t ((v' , T0) :: s)) v ((v' , T0) :: s)
-    else
-      if (term_is_T0 (update_term (update_term t ((v' , T1) :: s))
-                                  (rec_subst (update_term t ((v' , T1) :: s))
-                                             v ((v' , T1) :: s))))
-      then rec_subst (update_term t ((v' , T1) :: s)) v ((v' , T1) :: s)
-      else rec_subst (update_term t ((v' , T0) :: s)) v ((v' , T0) :: s)
+  | [] => [[]]
+  | v :: v' => 
+               (map (fun s => (v,T0) :: s ) (all_01_substs v'))
+                 ++
+                 (map (fun s => (v,T1) :: s) (all_01_substs v'))
   end.
 
+Definition y := var.
+Definition z := var.
+Compute (all_01_substs (cons 1 (cons 2 nil))).
 
-(** Next is a function to find a ground unifier of the input term, if it exists.
-    *)
+
+
+Fixpoint tranform_lsubst (lsub : list subst) (t : term) : list bool :=
+  (map (fun s => match (update_term t s) with
+                  | T0 => true
+                  | _ => false 
+                  end ) lsub).
+
+Compute (tranform_lsubst (all_01_substs (cons 1 (cons 2 nil))) ((VAR 1) + (VAR 2)) ).
+
+
 Fixpoint find_unifier (t : term) : option subst :=
-  match update_term t (rec_subst t (term_unique_vars t) []) with
-  | T0 => Some (rec_subst t (term_unique_vars t) [])
-  | _ => None
-  end.
+ find (fun s => match (update_term t s) with
+                  | T0 => true
+                  | _ => false 
+                  end ) (all_01_substs (term_unique_vars t)). 
+
 
 
 (** Here is the main Lowenheim's formula; given a term, produce an MGU (a
@@ -164,3 +171,11 @@ Definition apply_lowenheim_main (t : term) : term :=
   | Some s => apply_subst t s
   | None => T1
   end.
+
+(*
+
+Compute (Lowenheim_Main ((VAR 1) + (VAR 2))).
+
+Compute (apply_lowenheim_main ((VAR 1) + (VAR 2))).
+
+*)
