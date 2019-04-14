@@ -11,6 +11,7 @@
 
 Require Export lowenheim_formula.
 
+
 Require Import List.
 Import ListNotations.
 Require Export EqNat.
@@ -719,6 +720,62 @@ Proof.
   intros. firstorder.
 Qed.
 
+(** The following five lemmas are also helper lemmas.
+
+*)
+
+Lemma None_not_Some {T U: Type} (f : U -> option T) (x: U):
+  (f x) = None -> (forall (t: T), ~ (f x) = Some t).
+Proof.
+  intros H1 H2 H3.
+  congruence.
+Qed.
+
+Lemma Some_not_None {T U: Type} (f : U -> option T) (x: U) (t: T):
+  (f x) = Some t -> ~ (f x = None).
+Proof.
+  intros H1 H2.
+  congruence.
+Qed.
+
+Lemma not_None_Some {T U: Type} (f : U -> option T) (x: U) :
+  ~ (f x = None) -> exists t : T, f x = Some t.
+Proof.
+  intros H.
+  destruct (f x) as [t | ].
+  - exists t; easy.
+  - congruence.
+Qed.
+
+Lemma not_Some_None {T U: Type} (f : U -> option T) (x: U) :
+ ( ~ exists t : T, f x = Some t) -> f x = None.
+Proof.
+  apply contrapositive_opposite.
+  intros H.
+  apply not_None_Some in H.
+  tauto.
+Qed.
+
+Lemma existsb_find {T: Type} (f: T -> bool) (l : list T) :
+  existsb f l = true ->
+  exists (a: T), find f l = Some a.
+Proof.
+  intros H.
+  apply NNPP.
+  intros H1.
+  apply not_Some_None in H1.   
+  assert (A1:= find_none f l).  
+  assert (A2:= A1 H1).
+  assert (A3:= existsb_exists f l).
+  destruct A3 as [A31 A32].
+  assert (A4:= A31 H).
+  destruct A4 as [t A41]. destruct A41 as [A411 A412].
+  assert (A21:= A2 t A411).
+  rewrite A412 in A21.
+  congruence.
+Qed.
+
+
 
 (** ** Intermediate Lemmas *)
 
@@ -744,52 +801,42 @@ Lemma some_subst_unifiable: forall (t : term),
   unifiable t.
 Proof.
   intros.
-  destruct H as [sig1 H1].
+  destruct H as [sig1 H1]. 
   induction t.
   - unfold unifiable. exists []. unfold unifier. simpl. reflexivity.
   - simpl in H1. inversion H1.
-  - unfold unifiable. exists sig1. unfold find_unifier in H1.
-    remember (update_term (VAR v) (rec_subst (VAR v)
-      (term_unique_vars (VAR v)) [])) in H1.
+  - unfold unifiable. exists sig1. unfold find_unifier in H1. apply find_some in H1. destruct H1. 
+    remember (update_term (VAR v) sig1) in H0.
     destruct t.
     + unfold update_term in Heqt. pose proof simplify_eqv.
-      specialize (H (apply_subst (VAR v) (rec_subst (VAR v)
-        (term_unique_vars (VAR v)) []))).
-      symmetry in Heqt. apply eq_some_eq_subst in H1.
-      rewrite H1 in H. rewrite H1 in Heqt.
-      rewrite Heqt in H. symmetry in H. apply H.
-    + simpl in H1. inversion H1.
-    + inversion H1.
-    + inversion H1.
-    + inversion H1.
-  - unfold unifiable. exists sig1. unfold find_unifier in H1.
-    remember (update_term (t1 + t2) (rec_subst (t1 + t2)
-      (term_unique_vars (t1 + t2)) [])) in H1.
+      specialize (H1 (apply_subst (VAR v) sig1) ). unfold unifier. symmetry in Heqt. 
+      rewrite Heqt in H1.  rewrite H1.  reflexivity. 
+    + inversion H0.
+    + inversion H0.
+    + inversion H0.
+    + inversion H0.
+  - unfold unifiable. exists sig1. unfold find_unifier in H1. apply find_some in H1. destruct H1. 
+    remember (update_term (t1 + t2) sig1) in H0.
     destruct t.
     + unfold update_term in Heqt. pose proof simplify_eqv.
-      specialize (H (apply_subst (t1 + t2) (rec_subst (t1 + t2)
-        (term_unique_vars (t1 + t2)) []))).
-      symmetry in Heqt. apply eq_some_eq_subst in H1.
-      rewrite H1 in H. rewrite H1 in Heqt.
-      rewrite Heqt in H. symmetry in H. apply H.
-    + inversion H1.
-    + inversion H1.
-    + inversion H1.
-    + inversion H1.
-  - unfold unifiable. exists sig1. unfold find_unifier in H1.
-    remember (update_term (t1 * t2) (rec_subst (t1 * t2)
-      (term_unique_vars (t1 * t2)) [])) in H1.
+      specialize (H1 (apply_subst (t1 + t2) sig1)).
+      symmetry in Heqt. unfold unifier. rewrite Heqt in H1. rewrite H1. 
+      reflexivity. 
+    + inversion H0.
+    + inversion H0.
+    + inversion H0.
+    + inversion H0.
+  - unfold unifiable. exists sig1. unfold find_unifier in H1. apply find_some in H1. destruct H1. 
+    remember (update_term (t1 * t2) sig1) in H0.
     destruct t.
     + unfold update_term in Heqt. pose proof simplify_eqv.
-      specialize (H (apply_subst (t1 * t2) (rec_subst (t1 * t2)
-        (term_unique_vars (t1 * t2)) []))).
-      symmetry in Heqt. apply eq_some_eq_subst in H1.
-      rewrite H1 in H. rewrite H1 in Heqt.
-      rewrite Heqt in H. symmetry in H. apply H.
-    + inversion H1.
-    + inversion H1.
-    + inversion H1.
-    + inversion H1.
+      specialize (H1 (apply_subst (t1 * t2) sig1)).
+      symmetry in Heqt. unfold unifier. rewrite Heqt in H1. rewrite H1. 
+      reflexivity. 
+    + inversion H0.
+    + inversion H0.
+    + inversion H0.
+    + inversion H0.
 Qed.
 
 
@@ -807,7 +854,7 @@ Proof.
 Qed.
 
 
-(* Lemma to show that if a term _t_ is not unifiable, the [find_unifier]
+(** Lemma to show that if a term _t_ is not unifiable, the [find_unifier]
     function returns [None] with _t_ as input. *)
 
 Lemma not_unifiable_find_unifier_none_subst : forall (t : term),
@@ -837,63 +884,190 @@ Qed.
 Lemma Some_subst_unifiable : forall (t : term) (sig : subst),
   find_unifier t = Some sig -> unifier t sig.
 Proof.
-  intros.
+  intros. unfold find_unifier in H. 
   induction t.
   - simpl in H. apply eq_some_eq_subst in H. symmetry in H. rewrite H.
     unfold unifier. simpl. reflexivity.
   - simpl in H. inversion H.
-  - unfold find_unifier in H. remember (update_term (VAR v)
-      (rec_subst (VAR v) (term_unique_vars (VAR v)) [])) in H.
+  - unfold find_unifier in H.  apply find_some in H. destruct H. 
+    remember (update_term (VAR v) sig) in H0.
     destruct t.
-    + unfold update_term in Heqt. pose proof simplify_eqv.
-      specialize (H0 (apply_subst (VAR v) (rec_subst (VAR v)
-        (term_unique_vars (VAR v)) []))).
-      symmetry in Heqt. apply eq_some_eq_subst in H.
-      rewrite H in H0. rewrite H in Heqt.
-      rewrite Heqt in H0. symmetry in H0. apply H0.
-    + inversion H.
-    + inversion H.
-    + inversion H.
-    + inversion H.
-  - unfold find_unifier in H. remember (update_term (t1 + t2)
-      (rec_subst (t1 + t2) (term_unique_vars (t1 + t2)) [])) in H.
+    + unfold unifier. unfold update_term in Heqt. pose proof simplify_eqv.
+      specialize (H1 (apply_subst (VAR v) sig) ). symmetry in Heqt. 
+      rewrite Heqt in H1.  rewrite H1.  reflexivity.
+    + inversion H0.
+    + inversion H0.
+    + inversion H0.
+    + inversion H0.
+  - unfold find_unifier in H.   apply find_some in H. destruct H. 
+    remember (update_term (t1 + t2) sig) in H0.
     destruct t.
-    + unfold update_term in Heqt. pose proof simplify_eqv.
-      specialize (H0 (apply_subst (t1 + t2) (rec_subst (t1 + t2)
-        (term_unique_vars (t1 + t2)) []))).
-      symmetry in Heqt. apply eq_some_eq_subst in H.
-      rewrite H in H0. rewrite H in Heqt.
-      rewrite Heqt in H0. symmetry in H0. apply H0.
-    + inversion H.
-    + inversion H.
-    + inversion H.
-    + inversion H.
-  - unfold find_unifier in H. remember (update_term (t1 * t2)
-      (rec_subst (t1 * t2) (term_unique_vars (t1 * t2)) [])) in H.
+    + unfold unifier. unfold update_term in Heqt. pose proof simplify_eqv.
+      specialize (H1 (apply_subst (t1 + t2) sig) ). symmetry in Heqt. 
+      rewrite Heqt in H1.  rewrite H1.  reflexivity.
+    + inversion H0.
+    + inversion H0.
+    + inversion H0.
+    + inversion H0.
+  - unfold find_unifier in H.   apply find_some in H. destruct H. 
+    remember (update_term (t1 * t2) sig) in H0.
     destruct t.
-    + unfold update_term in Heqt. pose proof simplify_eqv.
-      specialize (H0 (apply_subst (t1 * t2) (rec_subst (t1 * t2)
-        (term_unique_vars (t1 * t2)) []))).
-      symmetry in Heqt. apply eq_some_eq_subst in H.
-      rewrite H in H0. rewrite H in Heqt.
-      rewrite Heqt in H0. symmetry in H0. apply H0.
-    + inversion H.
-    + inversion H.
-    + inversion H.
-    + inversion H.
+    + unfold unifier. unfold update_term in Heqt. pose proof simplify_eqv.
+      specialize (H1 (apply_subst (t1 * t2) sig) ). symmetry in Heqt. 
+      rewrite Heqt in H1.  rewrite H1.  reflexivity.
+    + inversion H0.
+    + inversion H0.
+    + inversion H0.
+    + inversion H0.
+Qed.
+ 
+
+
+Definition build_T0_subst (lvar : list var) : subst :=
+ map (fun v => (v, T0) ) lvar.
+
+Definition build_T0_subst_from_t (t : term) : subst :=
+ build_T0_subst (term_unique_vars t).
+
+
+Fixpoint make_unif_subst (tau : subst) : subst :=
+ match tau with
+ | [] => []
+ | (first , second) :: rest' => 
+              if (is_ground_term second) then 
+                (cons (first, simplify second)  (make_unif_subst rest')) 
+              else 
+                 (build_T0_subst_from_t second) ++ (make_unif_subst rest')
+              
+end.
+
+Fixpoint augment_with_id (lvar_s : list var) (lvar : list var) : subst :=
+  match lvar with
+  | [] => []
+  | v :: v' => 
+      if (var_set_includes_var v lvar_s) then (augment_with_id lvar_s v') 
+      else (v, VAR v) :: (augment_with_id lvar_s v')
+  end.
+
+Definition add_id_subst (t : term) (tau : subst) : subst  :=
+  augment_with_id (subst_domain tau) (term_unique_vars t).
+
+Fixpoint convert_to_01_subst (tau : subst) (t : term) : subst :=
+ (subst_compose (make_unif_subst (add_id_subst t tau)) (add_id_subst t tau)).
+
+
+Lemma add_id_unf :
+ forall (t : term) (sig1 : subst),
+  (unifier t sig1) ->
+  (unifier t (add_id_subst t sig1 )).
+Proof.
+Admitted.
+
+Lemma unif_grnd_unif :
+ forall (t : term) (sig1 : subst),
+  (unifier t sig1) ->
+  (unifier t (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1))) /\ 
+  (is_ground_term (apply_subst t (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1)))) = true .
+Proof.
+ intros. split. 
+ -  unfold unifier. unfold unifier in H. rewrite subst_compose_eqv.
+    pose proof add_id_unf. specialize (H0 t sig1). unfold unifier in H0. specialize (H0 H). rewrite H0.
+ simpl. reflexivity.
+ -  admit.
+Admitted. 
+
+
+(*
+Lemma in_rec_is_01 :
+ forall (t : term) (sig : subst),
+ (In sig (all_01_substs (term_unique_vars t))) ->
+ (is_01_subst sig) = true.
+Proof.
+Admitted.
+*)
+
+
+Lemma _01_in_all :
+ forall (l1 : list var) (sig : subst),
+  (is_01_subst sig) = true /\ sub_dmn_list l1 (subst_domain sig) ->
+  In sig (all_01_substs l1).
+Proof.
+Admitted.
+ 
+
+Lemma _01_in_rec :
+  forall (t : term) (sig : subst),
+  (is_01_subst sig) = true /\ sub_dmn_list (term_unique_vars t) (subst_domain sig) ->
+  (In sig (all_01_substs (term_unique_vars t))).
+Proof.
+ intros. 
+ pose proof _01_in_all.
+ specialize (H0 (term_unique_vars t) sig).
+ apply H0. apply H.
 Qed.
 
+Lemma make_unif_is_01 :
+ forall (t : term) (sig1 : subst),
+ (unifier t sig1) ->
+ (is_01_subst (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1))) = true 
+ /\
+     sub_dmn_list (term_unique_vars t)
+       (subst_domain (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1))).
+Proof.
+ intros. 
+Admitted.
+ 
 
-(** This lemma shows that if there is a unifier, then there is a "ground
-    unifier". *)
+Lemma unif_exists_grnd_unif :
+ forall (t : term) (sig1 : subst),
+  (unifier t sig1) ->
+
+  exists sig2 : subst,
+  In sig2 (all_01_substs (term_unique_vars t)) 
+  /\
+  match (update_term t sig2) with
+  | T0 => true
+  | _ => false
+  end = true.
+Proof.
+ intros. exists (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1)) . split. 
+ -  pose proof _01_in_rec as H1. 
+   specialize (H1 t (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1)) ). pose proof make_unif_is_01 as H2. specialize (H2 t sig1).
+   specialize (H2 H). (*specialize (H0 t (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1)) ).*) specialize (H1 H2). apply H1.
+ - pose proof unif_grnd_unif. specialize (H0 t sig1 H). destruct H0. unfold unifier in H0.
+   unfold update_term. pose proof simplify_eqv.  specialize (H2 (apply_subst t (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1)) ) ).
+    symmetry in H2. pose proof trans_compat2.  symmetry in H0. 
+    specialize (H3 T0 (apply_subst t (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1)) ) 
+                ( simplify (apply_subst t (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1)) ))).
+     specialize (H3 H0 H2). symmetry in H3.  pose proof simplify_eq_T0. 
+     specialize (H4 (apply_subst t (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1)) )).
+     symmetry in H0.   rewrite H4. 
+      +   reflexivity.
+      + split.  { apply H0. }
+                { apply H1. } 
+Qed.
+                   
 
 Lemma unif_some_subst : forall (t: term),
   (exists sig1, unifier t sig1) ->
   exists sig2, find_unifier t = Some sig2.
 Proof.
-  intros.
-  destruct H as [sig1 H].
-Admitted.
+  intros t H. induction t.
+   - simpl. exists []. reflexivity. 
+   - simpl. destruct H. unfold unifier in H. simpl in H. apply T1_not_equiv_T0 in H. inversion H. 
+   - unfold find_unifier.    
+    apply existsb_find.
+    apply existsb_exists. destruct H. pose proof unif_exists_grnd_unif. specialize (H0 (VAR v) x). 
+    apply H0.  apply H. 
+  - unfold find_unifier.    
+    apply existsb_find.
+    apply existsb_exists. destruct H. pose proof unif_exists_grnd_unif. specialize (H0 (t1 + t2) x). 
+    apply H0.  apply H. 
+  - unfold find_unifier.    
+    apply existsb_find.
+    apply existsb_exists. destruct H. pose proof unif_exists_grnd_unif. specialize (H0 (t1 * t2) x). 
+    apply H0.  apply H. 
+Qed.
 
 
 (** Lemma to show that if no substituion makes [find_unifier] return
