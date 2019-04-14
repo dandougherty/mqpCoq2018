@@ -961,6 +961,20 @@ Lemma add_id_unf :
   (unifier t sig1) ->
   (unifier t (add_id_subst t sig1 )).
 Proof.
+intros. induction sig1.
+{
+  induction t.
+  {
+    unfold unifier in *. simpl in *. apply H.
+  }
+  {
+    unfold unifier in *. simpl in *. apply H.
+  }
+  {
+    unfold unifier in *. simpl in *. destruct PeanoNat.Nat.eqb. apply H. apply H.
+  }
+  {
+    unfold unifier in *. simpl in *. unfold add_id_subst. simpl.
 Admitted.
 
 Lemma unif_grnd_unif :
@@ -992,8 +1006,8 @@ Lemma _01_in_all :
   (is_01_subst sig) = true /\ sub_dmn_list l1 (subst_domain sig) ->
   In sig (all_01_substs l1).
 Proof.
+intros. destruct H. unfold is_01_subst in H. 
 Admitted.
- 
 
 Lemma _01_in_rec :
   forall (t : term) (sig : subst),

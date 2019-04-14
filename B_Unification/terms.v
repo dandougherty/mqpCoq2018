@@ -75,51 +75,50 @@ Notation "x * y" := (PRODUCT x y) (at level 40, left associativity).
     need to address later. *)
 
 Parameter eqv : term -> term -> Prop.
-(**  Notation for term equivalence *)
+
+(**  Here we introduce some special notation for term equivalence *)
+
 Infix " == " := eqv (at level 70).
 
-(** Set of fundamental axioms about the equivalence " == " relation. 
- It forms the boolean ring (or system) on which lowenheim's formula and proof are developed.
+(** Below is the set of fundamental axioms concerning the equivalence " == " relation. 
+    They form the boolean ring (or system) on which Lowenheim's formula and proof are developed.
+
+    Most of these axioms will appear familiar to anyone; however, certain ones such as the 
+    summation of two identical terms are true only across Boolean rings and as such might 
+    appear strange at first glance.
 *)
 
-(**  Commutatitivty across summations *)
 Axiom sum_comm : forall x y, x + y == y + x.
 
-(**  Associativity across summations *)
 Axiom sum_assoc : forall x y z, (x + y) + z == x + (y + z).
 
-(**  Identity relation accross summations *)
 Axiom sum_id : forall x, T0 + x == x. 
 
-(**  Across boolean rings, summation x + x will always be 0 because x can only be
-   0 or 1*)
+(**  Across boolean rings, the summation of two terms will always be 0 because there
+     are only two elements in the ring: 0 and 1. For this reason, the mapping of 1 + 1 has
+     nowhere else to go besides 0. *)
+
 Axiom sum_x_x : forall x, x + x == T0.
 
-(**  Commutativity across multiplications *)
 Axiom mul_comm : forall x y, x * y == y * x.
 
-(**  Associativity across multiplications *)
 Axiom mul_assoc : forall x y z, (x * y) * z == x * (y * z).
 
-(**  Across bollean rings, x * x will always be x because x can only be 0 or 1 *)
+(**  Across bollean rings, the multiplication of two identical terms will always be 
+     the same as just having one instance of said term. This is because 0 * 0 = 0 and
+     1 * 1 = 1 as one would expect normally. *)
+
 Axiom mul_x_x : forall x, x * x == x.
 
-(**  Multiplying anything by 0 is 0*)
 Axiom mul_T0_x : forall x, T0 * x == T0.
 
-(**  Identity relation across multiplications *)
 Axiom mul_id : forall x, T1 * x == x.
 
-(**  Distributivity relation *)
 Axiom distr : forall x y z, x * (y + z) == (x * y) + (x * z).
-
-
 
 (** Any axioms beyond this point of the development are not considered part of
 the 'fundamental axiom system',but they still need to exist for the development and proofs 
-to hold.
-
-*)
+to hold. *)
 
 (*  Across all equations, adding an expression to both sides does not
    break the equivalence of the relation *)
@@ -137,8 +136,9 @@ Hint Resolve sum_comm sum_assoc sum_x_x sum_id distr
 
 (** Now that the core axioms have been taken care of, we need to handle the
     implications posed by our custom equivalence relation. Below we inform Coq
-    of the behavior of our equivalence relation with respect to rewrites during
-    proofs. *)
+    of the behavior of our equivalence relation with respect to reflexivity, symmetry, and 
+    transitivity in order to allow for rewrites during the construction of proofs operating across our
+    new equivalence relation. *)
 
 (*  Mundane coq magic for custom equivalence relation *)
 Axiom eqv_ref : Reflexive eqv.
@@ -267,12 +267,12 @@ Qed.
     entries from it. For convenience, we also provide several examples to
     demonstrate the functionalities of these new definitions. *)
 
-(**  Definition of new type to represent a list (set) of variables (naturals) *)
+(**  Here is a definition of the new type to represent a list (set) of variables (natural numbers) *)
+
 Definition var_set := list var.
 Implicit Type vars: var_set.
 
-
-(**  Function to check to see if a variable is in a variable set *)
+(*  A simple function to check to see if a variable is in a variable set *)
 Fixpoint var_set_includes_var (v : var) (vars : var_set) : bool :=
   match vars with
     | nil => false
@@ -280,8 +280,7 @@ Fixpoint var_set_includes_var (v : var) (vars : var_set) : bool :=
                                   else var_set_includes_var v n'
   end.
 
-
-(**  Function to remove all instances of v from vars *)
+(*  A function to remove all instances of v from vars *)
 Fixpoint var_set_remove_var (v : var) (vars : var_set) : var_set :=
   match vars with
     | nil => nil
@@ -289,7 +288,7 @@ Fixpoint var_set_remove_var (v : var) (vars : var_set) : var_set :=
                                   else n :: (var_set_remove_var v n')
   end.
 
-(**  Function to return a unique var_set without duplicates. Found_vars should be
+(*  Function to return a unique var_set without duplicates. Found_vars should be
     empty for correctness guarantee *)
 Fixpoint var_set_create_unique (vars : var_set): var_set :=
   match vars with
@@ -299,7 +298,7 @@ Fixpoint var_set_create_unique (vars : var_set): var_set :=
                                    else n :: var_set_create_unique n'
   end.
 
-(**  Function to check if a given var_set is unique *)
+(*  Function to check if a given var_set is unique *)
 Fixpoint var_set_is_unique (vars : var_set): bool :=
   match vars with
     | nil => true
@@ -308,7 +307,7 @@ Fixpoint var_set_is_unique (vars : var_set): bool :=
                                    else var_set_is_unique n'
   end.
 
-(**  Function to get the variables of a term as a var_set *)
+(*  Function to get the variables of a term as a var_set *)
 Fixpoint term_vars (t : term) : var_set :=
   match t with
     | T0 => nil
@@ -318,11 +317,13 @@ Fixpoint term_vars (t : term) : var_set :=
     | SUM x y => (term_vars x) ++ (term_vars y)
   end.
 
-(**  Function to generate a list of unique variables that make up a given term *)
+(* Function to generate a list of unique variables that make up a given term *)
 Definition term_unique_vars (t : term) : var_set :=
   var_set_create_unique (term_vars t).
 
-(** This is a group of helper lemmas for list of variables. 
+(** ** Lemmas *)
+
+(** Now that we have established the functionality for variable sets, let us prove some properties about them.
 *)
 
 Lemma vs_includes_true : forall (x : var) (lvar : list var),
@@ -337,7 +338,6 @@ Proof.
     + specialize (IHlvar H). simpl. right. apply IHlvar.
 Qed.
 
-
 Lemma vs_includes_false : forall (x : var) (lvar : list var),
   var_set_includes_var x lvar = false -> ~ In x lvar.
 Proof.
@@ -351,7 +351,6 @@ Proof.
       specialize (H7 x a H2). rewrite H0 in H7. destruct H7. intuition.
     + apply H0.
 Qed.
-
 
 Lemma in_dup_and_non_dup : forall (x: var) (lvar : list var),
   In x lvar <-> In x (var_set_create_unique lvar).
@@ -381,8 +380,11 @@ Proof.
         -- specialize (IHlvar H).  simpl. right. apply IHlvar.
 Qed.
 
-
 (** ** Examples **)
+
+(**
+  Below are some examples of the behaviors of variable sets.
+*)
 
 Example var_set_create_unique_ex1 :
   var_set_create_unique [0;5;2;1;1;2;2;9;5;3] = [0;1;2;9;5;3].
@@ -426,7 +428,7 @@ Qed.
 (*  In this subsection we declare definitions related to ground terms, inluding
     functions and lemmas *)
 
-(*  Function to check if a given term is a ground term (i.e. has no vars) *)
+(**  Function to check if a given term is a ground term (i.e. has no vars) *)
 Fixpoint ground_term (t : term) : Prop :=
   match t with
     | VAR x => False
@@ -572,6 +574,31 @@ Definition subst_equiv (s1 s2: subst) : Prop :=
 Definition subst_is_id_subst (t : term) (s : subst) : Prop :=
   apply_subst t s == t.
 
+(** Given we now have definitions for substitutions, we should now introduce the idea of a 
+    substitution composing another one *)
+
+Fixpoint subst_compose (s s' : subst) : subst :=
+  match s' with
+    | [] => s
+    | (x, t) :: s'' => (x, apply_subst t s) :: (subst_compose s s'')
+  end.
+
+(* Defining the domain of a substituion, namely the list of variables for which
+the substitution has a mapping (replacement). Essentially this acts as a list of all the first
+parts of the replacement.
+*)
+
+Definition subst_domain (sig : subst) : list var :=
+ map (fun r => (fst r)) sig.
+
+
+(* Defining a sub list. If an element is a member of a list,
+it is then a member of the other list as well. 
+*)
+
+Definition sub_dmn_list (l1 : list var) (l2 : list var) : Prop :=
+ forall (x : var), In x l1 -> In x l2.
+
 (** ** Lemmas **)
 
 (** Having now outlined the functionality of a subsitution, let us now begin to
@@ -694,7 +721,151 @@ Proof.
   intros. eauto.
 Qed.
 
-(** *Auxillary definitions for substitutions and terms *)
+(** This is an axiom that states that if two terms are equivalent then 
+applying any substitution on them will also produce equivalent terms.
+The reason we axiomatized this and we did not prove it as a lemma is because
+the set of our fundamental axioms is not an inductive relation, so it would be impossible
+to prove the lemma below with our fundamental axioms in the currrent format. 
+
+*)
+
+Axiom apply_subst_compat : forall (t t' : term),
+  t == t' ->
+  forall (sigma: subst), apply_subst t sigma == apply_subst t' sigma.
+
+Add Parametric Morphism : apply_subst with
+      signature eqv ==> eq ==> eqv as apply_subst_mor.
+Proof.
+  exact apply_subst_compat.
+Qed.
+
+(** A simple lemma that states that an empty substitution cannot modify a term.
+*)
+
+Lemma subst_empty_no_change :
+  forall (t : term), (apply_subst t []) == t.
+Proof.
+  intros. induction t.
+  {
+    simpl. reflexivity.
+  }
+  {
+    simpl. reflexivity.
+  }
+  {
+    simpl. reflexivity.
+  }
+  {
+    simpl. rewrite IHt1. rewrite IHt2. reflexivity.
+  }
+  {
+    simpl. rewrite IHt1. rewrite IHt2. reflexivity.
+  }
+Qed.
+
+Lemma subst_compose_eqv :
+ forall (t : term) (sig1 : subst) (sig2 : subst),
+  (apply_subst t (subst_compose sig1 sig2)) == (apply_subst (apply_subst t sig2) sig1).
+Proof.
+  intros. induction t.
+  - simpl. reflexivity.
+  - simpl. reflexivity.
+  - simpl. induction sig2.
+  {
+    simpl. reflexivity.
+  }
+  {
+    simpl. induction sig1.
+    {
+      
+Admitted.
+
+(** An intuitive thing to prove for ground terms is that they (ground terms), i.e. terms
+    with no variables, cannot be modified by applying substitutions to them.
+    This will later prove to be very relevant when we begin to talk about
+    unification. *)
+
+(**  Aelpful lemma for showing substitutions do not affect ground terms *)
+
+Lemma ground_term_cannot_subst : forall x,
+  ground_term x ->
+  forall s, apply_subst x s == x.
+Proof.
+  intros. induction s.
+  - apply ground_term_equiv_T0_T1 in H. destruct H.
+    + rewrite H. simpl. reflexivity.
+    + rewrite H. simpl. reflexivity.
+  - apply ground_term_equiv_T0_T1 in H. destruct H. rewrite H.
+    + simpl. reflexivity.
+    + rewrite H. simpl. reflexivity.
+Qed.
+
+(** A fundamental property of substitutions is their distributivity and
+    associativity across the summation and multiplication of terms. Again the
+    importance of these proofs will not become apparent until we talk about
+    unification. *)
+
+(*  A useful lemma for showing the distributivity of substitutions across terms
+    *)
+Lemma subst_distribution : forall s x y,
+  apply_subst x s + apply_subst y s == apply_subst (x + y) s.
+Proof.
+  intro. induction s.
+  - simpl. intros. reflexivity.
+  - intros. simpl. reflexivity.
+Qed.
+
+(*  A lemma to prove the associativity of the apply_subst function *)
+Lemma subst_associative : forall s x y,
+  apply_subst x s * apply_subst y s == apply_subst (x * y) s.
+Proof.
+  intro. induction s.
+  - intros. reflexivity.
+  - intros. simpl. reflexivity. 
+Qed.
+
+Lemma subst_sum_distr_opp : forall s x y,
+  apply_subst (x + y) s == apply_subst x s + apply_subst y s.
+Proof.
+  intros.
+  apply refl_comm.
+  apply subst_distribution.
+Qed.
+
+Lemma subst_mul_distr_opp : forall s x y,
+  apply_subst (x * y) s == apply_subst x s * apply_subst y s.
+Proof.
+  intros.
+  apply refl_comm.
+  apply subst_associative.
+Qed.
+
+Lemma var_subst: forall (v : var) (ts : term),
+  apply_subst (VAR v) [(v , ts)] == ts.
+Proof.
+  intros. simpl. destruct (beq_nat v v) eqn: e.
+  - apply beq_nat_true in e. reflexivity.
+  - apply beq_nat_false in e. firstorder.
+Qed.
+
+(** ** Examples **)
+
+(** Here are some examples showcasing the nature of applying substitutions to
+    terms. *)
+
+Example subst_ex1 :
+  apply_subst (T0 + T1) [] == T0 + T1.
+Proof.
+  intros. reflexivity.
+Qed.
+
+Example subst_ex2 :
+  apply_subst (VAR 0 * VAR 1) [(0, T0)] == T0.
+Proof.
+  intros. simpl. apply mul_T0_x.
+Qed.
+
+(** ** Auxillary Definitions for Substitutions and Terms *)
 
 (** In this section we define more helper functions and lemmas related to 
 substitutions and ground terms. Specifically we are defining what is a ground term, 
@@ -811,135 +982,6 @@ Fixpoint vars_of_subst (s : subst) : list var :=
   | r :: r' => (cons (fst r) (vars_of_subst r'))
  end.
 *)
-Fixpoint subst_compose (s s' : subst) : subst :=
-  match s' with
-    | [] => s
-    | (x, t) :: s'' => (x, apply_subst t s) :: (subst_compose s s'')
-  end.
-
-Lemma subst_compose_eqv :
- forall (t : term) (sig1 : subst) (sig2 : subst),
-  (apply_subst t (subst_compose sig1 sig2)) == (apply_subst (apply_subst t sig2) sig1).
-Proof.
-    
-Admitted.
-
-(** Defining the domain of an substituion, namely the list of variables for which
-the substitution has a mapping (replacement). Essentially a list of all the first
-parts of the replacement.
-*)
-Definition subst_domain (sig : subst) : list var :=
- map (fun r => (fst r)) sig.
-
-
-(** Defining a sub list. If an element is a member of a list,
-it is then a member of the other list as well. 
-*)
-Definition sub_dmn_list (l1 : list var) (l2 : list var) : Prop :=
- forall (x : var), In x l1 -> In x l2.
-
-
-(** This is an axiom that states that if two terms are equivalent then 
-applying any substitution on them will also produce equivalent terms.
-The reason we axiomatized this and we did not prove it as a lemma is because
-the set of our fundamental axioms is not an inductive relation, so it would be impossible
-to prove the lemma below with our fundamental axioms in the currrent format. 
-
-*)
-
-Axiom apply_subst_compat : forall (t t' : term),
-  t == t' ->
-  forall (sigma: subst), apply_subst t sigma == apply_subst t' sigma.
-
-Add Parametric Morphism : apply_subst with
-      signature eqv ==> eq ==> eqv as apply_subst_mor.
-Proof.
-  exact apply_subst_compat.
-Qed.
-
-(** An intuitive thing to prove for ground terms is that they (ground terms), i.e. terms
-    with no variables, cannot be modified by applying substitutions to them.
-    This will later prove to be very relevant when we begin to talk about
-    unification. *)
-
-(**  Helpful lemma for showing substitutions do not affect ground terms *)
-Lemma ground_term_cannot_subst : forall x,
-  ground_term x ->
-  forall s, apply_subst x s == x.
-Proof.
-  intros. induction s.
-  - apply ground_term_equiv_T0_T1 in H. destruct H.
-    + rewrite H. simpl. reflexivity.
-    + rewrite H. simpl. reflexivity.
-  - apply ground_term_equiv_T0_T1 in H. destruct H. rewrite H.
-    + simpl. reflexivity.
-    + rewrite H. simpl. reflexivity.
-Qed.
-
-(** A fundamental property of substitutions is their distributivity and
-    associativity across the summation and multiplication of terms. Again the
-    importance of these proofs will not become apparent until we talk about
-    unification. *)
-
-(*  A useful lemma for showing the distributivity of substitutions across terms
-    *)
-Lemma subst_distribution : forall s x y,
-  apply_subst x s + apply_subst y s == apply_subst (x + y) s.
-Proof.
-  intro. induction s.
-  - simpl. intros. reflexivity.
-  - intros. simpl. reflexivity.
-Qed.
-
-(*  A lemma to prove the associativity of the apply_subst function *)
-Lemma subst_associative : forall s x y,
-  apply_subst x s * apply_subst y s == apply_subst (x * y) s.
-Proof.
-  intro. induction s.
-  - intros. reflexivity.
-  - intros. simpl. reflexivity. 
-Qed.
-
-Lemma subst_sum_distr_opp : forall s x y,
-  apply_subst (x + y) s == apply_subst x s + apply_subst y s.
-Proof.
-  intros.
-  apply refl_comm.
-  apply subst_distribution.
-Qed.
-
-Lemma subst_mul_distr_opp : forall s x y,
-  apply_subst (x * y) s == apply_subst x s * apply_subst y s.
-Proof.
-  intros.
-  apply refl_comm.
-  apply subst_associative.
-Qed.
-
-Lemma var_subst: forall (v : var) (ts : term),
-  apply_subst (VAR v) [(v , ts)] == ts.
-Proof.
-  intros. simpl. destruct (beq_nat v v) eqn: e.
-  - apply beq_nat_true in e. reflexivity.
-  - apply beq_nat_false in e. firstorder.
-Qed.
-
-(** ** Examples **)
-
-(** Here are some examples showcasing the nature of applying substitutions to
-    terms. *)
-
-Example subst_ex1 :
-  apply_subst (T0 + T1) [] == T0 + T1.
-Proof.
-  intros. reflexivity.
-Qed.
-
-Example subst_ex2 :
-  apply_subst (VAR 0 * VAR 1) [(0, T0)] == T0.
-Proof.
-  intros. simpl. apply mul_T0_x.
-Qed.
 
 (** * Unification **)
 
@@ -1874,18 +1916,35 @@ Proof.
       * simpl. reflexivity.
       * simpl. reflexivity.  
     + simpl. reflexivity.
-    + simpl. reflexivity.
-    + simpl. reflexivity.
+    + simpl. reflexivity.    + simpl. reflexivity.
 Qed.
+
+Lemma term_sum_T0 :
+  forall (t1 t2 : term), t1 + t2 == T0 -> (t1 == T0 /\ t2 == T0) \/ (t1 == T1 /\ t2 == T1).
+Proof.
+  intros. left. split.
+Admitted.
 
 Lemma simplify_eq_T0 :
  forall (t : term),
  t == T0 /\ (is_ground_term t) = true ->
  (simplify t) = T0.
 Proof. 
- intros. destruct H.  destruct t.
+ intros. destruct H. induction t.
   - reflexivity. 
   - simpl in H.  apply T1_not_equiv_T0 in H. destruct H. 
   - unfold simplify.  simpl in H0. inversion H0.
-  - simpl in H0. simpl.      
+  - simpl. simpl in H0. apply andb_prop in H0. destruct H0. apply term_sum_T0 in H.
+    destruct H. destruct H. apply IHt1 in H. apply IHt2 in H2.
+    {
+      rewrite H. rewrite H2. simpl. reflexivity.
+    }
+    {
+      apply H1.
+    }
+    {
+      apply H0.
+    }
+    {
+      apply IHt1 in H0.
 Admitted. 

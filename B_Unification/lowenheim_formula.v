@@ -20,10 +20,9 @@ Import ListNotations.
 
 (** In this section we formulate Lowenheim's algorithm using the data
     structures and functions defined in the [terms] library. The final occuring
-    main function [Lowenheim_Main], takes as input a term and produces a
-    substitution that unifies the given term and it is defined towards the end
-    of the file. The substitution is said to be a most general unifier and not a
-    mere substitution, but that statement is proven in the [lowenheim_proof]
+    main function, [Lowenheim_Main], takes as input a term and produces a
+    substitution that unifies the given term. The resulting substitution is said to be a most general unifier 
+    and not a mere substitution, but that statement is proven in the [lowenheim_proof]
     file. In this section we focus on the formulation of the algorithm itself,
     without any proofs about the properties of the formula or the algorithm. *)
  
