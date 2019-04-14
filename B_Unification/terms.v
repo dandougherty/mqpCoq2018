@@ -34,6 +34,8 @@ Import ListNotations.
 (*  Define a variable to be a natural number *)
 Definition var := nat.
 
+Definition var_eq_dec := Nat.eq_dec.
+
 (** A _term_, as has already been previously described, is now inductively
     declared to hold either a constant value, a single variable, a sum of terms,
     or a product of terms. *)
@@ -683,6 +685,159 @@ Proof.
   intros. eauto.
 Qed.
 Hint Resolve trans_compat.
+
+Lemma trans_compat2 c1 c2 c3 : 
+  c1 == c2 ->
+  c2 == c3 ->
+  c1 == c3.
+Proof.
+  intros. eauto.
+Qed.
+
+(** *Auxillary definitions for substitutions and terms *)
+
+(** In this section we define more helper functions and lemmas related to 
+substitutions and ground terms. Specifically we are defining what is a ground term, 
+a ground substitution, a '01' term and a '01' substitution. We are also defining
+what is a substitution composition. 
+
+*)
+
+Fixpoint ground_subst (sig : subst) : Prop :=
+   match sig with 
+   | [] => True
+   | r :: r' => (ground_term (snd r)) /\ (ground_subst r')
+   end.
+
+(*Compute ground_subst (cons (5,T1) (cons (0,T0) [])).
+
+
+Compute (ground_term (VAR v + T0 + VAR v)).
+*)
+Fixpoint is_ground_term (t : term) : bool :=
+  match t with
+  | T0 => true
+  | T1 => true
+  | VAR x => false
+  | SUM a b => (is_ground_term a) && (is_ground_term b)
+  | PRODUCT a b => (is_ground_term a) && (is_ground_term b)
+  end. 
+
+Fixpoint is_ground_subst (sig : subst) : bool :=
+(existsb is_ground_term ((map snd sig)) ).
+(*
+Compute (is_ground_term (VAR v + T0 + VAR v)).
+
+Compute (is_ground_term (T0 + T1)).
+*)
+Definition is_01_term (t : term) : bool :=
+  match t with
+  | T0 => true
+  | T1 => true
+  | _ => false
+  end. 
+
+
+Fixpoint is_01_subst (sig : subst) : bool :=
+  (existsb is_01_term ((map snd sig)) ).
+(*
+   match sig with 
+   | [] => true
+   | r :: r' => (is_01_term (snd r)) && 
+                  (is_01_subst r') 
+   end.
+*)
+
+(*
+Fixpoint is_01_subst_v2 (sig : subst) : bool :=
+   match sig with 
+   | [] => false
+   | r :: r' => (is_01_term (snd r)) && 
+                 ( match length r' with
+                  | 0 => true
+                  | 1 => ( match r' with
+                          | nil => true
+                          | r'' :: nil => (is_01_term (snd r''))
+                          | _ => (is_01_subst r') end)
+                  | S n => (is_01_subst r') end)
+   end.
+*)
+
+(*
+Compute (is_01_term (T0 + T1)).
+
+Compute is_01_subst (cons (5,T1) (cons (0,T0) [])).
+Compute is_01_subst (cons (0,T1) (cons (5,T1) (cons (0,T0) nil))).
+Compute is_01_subst ([]).
+
+
+
+Compute (is_01_term (T0 + T1)).
+
+*)
+
+(*
+Compute is_01_subst (cons (5,T1) (cons (0,T0) [])).
+Compute is_01_subst (cons (0,T1) (cons (5,T1) (cons (0,T0) nil))).
+Compute is_01_subst ([]).
+*)
+
+
+Fixpoint _01_term (t : term) : Prop :=
+ match t with
+ | T0 => True
+ | T1 => True
+ | _ => False
+ end.
+
+Fixpoint _01_subst (sig : subst) : Prop :=
+   match sig with 
+   | [] => True
+   | r :: r' => (_01_term (snd r)) /\ (_01_subst r')
+   end.
+
+
+(*
+Fixpoint convert_to_01_subst (tau : subst) : subst :=
+  match tau with
+  | [] => []
+  | r :: r' => if (is_ground_term (snd r)) then ((fst r) , (simplify (snd r))) :: (convert_to_01_subst r') 
+                else ((fst r) , T0) :: (convert_to_01_subst r')
+  end.
+
+Fixpoint vars_of_subst (s : subst) : list var :=
+  match s with
+  | [] => []
+  | r :: r' => (cons (fst r) (vars_of_subst r'))
+ end.
+*)
+Fixpoint subst_compose (s s' : subst) : subst :=
+  match s' with
+    | [] => s
+    | (x, t) :: s'' => (x, apply_subst t s) :: (subst_compose s s'')
+  end.
+
+Lemma subst_compose_eqv :
+ forall (t : term) (sig1 : subst) (sig2 : subst),
+  (apply_subst t (subst_compose sig1 sig2)) == (apply_subst (apply_subst t sig2) sig1).
+Proof.
+    
+Admitted.
+
+(** Defining the domain of an substituion, namely the list of variables for which
+the substitution has a mapping (replacement). Essentially a list of all the first
+parts of the replacement.
+*)
+Definition subst_domain (sig : subst) : list var :=
+ map (fun r => (fst r)) sig.
+
+
+(** Defining a sub list. If an element is a member of a list,
+it is then a member of the other list as well. 
+*)
+Definition sub_dmn_list (l1 : list var) (l2 : list var) : Prop :=
+ forall (x : var), In x l1 -> In x l2.
+
 
 (** This is an axiom that states that if two terms are equivalent then 
 applying any substitution on them will also produce equivalent terms.
@@ -1722,3 +1877,15 @@ Proof.
     + simpl. reflexivity.
     + simpl. reflexivity.
 Qed.
+
+Lemma simplify_eq_T0 :
+ forall (t : term),
+ t == T0 /\ (is_ground_term t) = true ->
+ (simplify t) = T0.
+Proof. 
+ intros. destruct H.  destruct t.
+  - reflexivity. 
+  - simpl in H.  apply T1_not_equiv_T0 in H. destruct H. 
+  - unfold simplify.  simpl in H0. inversion H0.
+  - simpl in H0. simpl.      
+Admitted. 
