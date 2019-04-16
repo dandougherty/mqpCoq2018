@@ -950,9 +950,9 @@ Fixpoint augment_with_id (lvar_s : list var) (lvar : list var) : subst :=
   end.
 
 Definition add_id_subst (t : term) (tau : subst) : subst  :=
-  augment_with_id (subst_domain tau) (term_unique_vars t).
+  augment_with_id (subst_domain tau) (term_unique_vars t) ++ tau..
 
-Fixpoint convert_to_01_subst (tau : subst) (t : term) : subst :=
+Definition convert_to_01_subst (tau : subst) (t : term) : subst :=
  (subst_compose (make_unif_subst (add_id_subst t tau)) (add_id_subst t tau)).
 
 
