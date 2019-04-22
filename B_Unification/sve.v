@@ -752,6 +752,7 @@ Proof.
 Qed.
 
 (** %
+\addcontentsline{toc}{chapter}{Bibliography}
 \bibliographystyle{plain}
 \bibliography{intro}
 % *)
