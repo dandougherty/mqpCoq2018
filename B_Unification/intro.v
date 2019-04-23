@@ -1,24 +1,31 @@
 
 (** * Introduction *)
 
-(** In the field of computational theory, one problem of significance is that of
+(** In the field of computer science, one problem of significance is that of
     equational unification; namely, the finding of solutions to a given set of
-    equations with respect to a set of relational axioms. While there are
+    equations with respect to a set of equational axioms. While there are
     several variants of equational unification, for the purposes of this paper
     we are going to limit our scope to that of Boolean unification, which deals
-    with the finding of unifiers for equations operating across Boolean rings.
+    with the finding of unifiers for the equations defining Boolean rings.
     As any problem space would imply, there exists a great deal of research in
-    the formal verification of unification algorithms; our research focused on
-    two of these algorithms: Lowenheim's formula and succesive variable
-    eliminaton. To conduct our research, we utilized the Coq proof assistant to
+    the formal verification of unification algorithms %\cite{baader2001unification}%; our research focused on
+    two of these algorithms: Lowenheim's formula and Succesive Variable
+    Eliminaton. To conduct our research, we utilized the Coq proof assistant to
     create formal specifications of both of these algorithms' behaviors in
     addition to proving their correctness. While proofs for both of these
     algorithms already exist, prior to the writing of this paper, no formal
     treatment using a proof asssistant such as Coq had been undertaken, so it is
-    hoped that our efforts provide yet another guarantee for the veritable
+    hoped that our efforts provide yet another guarantee for the
     correctness of these respective algorithms. *)
 
-
+(** Due to the differences in the innate nature of Lowenheim's formula compared to that
+    of Successive Variable Elimination, our project was divided into two separate developments, each
+    approaching their respective goals from a different direction. The primary distinction between these
+    two treatments comes down to their representations of equations. The Lowenheim's formula development 
+    uses a more straightforward, term-based representation of equations while the Successive Variable Elimination
+    development opts to represent equations solely in their polynomial forms. Fortunately, due to the fact that
+    every term has a unique polynomial representation, these two formats for representing equations are 
+    mathematically equivalent to one another. *)
 
 (** * Formal Verification *)
 
@@ -26,7 +33,7 @@
     disproving) the correctness of software and hardware systems or theories.
     Formal verification consists of a set of techinques that perform static
     analysis on the behavior of a system, or the correctness of a theory. It
-    differs to dynamic analysis that uses simulation to evaluate the correctness
+    differs from dynamic analysis that uses simulation to evaluate the correctness
     of a system. *)
 
 (** More simply stated, formal verification is the process of examining whether
@@ -62,7 +69,7 @@
 
 (** ** Verifying Systems *)
 
-(** Formal verification is used in the industry to verify the correctness of
+(** Formal verification is used to verify the correctness of
     software or hardware systems. When used to verify systems, formal
     verification can be thought as a mathematical proof of the correctness of a
     design with respect to a formal specification. The actual system is
@@ -238,12 +245,12 @@
 (** * Importance *)
 
 (** Given that the emergence of proof assistance software is still in its
-    infancy relative to the age-old traditional methods of theorem proving, it
+    infancy relative to the traditional methods of theorem proving, it
     would be a disservice for us to not establish the importance of this
     technology and its implications for the future of mathematics. Unlike in
-    years past, where typos or subliminal edge cases could derail the
+    years past, where typos or hard to discover edge cases could derail the
     developments of sound theorems, proof assistants now guarantee through their
-    properties of verification that any development run by them is free from
+    properties of verification that any development verified by them is free from
     such lapses in logic on account of the natural failings of the human mind.
     Additionally, due to the adoption of a well-defined shared language, many of
     the ambiguities naturally present in the exchange of mathematical ideas
@@ -271,7 +278,7 @@
 
 (** There are many different approaches that one could take to go about
     formalizing a proof of Boolean Unification algorithms, each with their own
-    challenges. For this development, we have opted to base our work largely off
+    challenges. For this development, we have opted to base our work on
     chapter 10, _Equational Unification_, in _Term Rewriting and All That_ by
     Franz Baader and Tobias Nipkow. Specifically, section 10.4, titled _Boolean
     Unification_, details Boolean rings, data structures to represent them, and
@@ -281,7 +288,7 @@
     Boolean unification problem, and two algorithms for performing unification.
     The two data structures chosen are an inductive Term type and lists of lists
     representing polynomial-form terms. The two algorithms are Lowenheim's
-    formula and successive variable elimination. *)
+    formula and Successive Variable Elimination. *)
 
 
 (** ** Data Structures *)

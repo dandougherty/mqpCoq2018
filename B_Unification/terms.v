@@ -587,7 +587,6 @@ Fixpoint subst_compose (s s' : subst) : subst :=
 Definition subst_domain (sig : subst) : list var :=
   map (fun r => (fst r)) sig.
 
-
 (* Defining a sub list. If an element is a member of a list,
 it is then a member of the other list as well. 
 *)
@@ -1816,7 +1815,7 @@ intros. induction t1.
       * simpl. rewrite <- H. reflexivity.
 Qed.
 
-(** Being able to simplify a term can be a usefool tool. Being able to use the
+(** Being able to simplify a term can be a useful tool. Being able to use the
     simplified version of the term as the equivalent version of the original
     term can also be useful since many of our functions simplify the term first.
     *)
