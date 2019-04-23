@@ -8,24 +8,28 @@
     we are going to limit our scope to that of Boolean unification, which deals
     with the finding of unifiers for the equations defining Boolean rings.
     As any problem space would imply, there exists a great deal of research in
-    the formal verification of unification algorithms %\cite{baader2001unification}%; our research focused on
-    two of these algorithms: Lowenheim's formula and Succesive Variable
-    Eliminaton. To conduct our research, we utilized the Coq proof assistant to
-    create formal specifications of both of these algorithms' behaviors in
-    addition to proving their correctness. While proofs for both of these
-    algorithms already exist, prior to the writing of this paper, no formal
-    treatment using a proof asssistant such as Coq had been undertaken, so it is
-    hoped that our efforts provide yet another guarantee for the
-    correctness of these respective algorithms. *)
+    the formal verification of unification algorithms
+    %\cite{baader2001unification}%; our research focused on two of these
+    algorithms: Lowenheim's formula and succesive variable eliminaton. To
+    conduct our research, we utilized the Coq proof assistant to create formal
+    specifications of both of these algorithms' behaviors in addition to proving
+    their correctness. While proofs for both of these algorithms already exist,
+    prior to the writing of this paper, no formal treatment using a proof
+    asssistant such as Coq had been undertaken, so it is hoped that our efforts
+    provide yet another guarantee for the correctness of these respective
+    algorithms. *)
 
-(** Due to the differences in the innate nature of Lowenheim's formula compared to that
-    of Successive Variable Elimination, our project was divided into two separate developments, each
-    approaching their respective goals from a different direction. The primary distinction between these
-    two treatments comes down to their representations of equations. The Lowenheim's formula development 
-    uses a more straightforward, term-based representation of equations while the Successive Variable Elimination
-    development opts to represent equations solely in their polynomial forms. Fortunately, due to the fact that
-    every term has a unique polynomial representation, these two formats for representing equations are 
-    mathematically equivalent to one another. *)
+(** Due to the differences in the innate nature of Lowenheim's formula compared
+    to that of successive variable elimination, our project was divided into two
+    separate developments, each approaching their respective goals from a
+    different direction. The primary distinction between these two treatments
+    comes down to their representations of equations. The Lowenheim's formula
+    development uses a more straightforward, term-based representation of
+    equations while the successive variable elimination development opts to
+    represent equations solely in their polynomial forms. Fortunately, due to
+    the fact that every term has a unique polynomial representation, these two
+    formats for representing equations are mathematically equivalent to one
+    another. *)
 
 (** * Formal Verification *)
 
@@ -33,8 +37,8 @@
     disproving) the correctness of software and hardware systems or theories.
     Formal verification consists of a set of techinques that perform static
     analysis on the behavior of a system, or the correctness of a theory. It
-    differs from dynamic analysis that uses simulation to evaluate the correctness
-    of a system. *)
+    differs from dynamic analysis that uses simulation to evaluate the
+    correctness of a system. *)
 
 (** More simply stated, formal verification is the process of examining whether
     a system or a theory "does what it is supposed to do." If it is a system,
@@ -69,28 +73,28 @@
 
 (** ** Verifying Systems *)
 
-(** Formal verification is used to verify the correctness of
-    software or hardware systems. When used to verify systems, formal
-    verification can be thought as a mathematical proof of the correctness of a
-    design with respect to a formal specification. The actual system is
-    represented by a formal model and then the formal verification happens on
-    the model, based on the required specifications of the system. Unlike
-    testing, formal verification is exhaustive and imporves the understanding of
-    a system. Howeverm, it is difficult to make for real-world systems, time
-    consuming and only as reliable as the actual model. *)
+(** Formal verification is used to verify the correctness of software or
+    hardware systems. When used to verify systems, formal verification can be
+    thought as a mathematical proof of the correctness of a design with respect
+    to a formal specification. The actual system is represented by a formal
+    model and then the formal verification happens on the model, based on the
+    required specifications of the system. Unlike testing, formal verification
+    is exhaustive and imporves the understanding of a system. However, it is
+    difficult to make for real-world systems, time consuming and only as
+    reliable as the actual model. *)
 
 
 (** ** Verifying Theories *)
 
 (** Formal verification is also used in to prove theorems. These theorems could
-    be related to a computing system or just plain mathematical abstract
+    be related to a computing system or just pure mathematical abstract
     theorems. As in proving systems, when proving theorems one also needs a
     formal logic to formulate the theorem and prove it. A formal logic consists
     of a formal languge to express the theorems, a collection of formulas called
     axioms and inference rules to derive new axioms based on existing ones. A
     theorem to be proven could be in a logical form, like DeMorgan's Law or it
     could in another mathematical area; in trigonometry for example, it could be
-    useful to prove that $sin(x + y) = sin(x) * cos(y) + cos(x) * sin(y)$,
+    useful to prove that $sin(x + y) = sin(x) \ast cos(y) + cos(x) \ast sin(y)$,
     formally, because that proof could be used as building block in a more
     complex system. Sometimes proving the correctness of a real world systems
     boils down to verifying mathemetical proofs like the previous one, so the
@@ -138,8 +142,11 @@
     identical, then the unification is \textbf{syntactic}
     \cite[p.~71]{baader1998rewriting}. \end{definition}%
     %\begin{definition} If two terms are equal with respect to an equational
-    theory, then the unification is \textbf{semantic}
-    \cite[p.~224]{baader1998rewriting}. \end{definition}% *)
+    theory [E], then the unification is \textbf{semantic}. It is also called
+    [E]-unification \cite[p.~224]{baader1998rewriting}. \end{definition}%
+    For example, the terms $x \ast y$ and $y \ast x$ are not syntactically
+    equal, but they are semantically equal modulo commutativity of
+    multiplication. *)
 
 (** The goal of unification is to find the _best_ solution to a problem, which
     formally means to produce a most general unifier of the problem. The next
@@ -155,25 +162,25 @@
     $\sigma'(u) = \delta(\sigma(u))$ for any term $u$. \end{definition}%
     %\begin{definition} A substitution is a \textbf{most general unifier} or
     \textbf{mgu} of a problem if it is more general than every other solution
-    to the problem \cite[p.~71]{baader1998rewriting}. \end{definition}% *)
+    to the problem \cite[p.~71]{baader1998rewriting}. \end{definition}%
+    It should be noted that although solvable problem of Boolean unification
+    produce a single mgu, semantic unification problems in general can have
+    zero, multiple, or infinitely many mgu's
+    $\cite[p.~226]{baader1998rewriting}$. *)
 
 
 (** ** Syntatic Unification *)
 
-(** This is the simpler version of unification. For two terms to be considered
-    equal they must be identical. For example, the terms $x \ast y$ and
-    $y \ast x$ are not syntactically equal, but would be equal modulo
-    commutativity of multiplication. Problems of this kind can be solved by
+(** This is the simplest version of unification. It is a special case of
+    [E]-unification where $E = \emptyset$. For two terms to be considered
+    equal they must be identical. Problems of this kind can be solved by
     repeated transformations until the solution pops out similar to solving a
     linear system by Guassian elimination %\cite[p.~73]{baader1998rewriting}%.
-    This version of unification is considered a simpler version of semantic
-    unification because it is the special case where the set of equational
-    identities is empty. One of the most notable applications of syntactic
-    unification is the Hindley-Milner type system used in functional programming
-    languages like ML %\cite{damas1982principal}%. More complicated type
-    systems such as the one used by Coq require more complicated versions of
-    unification (e.g. higher-order unification)
-    %\cite{chlipala2010introduction}%. *)
+    One of the most notable applications of syntactic unification is the
+    Hindley-Milner type system used in functional programming languages like
+    ML %\cite{damas1982principal}%. More complicated type systems such as the
+    one used by Coq require more complicated versions of unification (e.g.
+    higher-order unification) %\cite{chlipala2010introduction}%. *)
 
 
 (** ** Semantic Unification *)
@@ -181,14 +188,15 @@
 (** This kind of unification involves an equational theory. Given a set of
     identities [E], we write that two terms [s] and _t_ are equal with regards
     to [E] as $s \approx_{E} t$. This means that identities of [E] can be
-    applied to [s] as [s'] and _t_ as [t'] in some way to make them
-    syntactically equal, [s' = t']. As an example, let [C] be the set
-    $\{f(x, y) \approx f(y, x)\}$. This theory axiomatizes the commutativity
-    of the function [f]. Knowing this, the problem
-    $\{f(x, a) \stackrel{?}{=} f(a, b)\}$ is unified by the substitution
-    $\{x \mapsto b\}$ since $f(b, a) \approx_{C} f(a, b)$. In general, for an
-    arbitrary [E], the problem of [E]-unification is undecidable
-    %\cite[p.~71]{baader1998rewriting}%. *)
+    applied to [s] as [s'] and _t_ as [t'] to make them syntactically equal,
+    [s' = t']. As an example, let [C] be the set $\{f(x, y) \approx f(y, x)\}$.
+    This theory axiomatizes the commutativity of the function [f]. Knowing this,
+    the problem $\{f(x, f(a, y)) \stackrel{?}{=} f(f(c, a), b)\}$ is unified by
+    the substitution $\{x \mapsto b, y \mapsto c\}$ since
+    $f(b, f(a, c)) \approx_{C} f(f(c, a), b)$. In general, for a certain [E],
+    the problem of [E]-unification is undecidable
+    %\cite[p.~71]{baader1998rewriting}%. An example would be unification modulo
+    ring theory. *)
 
 
 (** ** Boolean Unification *)
@@ -219,13 +227,13 @@
       \right\}
     \end{gather*}
     % %\cite[p.~250]{baader1998rewriting}%. This set is equivalent to
-    the theory of real numbers with the addition of $x + x \approx_{B} 0$ and
+    the axioms of ring theory with the addition of $x + x \approx_{B} 0$ and
     $x \ast x \approx_{B} x$. *)
 
 (** Although a unification problem is a set of equations between two terms, we
     will now show informally that a [B]-unification problem can be viewed as a
-    single equation $t \stackrel{?}{\approx}_{B} 0$. Given a problem in its
-    normal form %\begin{gather*} \{s_{1} \stackrel{?}{\approx}_{B} t_{1}, ...,
+    single equation $t \stackrel{?}{\approx}_{B} 0$. Given a problem of the form
+    %\begin{gather*} \{s_{1} \stackrel{?}{\approx}_{B} t_{1}, ...,
     s_{n} \stackrel{?}{\approx}_{B} t_{n}\}, \end{gather*}% we can transform it
     into %\begin{gather*} \{s_{1} + t_{1} \stackrel{?}{\approx}_{B} 0, ...,
     s_{n} + t_{n} \stackrel{?}{\approx}_{B} 0\}\end{gather*}% using a simple
@@ -245,18 +253,18 @@
 (** * Importance *)
 
 (** Given that the emergence of proof assistance software is still in its
-    infancy relative to the traditional methods of theorem proving, it
-    would be a disservice for us to not establish the importance of this
-    technology and its implications for the future of mathematics. Unlike in
-    years past, where typos or hard to discover edge cases could derail the
-    developments of sound theorems, proof assistants now guarantee through their
-    properties of verification that any development verified by them is free from
-    such lapses in logic on account of the natural failings of the human mind.
-    Additionally, due to the adoption of a well-defined shared language, many of
-    the ambiguities naturally present in the exchange of mathematical ideas
-    between colleagues are mitigated, leading to a smoother learning curve for
-    newcomers trying to understand the nuts and bolts of a complex theorem. The
-    end result of these phenomenon is a faster iterative development cycle for
+    infancy relative to the traditional methods of theorem proving, it would be
+    a disservice for us to not establish the importance of this technology and
+    its implications for the future of mathematics. Unlike in years past, where
+    typos or hard to discover edge cases could derail the developments of sound
+    theorems, proof assistants now guarantee through their properties of
+    verification that any development verified by them is free from such lapses
+    in logic on account of the natural failings of the human mind. Additionally,
+    due to the adoption of a well-defined shared language, many of the
+    ambiguities naturally present in the exchange of mathematical ideas between
+    colleagues are mitigated, leading to a smoother learning curve for newcomers
+    trying to understand the nuts and bolts of a complex theorem. The end result
+    of these phenomenon is a faster iterative development cycle for
     mathemeticians as they now can spend more time on proving things and
     building off of the work of others since they no longer need to devote as
     much of their efforts towards verifying the correctness of the theorems they
