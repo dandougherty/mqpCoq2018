@@ -987,7 +987,7 @@ Proof.
  -  unfold unifier. unfold unifier in H. rewrite subst_compose_eqv.
     pose proof add_id_unf. specialize (H0 t sig1). unfold unifier in H0. specialize (H0 H). rewrite H0.
  simpl. reflexivity.
- -  admit.
+ - 
 Admitted. 
 
 

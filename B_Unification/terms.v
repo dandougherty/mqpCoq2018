@@ -767,16 +767,20 @@ Lemma subst_compose_eqv :
  forall (t : term) (sig1 : subst) (sig2 : subst),
   (apply_subst t (subst_compose sig1 sig2)) == (apply_subst (apply_subst t sig2) sig1).
 Proof.
-  intros. induction t.
-  - simpl. reflexivity.
-  - simpl. reflexivity.
-  - simpl. induction sig2.
+  intros. induction sig2.
   {
-    simpl. reflexivity.
+    simpl. rewrite subst_empty_no_change. reflexivity.
   }
   {
-    simpl. induction sig1.
+    induction t.
     {
+      simpl. reflexivity.
+    }
+    {
+      simpl. reflexivity.
+    }
+    {
+      simpl. 
       
 Admitted.
 
@@ -1864,7 +1868,7 @@ intros. induction t1.
       * simpl. rewrite <- H. reflexivity.
 Qed.
 
-(** Being able to simplify a term can be a usefool tool. Being able to use the
+(** Being able to simplify a term can be a useful tool. Being able to use the
     simplified version of the term as the equivalent version of the original
     term can also be useful since many of our functions simplify the term first.
     *)
