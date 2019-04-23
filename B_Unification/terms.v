@@ -762,7 +762,6 @@ Proof.
   }
 Qed.
 
-
 (** A lemma that states that sequentially applying two substitutions on a term produces the
 same term as applyin the composed subtitutions on the term.
 *)
@@ -771,20 +770,20 @@ Lemma subst_compose_eqv :
  forall (t : term) (sig1 : subst) (sig2 : subst),
   (apply_subst t (subst_compose sig1 sig2)) == (apply_subst (apply_subst t sig2) sig1).
 Proof.
-  intros. induction sig2.
+  intros. induction t.
   {
-    simpl. rewrite subst_empty_no_change. reflexivity.
+    simpl. reflexivity.
   }
   {
-    induction t.
+    simpl. reflexivity.
+  }
+  {
+    simpl. induction sig2.
     {
       simpl. reflexivity.
     }
     {
-      simpl. reflexivity.
-    }
-    {
-      simpl.     
+      simpl. 
 Admitted.
 
 (** An intuitive thing to prove for ground terms is that they (ground terms), i.e. terms
