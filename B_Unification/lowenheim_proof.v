@@ -173,9 +173,8 @@ Proof.
   intros. simpl. left. intuition. 
 Qed.
 
-(** This is an intuitive lemma to prove that every element either belongs in any list
-or does not.
-*)
+(** This is an intuitive lemma to prove that every element either belongs in any
+    list or does not. *)
 Lemma var_in_out_list: forall (x : var) (lvar : list var),
   In x lvar \/ ~ In x lvar.
 Proof.
@@ -255,17 +254,17 @@ Proof.
 Qed.
 
 
-(** Lemma 10.4.5 from 'Term Rewriting and all that' book on page 254-255. 
-    This a very significant lemma used
-    later for the proof that our Lownheim builder function (not the Main
-    function, but the builder function), gives a unifier (not necessarily an
-    mgu, which would be a next step of the proof). It states that if a term _t_
-    is an [under_term] of another term [t'], then applying a substitution--a
-    substitution created by giving the list of variables of term [t'] on the
-    skeleton function [build_list_of_vars]--, on the term _t_, a term that has
-    the same format: $(s + 1) \ast \sigma_{1}(t) + s \ast \sigma_{2}(t)$ as the
-    each replacements of each variable on any substitution created by skeleton
-    function: $(s + 1) \ast \sigma_{1}(x) + s \ast \sigma_{2}(x)$. *)
+(** Lemma 10.4.5 from 'Term Rewriting and All That' book on page 254-255. This a
+    very significant lemma used later for the proof that our Lownheim builder
+    function (not the Main function, but the builder function), gives a unifier
+    (not necessarily an mgu, which would be a next step of the proof). It states
+    that if a term _t_ is an [under_term] of another term [t'], then applying a
+    substitution--a substitution created by giving the list of variables of term
+    [t'] on the skeleton function [build_list_of_vars]--, on the term _t_, a
+    term that has the same format:
+    $(s + 1) \ast \sigma_{1}(t) + s \ast \sigma_{2}(t)$ as each replacement of
+    each variable on any substitution created by skeleton function:
+    $(s + 1) \ast \sigma_{1}(x) + s \ast \sigma_{2}(x)$. *)
 
 Lemma subs_distr_vars_ver2 : forall (t t' s : term) (sig1 sig2 : subst),
   under_term t t' ->
@@ -371,16 +370,16 @@ Qed.
 (** * Proof That Lownheim's Algorithm Produces a Most General Unifier *)
 
 (** In the previous section we proved that our Lowenheim builder produces a
-    unifier, if we already know an existing unifier of the term. In this
-    section we prove that that unifier is a most general unifier. *)
+    unifier, if we already know an existing unifier of the term. In this section
+    we prove that that unifier is a most general unifier. *)
 
 
 (** ** Proof That Lownheim's Algorithm Produces a Reproductive Unifier *)
 
-(** In this subsection we will prove that our Lowenheim builder gives a
-    unifier that is reproductive; this will help us in the proof that the
-    resulting unifier is an mgu, since a reproductive unifier is a "stronger"
-    property than an mgu. *)
+(** In this subsection we will prove that our Lowenheim builder gives a unifier
+    that is reproductive; this will help us in the proof that the resulting
+    unifier is an mgu, since a reproductive unifier is a "stronger" property
+    than an mgu. *)
 
 
 (** This is a lemma for an intuitive statement for the skeleton function
@@ -518,27 +517,25 @@ Lemma lowenheim_reproductive: forall (t : term) (tau : subst),
   unifier t tau ->
   reproductive_unifier t (build_lowenheim_subst t tau).
 Proof.
-  intros. unfold reproductive_unifier. intros. 
-  pose proof var_in_out_list. split. 
- -  apply lownheim_unifies.  apply H.
- - intros. specialize (H0 x (term_unique_vars t)). destruct H0.
-  {
-  rewrite lowenheim_rephrase1.
-  - rewrite subst_sum_distr_opp. rewrite subst_mul_distr_opp. rewrite subst_mul_distr_opp.
-    unfold unifier in H1. rewrite H1. rewrite mul_T0_x. rewrite subst_sum_distr_opp.
-    rewrite H1. rewrite ground_term_cannot_subst.
-    + rewrite sum_id. rewrite mul_id. rewrite sum_comm. rewrite sum_id. reflexivity.
-    + unfold ground_term. intuition.
-  - apply H.  
-  - apply H0. 
-  }
-  { rewrite lowenheim_rephrase2.
-    - reflexivity.
-    - apply H.
-    -  apply H0.
-  }
+  intros. unfold reproductive_unifier. intros.
+  pose proof var_in_out_list. split.
+  - apply lownheim_unifies.  apply H.
+  - intros. specialize (H0 x (term_unique_vars t)). destruct H0.
+    + rewrite lowenheim_rephrase1.
+      * rewrite subst_sum_distr_opp. rewrite subst_mul_distr_opp.
+        rewrite subst_mul_distr_opp. unfold unifier in H1. rewrite H1.
+        rewrite mul_T0_x. rewrite subst_sum_distr_opp. rewrite H1.
+        rewrite ground_term_cannot_subst.
+        -- rewrite sum_id. rewrite mul_id. rewrite sum_comm. rewrite sum_id.
+           reflexivity.
+        -- unfold ground_term. intuition.
+      * apply H.
+      * apply H0.
+    + rewrite lowenheim_rephrase2.
+      * reflexivity.
+      * apply H.
+      * apply H0.
 Qed.
-
 
 
 
@@ -563,13 +560,12 @@ Qed.
 
 (** * Proof of Correctness of [Lowenheim_Main] *)
 
-(** In this section we prove that our own defined Lownheim function
-    satisfies its two main requirements: 1) If a term is unifiable, then
-    [Lowenheim_Main] function produces a most general unifier (mgu). 2) If a
-    term is not unifiable, then Lownheim_Main function produces a [None]
-    substitution. The final top-level proof is at the end of this section. To
-    get there, we prove a series of intermediate lemmas that are needed for the
-    final proof. *)
+(** In this section we prove that our own defined Lowenheim function satisfies
+    its two main requirements: 1) If a term is unifiable, then [Lowenheim_Main]
+    function produces a most general unifier (mgu). 2) If a term is not
+    unifiable, then [Lownheim_Main] function produces a [None] substitution. The
+    final top-level proof is at the end of this section. To get there, we prove
+    a series of intermediate lemmas that are needed for the final proof. *)
 
 
 (** ** Utilities *)
@@ -579,9 +575,9 @@ Qed.
     proof. *)
 
 
-(** *** General Utilities used in the final proof steps *)
+(** *** General Utilities Used in the Final Proof Steps *)
 
-(** This is a function that converts a [option subst] to a [subst]. It is
+(** This is a function that converts an [option subst] to a [subst]. It is
     designed to be used mainly for [option subst]s that are [Some] $\sigma$. If
     the input [option subst] is not [Some] and is [None] then it returns the
     [nil] substitution, but that case should not normally be considered. This
@@ -621,8 +617,8 @@ Proof.
   intros. rewrite empty_subst_on_term in H. apply H.
 Qed.
 
-(** This is another intutitve lemma that uses classical logic for it proof. It
-    states that any term _t_, can be equivalent to the ground term [T]0 or it
+(** This is another intutitve lemma that uses classical logic for its proof. It
+    states that any term _t_, can be equivalent to the ground term [T0] or it
     cannot be equivalent to it. *)
 
 Lemma T0_or_not_T0: forall (t : term),
@@ -726,9 +722,7 @@ Proof.
   intros. firstorder.
 Qed.
 
-(** The following five lemmas are also helper lemmas.
-
-*)
+(** The following five lemmas are also helper lemmas. *)
 
 Lemma None_not_Some {T U: Type} (f : U -> option T) (x: U):
   (f x) = None -> (forall (t: T), ~ (f x) = Some t).
@@ -781,136 +775,115 @@ Proof.
   congruence.
 Qed.
 
-(** ***  Utilities used in the final proof case that [t] is unifiable
+(** ***  Utilities Used in the Final Proof Case That [t] is Unifiable *)
 
-*)
+(** In this section we are defining a number of functions and lemmas that are
+    used in the proof of the [unif_some_subst] lemma in the intermediate lemmas
+    section that follows this utilities section. We are focusing on connecting
+    the concept of a "01" subtitution with any given substitution. We are
+    attempting to create a "01" substitution given any input substitution, and
+    then prove facts about the new "01" substitution. *)
 
-
-(** In this section we are defining a number of functions and lemmas that are used in the proof
- of the [unif_some_subst] lemma in the intermediate lemmas section that follows this utilities section.
- We are focusing on connecting the concept of a '01' subtitution with any given substitution. 
- We are attempting to create a '01' substitution given any input substitution, and then prove facts 
- about the new '01' substitution.
-*)
-
-
-(** Function to build a [T0 subst], a subtitution that each variable is
-mapped to T0, given an input [lvar] list of variables
-*)
+(** This is a function to build a [T0 subst], a subtitution that maps each
+    variable to [T0], given an input list of variables. *)
 Definition build_T0_subst (lvar : list var) : subst :=
- map (fun v => (v, T0) ) lvar.
+  map (fun v => (v, T0)) lvar.
 
-(** Function to build a [T0 subst], given an input term t.
-*)
+(** Next is a function to build a [T0 subst], given an input term _t_. *)
 Definition build_T0_subst_from_t (t : term) : subst :=
- build_T0_subst (term_unique_vars t).
+  build_T0_subst (term_unique_vars t).
 
 
-(** With the four helper following functions, we are trying to create a final function that does 
-the following:
-  (1) given any substituion, it produces a '01' substitution building off the given substitution.
-  (2) it does that by composing two substitutions [s1] and [s1b] into a new one, [s2]. 
-  (3) It creates [s1b] from [s1]. [s1b] is a '01' substitution and so is [s2]. 
-*)
+(** With the following four helper functions, we are trying to create a final
+    function that does the following: 1) Given any substituion, it produces a
+    "01" substitution building off the given substitution. 2) It does that by
+    composing two substitutions [s1] and [s1b] into a new one, [s2]. 3) It
+    creates [s1b] from [s1]. [s1b] is a "01" substitution and so is [s2]. *)
 
-
-(** Function to create the [s1b] '01' substitution, by mapping all the second parts
-  of each replacement of the substitution using the following rules : (1) all the variables of 
-  non-ground terms are mapped to [T0] and all ground terms are mapped to their simplified '01' version.
-  Therefore the substitution occuring from this function is a '01' subtitutition.
-*)
+(** Here is the function to create the [s1b] "01" substitution, by mapping all
+    the second parts of each replacement of the substitution using the following
+    rules: 1) All the variables of non-ground terms are mapped to [T0] and all
+    ground terms are mapped to their simplified "01" version. Therefore the
+    substitution occuring from this function is a "01" subtitutition. *)
 Fixpoint make_unif_subst (tau : subst) : subst :=
  match tau with
  | [] => []
- | (first , second) :: rest' => 
-              if (is_ground_term second) then 
-                (cons (first, simplify second)  (make_unif_subst rest')) 
-              else 
-                 (build_T0_subst_from_t second) ++ (make_unif_subst rest')
-              
+ | (first , second) :: rest' =>
+    if is_ground_term second
+    then (first, simplify second) :: (make_unif_subst rest')
+    else (build_T0_subst_from_t second) ++ (make_unif_subst rest')
 end.
 
-(** Function to augment create a list of [id] replacements, for all the variables of the 
- [lvar] list input that are not in [lvar_s] list input. The [lvar_s] list input is supposedly the
- list with the variables of a subtitution and we are trying eventually to augment the substitution
- with and id subtitution.
-*)
-
+(** This function creates a list of identity replacements, for all the variables
+    of the [lvar] list input that are not in [lvar_s] list input. The [lvar_s]
+    list input is supposedly the list with the variables of a subtitution and we
+    are trying eventually to augment the substitution with and identity
+    subtitution. *)
 Fixpoint augment_with_id (lvar_s : list var) (lvar : list var) : subst :=
   match lvar with
   | [] => []
-  | v :: v' => 
-      if (var_set_includes_var v lvar_s) then (augment_with_id lvar_s v') 
+  | v :: v' =>
+      if var_set_includes_var v lvar_s
+      then augment_with_id lvar_s v'
       else (v, VAR v) :: (augment_with_id lvar_s v')
   end.
 
-(** Function to add the id substitution to the input subsitution.
-*)
-Definition add_id_subst (t : term) (tau : subst) : subst  :=
+(** This function adds the identity substitution to the input subsitution. *)
+Definition add_id_subst (t : term) (tau : subst) : subst :=
   augment_with_id (subst_domain tau) (term_unique_vars t) ++ tau.
 
 
-(** This is the resulting function that given any subsitution for a term, produces
- a '01' subsitution. Even though this function is not directly called by name, its implementation is directly used.
- So whenever in the future comments there is a reference to a [convert_to_01_subst], what is meant is 
- essentially the composition of the [make_unif_subst] substitution and the input subsitution [tau] - or
- the resulting substitution [s2], by composing [s1] and [s1b]. 
-*)
+(** This is the resulting function that given any subsitution for a term,
+    produces a "01" subsitution. Even though this function is not directly
+    called by name, its implementation is directly used. So whenever in the
+    future comments there is a reference to a [convert_to_01_subst], what is
+    meant is essentially the composition of the [make_unif_subst] substitution
+    and the input subsitution [tau] - or the resulting substitution [s2], by
+    composing [s1] and [s1b]. *)
 Definition convert_to_01_subst (tau : subst) (t : term) : subst :=
- (subst_compose (make_unif_subst (add_id_subst t tau)) (add_id_subst t tau)).
+  subst_compose (make_unif_subst (add_id_subst t tau)) (add_id_subst t tau).
 
 
-(** The following lemmas are about facts for the '01' subtitutions and our convert_to_01_subst function.
- These lemmmas are very important for the intermediate lemmas section where in the 'unifiable t' case
- we are trying to prove that when there exists any substitution for a term t, then there existis a
- '01' substitution.
-*)
+(** The following lemmas are about facts for the "01" subtitutions and our
+    [convert_to_01_subst] function. These lemmmas are very important for the
+    intermediate lemmas section where in the [unifiable t] case we are trying to
+    prove that when there exists any substitution for a term _t_, then there
+    exists a "01" substitution. *)
 
-
-
-(** Intuitive lemma that states adding an id subsitution to an existing unifier of a term, then we also get
-  another unifier. 
-*)
-
-Lemma add_id_unf :
- forall (t : term) (sig1 : subst),
-  (unifier t sig1) ->
-  (unifier t (add_id_subst t sig1 )).
+(** This is an intuitive lemma that states that adding an identity subsitution
+    to an existing unifier of a term gives another unifier. *)
+Lemma add_id_unf : forall (t : term) (sig1 : subst),
+  unifier t sig1 ->
+  unifier t (add_id_subst t sig1).
 Proof.
-intros. induction sig1.
-{
-  induction t.
-  {
-    unfold unifier in *. simpl in *. apply H.
-  }
-  {
-    unfold unifier in *. simpl in *. apply H.
-  }
-  {
-    unfold unifier in *. simpl in *. destruct PeanoNat.Nat.eqb. apply H. apply H.
-  }
-  {
-    unfold unifier in *. simpl in *. unfold add_id_subst. simpl.
+  intros. induction sig1.
+  - induction t.
+    + unfold unifier in *. simpl in *. apply H.
+    + unfold unifier in *. simpl in *. apply H.
+    + unfold unifier in *. simpl in *. destruct PeanoNat.Nat.eqb. apply H.
+      apply H.
+    + unfold unifier in *. simpl in *. unfold add_id_subst. simpl.
 Admitted.
 
 
-(** Lemma that states two facts, given a term [t] and a unifier [sig1] of t: 
-    (1) the [convert_to_01_subst] substitution is also a unifier
-    (2) applying the [convert_to_01_subst] substitution on the term results in a term that is ground.
-*)
-
-Lemma unif_grnd_unif :
- forall (t : term) (sig1 : subst),
-  (unifier t sig1) ->
-  (unifier t (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1))) /\ 
-  (is_ground_term (apply_subst t (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1)))) = true .
+(** This lemma states two facts, given a term _t_ and a unifier [sig1] of _t_:
+    1) The [convert_to_01_subst] substitution is also a unifier. 2) Applying the
+    [convert_to_01_subst] substitution on the term results in a term that is
+    ground. *)
+Lemma unif_grnd_unif : forall (t : term) (sig1 : subst),
+  unifier t sig1 ->
+  (unifier t (subst_compose (make_unif_subst (add_id_subst t sig1))
+                            (add_id_subst t sig1))) /\
+  (is_ground_term
+    (apply_subst t (subst_compose (make_unif_subst (add_id_subst t sig1))
+                                  (add_id_subst t sig1)))) = true.
 Proof.
- intros. split. 
- -  unfold unifier. unfold unifier in H. rewrite subst_compose_eqv.
-    pose proof add_id_unf. specialize (H0 t sig1). unfold unifier in H0. specialize (H0 H). rewrite H0.
- simpl. reflexivity.
- -  admit.
-Admitted. 
+  intros. split.
+  - unfold unifier. unfold unifier in H. rewrite subst_compose_eqv.
+    pose proof add_id_unf. specialize (H0 t sig1). unfold unifier in H0.
+    specialize (H0 H). rewrite H0. simpl. reflexivity.
+  - admit.
+Admitted.
 
 
 (*
@@ -922,86 +895,87 @@ Proof.
 Admitted.
 *)
 
-(** If a subsitution [sig1] is a '01' substitution and the [domain] of the substitution is 
-   a subset of a list of variable [l1] then the substitution [sig1] is an element of all the 
-   '01' substitutions of that list [l1].  
-*)
-
-Lemma _01_in_all :
- forall (l1 : list var) (sig : subst),
-  (is_01_subst sig) = true /\ sub_dmn_list l1 (subst_domain sig) ->
+(** If a subsitution [sig1] is a "01" substitution and the domain of the
+    substitution is a subset of a list of variable [l1] then the substitution
+    [sig1] is an element of all the "01" substitutions of that list [l1]. *)
+Lemma _01_in_all : forall (l1 : list var) (sig : subst),
+  is_01_subst sig = true /\ sub_dmn_list l1 (subst_domain sig) ->
   In sig (all_01_substs l1).
 Proof.
-intros. destruct H. unfold is_01_subst in H. 
+  intros. destruct H. unfold is_01_subst in H.
 Admitted.
 
-(** Specialized format of the [_01_in_all] lemma. 
-   Instead of [l1] we havec[term_unique_vars t].
-*)
-
-Lemma _01_in_rec :
-  forall (t : term) (sig : subst),
-  (is_01_subst sig) = true /\ sub_dmn_list (term_unique_vars t) (subst_domain sig) ->
-  (In sig (all_01_substs (term_unique_vars t))).
+(** Here is a specialized format of the [_01_in_all] lemma. Instead of [l1] we
+    have [term_unique_vars t]. *)
+Lemma _01_in_rec : forall (t : term) (sig : subst),
+  is_01_subst sig = true /\
+  sub_dmn_list (term_unique_vars t) (subst_domain sig) ->
+  In sig (all_01_substs (term_unique_vars t)).
 Proof.
- intros. 
- pose proof _01_in_all.
- specialize (H0 (term_unique_vars t) sig).
- apply H0. apply H.
+  intros.
+  pose proof _01_in_all.
+  specialize (H0 (term_unique_vars t) sig).
+  apply H0. apply H.
 Qed.
 
 
-(** Lemma to show that given a unifier [sig1] of [t], then the
- [convert_to_01_subst] subtitution is a '01' subst and also the variables of term [t] are 
-  a subset of the domain of the [convert_to_01_subst] substitution.
-*)
-
-Lemma make_unif_is_01 :
- forall (t : term) (sig1 : subst),
- (unifier t sig1) ->
- (is_01_subst (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1))) = true 
- /\
-     sub_dmn_list (term_unique_vars t)
-       (subst_domain (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1))).
+(** Here is a lemma to show that given a unifier [sig1] of _t_, then the
+    [convert_to_01_subst] subtitution is a "01" subst and also the variables of
+    term _t_ are a subset of the domain of the [convert_to_01_subst]
+    substitution. *)
+Lemma make_unif_is_01 : forall (t : term) (sig1 : subst),
+  unifier t sig1 ->
+  is_01_subst (subst_compose (make_unif_subst (add_id_subst t sig1))
+                             (add_id_subst t sig1)) = true /\
+  sub_dmn_list
+    (term_unique_vars t)
+    (subst_domain (subst_compose (make_unif_subst (add_id_subst t sig1))
+                                 (add_id_subst t sig1))).
 Proof.
- intros. 
+  intros.
 Admitted.
- 
 
-(** Lemma to show that given a unifier of term [t], then there exists a substitution [sig2]
- that (1) belongs to all the '01' substitutions of term [t] and it also unifies [t], by making
- [t] equal to T0 when applied on it (it is equal, not just equivalent because we want sig2 to be 
- a ground substitution too. 
-
-*)
-
-Lemma unif_exists_grnd_unif :
- forall (t : term) (sig1 : subst),
-  (unifier t sig1) ->
-
+(** This is a lemma to show that given a unifier of term _t_, then there exists
+    a substitution [sig2] that 1) belongs to all the "01" substitutions of term
+    _t_ and it also unifies _t_, by making _t_ equal to [T0] when applied on it
+    (it is equal, not just equivalent because we want [sig2] to be a ground
+    substitution too). *)
+Lemma unif_exists_grnd_unif : forall (t : term) (sig1 : subst),
+  unifier t sig1 ->
   exists sig2 : subst,
-  In sig2 (all_01_substs (term_unique_vars t)) 
-  /\
-  match (update_term t sig2) with
-  | T0 => true
-  | _ => false
-  end = true.
+    In sig2 (all_01_substs (term_unique_vars t)) /\
+    match update_term t sig2 with
+    | T0 => true
+    | _ => false
+    end = true.
 Proof.
- intros. exists (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1)) . split. 
- -  pose proof _01_in_rec as H1. 
-   specialize (H1 t (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1)) ). pose proof make_unif_is_01 as H2. specialize (H2 t sig1).
-   specialize (H2 H). (*specialize (H0 t (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1)) ).*) specialize (H1 H2). apply H1.
- - pose proof unif_grnd_unif. specialize (H0 t sig1 H). destruct H0. unfold unifier in H0.
-   unfold update_term. pose proof simplify_eqv.  specialize (H2 (apply_subst t (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1)) ) ).
-    symmetry in H2. pose proof trans_compat2.  symmetry in H0. 
-    specialize (H3 T0 (apply_subst t (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1)) ) 
-                ( simplify (apply_subst t (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1)) ))).
-     specialize (H3 H0 H2). symmetry in H3.  pose proof simplify_eq_T0. 
-     specialize (H4 (apply_subst t (subst_compose (make_unif_subst (add_id_subst t sig1)) (add_id_subst t sig1)) )).
-     symmetry in H0.   rewrite H4. 
-      +   reflexivity.
-      + split.  { apply H0. }
-                { apply H1. } 
+  intros. exists (subst_compose (make_unif_subst (add_id_subst t sig1))
+    (add_id_subst t sig1)). split.
+  - pose proof _01_in_rec as H1.
+    specialize (H1 t (subst_compose (make_unif_subst (add_id_subst t sig1))
+      (add_id_subst t sig1))).
+    pose proof make_unif_is_01 as H2. specialize (H2 t sig1).
+    specialize (H2 H).
+    (*specialize (H0 t (subst_compose (make_unif_subst (add_id_subst t sig1))
+      (add_id_subst t sig1))). *)
+    specialize (H1 H2). apply H1.
+  - pose proof unif_grnd_unif. specialize (H0 t sig1 H). destruct H0.
+    unfold unifier in H0. unfold update_term. pose proof simplify_eqv.
+    specialize (H2 (apply_subst t (subst_compose (make_unif_subst
+      (add_id_subst t sig1)) (add_id_subst t sig1)))).
+    symmetry in H2. pose proof trans_compat2.  symmetry in H0.
+    specialize (H3 T0 (apply_subst t (subst_compose (make_unif_subst
+      (add_id_subst t sig1)) (add_id_subst t sig1))) (simplify (apply_subst t
+      (subst_compose (make_unif_subst (add_id_subst t sig1))
+      (add_id_subst t sig1))))).
+    specialize (H3 H0 H2). symmetry in H3. pose proof simplify_eq_T0.
+    specialize (H4 (apply_subst t (subst_compose (make_unif_subst
+      (add_id_subst t sig1)) (add_id_subst t sig1)))).
+    symmetry in H0. rewrite H4.
+    + reflexivity.
+    + split.
+      * apply H0.
+      * apply H1.
 Qed.
 
 
@@ -1016,53 +990,55 @@ Qed.
     substitution. *)
 
 
-(** *** Not unifiable [t] case *)
+(** *** Not unifiable _t_ case *)
 
 (** In this secton we prove intermediate lemmas useful for the second statement
     of the final proof: if a term is not unifiable, then [Lownheim_Main]
     function produces a [None] substitution. *)
 
 
-(** Lemma to show that if [find_unifier] returns [Some subst], the term is
-    unifiable. *)
-
+(** This is a lemma to show that if [find_unifier] returns [Some subst], the
+    term is unifiable. *)
 Lemma some_subst_unifiable: forall (t : term),
   (exists sig, find_unifier t = Some sig) ->
   unifiable t.
 Proof.
   intros.
-  destruct H as [sig1 H1]. 
+  destruct H as [sig1 H1].
   induction t.
   - unfold unifiable. exists []. unfold unifier. simpl. reflexivity.
   - simpl in H1. inversion H1.
-  - unfold unifiable. exists sig1. unfold find_unifier in H1. apply find_some in H1. destruct H1. 
+  - unfold unifiable. exists sig1. unfold find_unifier in H1.
+    apply find_some in H1. destruct H1.
     remember (update_term (VAR v) sig1) in H0.
     destruct t.
     + unfold update_term in Heqt. pose proof simplify_eqv.
-      specialize (H1 (apply_subst (VAR v) sig1) ). unfold unifier. symmetry in Heqt. 
-      rewrite Heqt in H1.  rewrite H1.  reflexivity. 
+      specialize (H1 (apply_subst (VAR v) sig1) ). unfold unifier.
+      symmetry in Heqt. rewrite Heqt in H1. rewrite H1. reflexivity.
     + inversion H0.
     + inversion H0.
     + inversion H0.
     + inversion H0.
-  - unfold unifiable. exists sig1. unfold find_unifier in H1. apply find_some in H1. destruct H1. 
+  - unfold unifiable. exists sig1. unfold find_unifier in H1.
+    apply find_some in H1. destruct H1.
     remember (update_term (t1 + t2) sig1) in H0.
     destruct t.
     + unfold update_term in Heqt. pose proof simplify_eqv.
       specialize (H1 (apply_subst (t1 + t2) sig1)).
-      symmetry in Heqt. unfold unifier. rewrite Heqt in H1. rewrite H1. 
-      reflexivity. 
+      symmetry in Heqt. unfold unifier. rewrite Heqt in H1. rewrite H1.
+      reflexivity.
     + inversion H0.
     + inversion H0.
     + inversion H0.
     + inversion H0.
-  - unfold unifiable. exists sig1. unfold find_unifier in H1. apply find_some in H1. destruct H1. 
+  - unfold unifiable. exists sig1. unfold find_unifier in H1.
+    apply find_some in H1. destruct H1.
     remember (update_term (t1 * t2) sig1) in H0.
     destruct t.
     + unfold update_term in Heqt. pose proof simplify_eqv.
       specialize (H1 (apply_subst (t1 * t2) sig1)).
-      symmetry in Heqt. unfold unifier. rewrite Heqt in H1. rewrite H1. 
-      reflexivity. 
+      symmetry in Heqt. unfold unifier. rewrite Heqt in H1. rewrite H1.
+      reflexivity.
     + inversion H0.
     + inversion H0.
     + inversion H0.
@@ -1072,7 +1048,6 @@ Qed.
 
 (** This lemma shows that if no substituion makes [find_unifier] to return
     [Some subst], the it returns [None]. *)
-
 Lemma not_Some_is_None (t: term) :
   ~ (exists sig, find_unifier t = Some sig) ->
   find_unifier t = None.
@@ -1084,9 +1059,8 @@ Proof.
 Qed.
 
 
-(** Lemma to show that if a term _t_ is not unifiable, the [find_unifier]
-    function returns [None] with _t_ as input. *)
-
+(** This is a lemma to show that if a term _t_ is not unifiable, the
+    [find_unifier] function returns [None] with _t_ as input. *)
 Lemma not_unifiable_find_unifier_none_subst : forall (t : term),
   ~ unifiable t -> find_unifier t = None.
 Proof.
@@ -1102,7 +1076,7 @@ Proof.
 Qed.
 
 
-(** *** Unifiable [t] Case *)
+(** *** Unifiable _t_ Case *)
 
 (** In this secton we prove intermediate lemmas useful for the first statement
     of the final proof: if a term is unifiable, then [Lowenheim_Main] function
@@ -1110,7 +1084,6 @@ Qed.
 
 (** Lemma to show that if [find_unifier] on an input term _t_ returns
     [Some] $\sigma$, then $\sigma$ is a unifier of _t_. *)
-
 Lemma Some_subst_unifiable : forall (t : term) (sig : subst),
   find_unifier t = Some sig -> unifier t sig.
 Proof.
@@ -1119,75 +1092,77 @@ Proof.
   - simpl in H. apply eq_some_eq_subst in H. symmetry in H. rewrite H.
     unfold unifier. simpl. reflexivity.
   - simpl in H. inversion H.
-  - unfold find_unifier in H.  apply find_some in H. destruct H. 
+  - unfold find_unifier in H.  apply find_some in H. destruct H.
     remember (update_term (VAR v) sig) in H0.
     destruct t.
     + unfold unifier. unfold update_term in Heqt. pose proof simplify_eqv.
-      specialize (H1 (apply_subst (VAR v) sig) ). symmetry in Heqt. 
+      specialize (H1 (apply_subst (VAR v) sig) ). symmetry in Heqt.
       rewrite Heqt in H1.  rewrite H1.  reflexivity.
     + inversion H0.
     + inversion H0.
     + inversion H0.
     + inversion H0.
-  - unfold find_unifier in H.   apply find_some in H. destruct H. 
+  - unfold find_unifier in H.   apply find_some in H. destruct H.
     remember (update_term (t1 + t2) sig) in H0.
     destruct t.
     + unfold unifier. unfold update_term in Heqt. pose proof simplify_eqv.
-      specialize (H1 (apply_subst (t1 + t2) sig) ). symmetry in Heqt. 
+      specialize (H1 (apply_subst (t1 + t2) sig) ). symmetry in Heqt.
       rewrite Heqt in H1.  rewrite H1.  reflexivity.
     + inversion H0.
     + inversion H0.
     + inversion H0.
     + inversion H0.
-  - unfold find_unifier in H.   apply find_some in H. destruct H. 
+  - unfold find_unifier in H.   apply find_some in H. destruct H.
     remember (update_term (t1 * t2) sig) in H0.
     destruct t.
     + unfold unifier. unfold update_term in Heqt. pose proof simplify_eqv.
-      specialize (H1 (apply_subst (t1 * t2) sig) ). symmetry in Heqt. 
+      specialize (H1 (apply_subst (t1 * t2) sig) ). symmetry in Heqt.
       rewrite Heqt in H1.  rewrite H1.  reflexivity.
     + inversion H0.
     + inversion H0.
     + inversion H0.
     + inversion H0.
 Qed.
- 
 
 
 
-(** This lemma is the one using all the utilities defined in the utilities section for the 
-   'unifiable t' case. It states that if there is a unifier [sig1] for term _t_ then there exists
-   some substitution [sig2] for which the find_unifier function returns [Some] [sig2].
-   Here is the main outline of the proof : As done in the utilities section, given any unifier 
-   [sig1] of a term _t_, we can find a '01' unifier. Since our [find_unifier] function also finds 
-   a '01' unifier by going through the list of available '01' unifier, there must exist a '01' unifier
-   [sig2] returned by our [find_unifier] function under the [Some] wrapper.  
-*)                   
-
+(** This lemma is the one using all the utilities defined in the utilities
+    section for the [unifiable t] case. It states that if there is a unifier
+    [sig1] for term _t_ then there exists some substitution [sig2] for which
+    the [find_unifier] function returns [Some sig2]. Here is the main outline of
+    the proof: As done in the utilities section, given any unifier [sig1] of a
+    term _t_, we can find a "01" unifier. Since our [find_unifier] function also
+    finds a "01" unifier by going through the list of available "01" unifiers,
+    there must exist a "01" unifier [sig2] returned by our [find_unifier]
+    function under the [Some] wrapper. *)
 Lemma unif_some_subst : forall (t: term),
   (exists sig1, unifier t sig1) ->
   exists sig2, find_unifier t = Some sig2.
 Proof.
   intros t H. induction t.
-   - simpl. exists []. reflexivity. 
-   - simpl. destruct H. unfold unifier in H. simpl in H. apply T1_not_equiv_T0 in H. inversion H. 
-   - unfold find_unifier.    
+  - simpl. exists []. reflexivity.
+  - simpl. destruct H. unfold unifier in H. simpl in H.
+    apply T1_not_equiv_T0 in H. inversion H.
+  - unfold find_unifier.
     apply existsb_find.
-    apply existsb_exists. destruct H. pose proof unif_exists_grnd_unif. specialize (H0 (VAR v) x). 
-    apply H0.  apply H. 
-  - unfold find_unifier.    
+    apply existsb_exists. destruct H. pose proof unif_exists_grnd_unif.
+    specialize (H0 (VAR v) x).
+    apply H0. apply H.
+  - unfold find_unifier.
     apply existsb_find.
-    apply existsb_exists. destruct H. pose proof unif_exists_grnd_unif. specialize (H0 (t1 + t2) x). 
-    apply H0.  apply H. 
-  - unfold find_unifier.    
+    apply existsb_exists. destruct H. pose proof unif_exists_grnd_unif.
+    specialize (H0 (t1 + t2) x).
+    apply H0. apply H.
+  - unfold find_unifier.
     apply existsb_find.
-    apply existsb_exists. destruct H. pose proof unif_exists_grnd_unif. specialize (H0 (t1 * t2) x). 
-    apply H0.  apply H. 
+    apply existsb_exists. destruct H. pose proof unif_exists_grnd_unif.
+    specialize (H0 (t1 * t2) x).
+    apply H0. apply H.
 Qed.
 
 
-(** Lemma to show that if no substituion makes [find_unifier] return
+(** Here is a lemma to show that if no substituion makes [find_unifier] return
     [Some] $\sigma$, then it returns [None]. *)
-
 Lemma not_Some_not_unifiable (t: term) :
   (~ exists sig, find_unifier t = Some sig) ->
   ~ unifiable t.
@@ -1207,7 +1182,6 @@ Qed.
 
 (** This lemma shows that if a term is unifiable then [find_unifier] returns
     [Some] $\sigma$. *)
-
 Lemma unifiable_find_unifier_some_subst : forall (t : term),
   unifiable t ->
   (exists sig, find_unifier t = Some sig).
@@ -1225,7 +1199,6 @@ Qed.
 
 (** This lemma shows that if a term is unifiable, then [find_unifier] returns a
     unifier. *)
-
 Lemma find_unifier_is_unifier: forall (t : term),
   unifiable t -> unifier t (convert_to_subst (find_unifier t)).
 Proof.
@@ -1251,7 +1224,6 @@ Qed.
 (** The first one states that given a uniable term _t_ and the fact that our
     Lowenheim builder produces an mgu, then the [Lowenheim_Main] function
     also produces an mgu. *)
-
 Lemma builder_to_main: forall (t : term),
   unifiable t ->
   most_general_unifier t (build_lowenheim_subst
@@ -1267,38 +1239,36 @@ Proof.
   - simpl in H2. unfold unifier in H2. apply app_subst_T0 in H2. simpl.
     repeat simpl in H1. pose proof most_general_unifier_compat.
     specialize (H3 t T0 H2). specialize (H3 []).
-    rewrite H3. unfold most_general_unifier. intros. 
-   unfold more_general_substitution. split. 
-  + apply empty_subst_on_term. 
-  +  intros. exists s'. unfold substitution_factor_through. 
-   intros. simpl. reflexivity. 
+    rewrite H3. unfold most_general_unifier. intros.
+    unfold more_general_substitution. split.
+    + apply empty_subst_on_term.
+    + intros. exists s'. unfold substitution_factor_through.
+      intros. simpl. reflexivity.
 Qed.
 
 
-
-
-(** This is the final top-level lemma that encapsulates all our efforts so far. It
-    proves the two main statements required for the final proof. The two
-    statements, as phrased in the beginning of the chapter are: 1) if a term is
+(** This is the final top-level lemma that encapsulates all our efforts so far.
+    It proves the two main statements required for the final proof. The two
+    statements, as phrased in the beginning of the chapter are: 1) If a term is
     unifiable, then our own defined [Lowenheim_Main] function produces a most
-    general unifier (mgu). 2) if a term is not unifiable, then our own defined
+    general unifier (mgu). 2) If a term is not unifiable, then our own defined
     [Lownheim_Main] function produces a [None] substitution. The two
     propositions are related with the "$\wedge$" symbol (namely, the
     propositional "and") and each is proven seperately using the intermediate
     lemmas proven above. This is why the final top-level proof is relatively
     short, because a lot of the significant components of the proof have already
     been proven as intermediate lemmas. *)
-
 Lemma lowenheim_main_most_general_unifier: forall (t: term),
- (unifiable t -> most_general_unifier t (convert_to_subst (Lowenheim_Main t)))
- /\
- (~ unifiable t -> Lowenheim_Main t = None).
+  (unifiable t -> most_general_unifier t (convert_to_subst (Lowenheim_Main t)))
+  /\
+  (~ unifiable t -> Lowenheim_Main t = None).
 Proof.
- intros. 
- split. 
- - intros. apply builder_to_main.
-  +  apply H.
-  + apply lowenheim_most_general_unifier. apply find_unifier_is_unifier. apply H.
- - intros. pose proof not_unifiable_find_unifier_none_subst. 
-   specialize (H0 t H). unfold Lowenheim_Main. rewrite H0. reflexivity.
+  intros.
+  split.
+  - intros. apply builder_to_main.
+    + apply H.
+    + apply lowenheim_most_general_unifier. apply find_unifier_is_unifier.
+      apply H.
+  - intros. pose proof not_unifiable_find_unifier_none_subst.
+    specialize (H0 t H). unfold Lowenheim_Main. rewrite H0. reflexivity.
 Qed.

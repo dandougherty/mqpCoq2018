@@ -34,8 +34,6 @@ Import ListNotations.
 (*  Define a variable to be a natural number *)
 Definition var := nat.
 
-Definition var_eq_dec := Nat.eq_dec.
-
 (** A _term_, as has already been previously described, is now inductively
     declared to hold either a constant value, a single variable, a sum of terms,
     or a product of terms. *)
@@ -80,13 +78,13 @@ Parameter eqv : term -> term -> Prop.
 
 Infix " == " := eqv (at level 70).
 
-(** Below is the set of fundamental axioms concerning the equivalence " == " relation. 
-    They form the boolean ring (or system) on which Lowenheim's formula and proof are developed.
+(** Below is the set of fundamental axioms concerning the equivalence "=="
+    relation. They form the boolean ring (or system) on which Lowenheim's
+    formula and proof are developed.
 
-    Most of these axioms will appear familiar to anyone; however, certain ones such as the 
-    summation of two identical terms are true only across Boolean rings and as such might 
-    appear strange at first glance.
-*)
+    Most of these axioms will appear familiar to anyone; however, certain ones
+    such as the summation of two identical terms are true only across Boolean
+    rings and as such might appear strange at first glance. *)
 
 Axiom sum_comm : forall x y, x + y == y + x.
 
@@ -94,9 +92,9 @@ Axiom sum_assoc : forall x y z, (x + y) + z == x + (y + z).
 
 Axiom sum_id : forall x, T0 + x == x. 
 
-(**  Across boolean rings, the summation of two terms will always be 0 because there
-     are only two elements in the ring: 0 and 1. For this reason, the mapping of 1 + 1 has
-     nowhere else to go besides 0. *)
+(** Across boolean rings, the summation of two terms will always be 0 because
+    there are only two elements in the ring: 0 and 1. For this reason, the
+    mapping of [1 + 1] has nowhere else to go besides 0. *)
 
 Axiom sum_x_x : forall x, x + x == T0.
 
@@ -104,9 +102,9 @@ Axiom mul_comm : forall x y, x * y == y * x.
 
 Axiom mul_assoc : forall x y z, (x * y) * z == x * (y * z).
 
-(**  Across bollean rings, the multiplication of two identical terms will always be 
-     the same as just having one instance of said term. This is because 0 * 0 = 0 and
-     1 * 1 = 1 as one would expect normally. *)
+(** Across boolean rings, the multiplication of two identical terms will always
+    be the same as just having one instance of said term. This is because
+    $0 \ast 0 = 0$ and $1 \ast 1 = 1$ as one would expect normally. *)
 
 Axiom mul_x_x : forall x, x * x == x.
 
@@ -117,11 +115,11 @@ Axiom mul_id : forall x, T1 * x == x.
 Axiom distr : forall x y z, x * (y + z) == (x * y) + (x * z).
 
 (** Any axioms beyond this point of the development are not considered part of
-the 'fundamental axiom system',but they still need to exist for the development and proofs 
-to hold. *)
+    the "fundamental axiom system", but they still need to exist for the
+    development and proofs to hold. *)
 
-(*  Across all equations, adding an expression to both sides does not
-   break the equivalence of the relation *)
+(** Across all equations, adding an expression to both sides does not break the
+    equivalence of the relation. *)
 Axiom term_sum_symmetric :
   forall x y z, x == y <-> x + z == y + z.
 
@@ -136,9 +134,9 @@ Hint Resolve sum_comm sum_assoc sum_x_x sum_id distr
 
 (** Now that the core axioms have been taken care of, we need to handle the
     implications posed by our custom equivalence relation. Below we inform Coq
-    of the behavior of our equivalence relation with respect to reflexivity, symmetry, and 
-    transitivity in order to allow for rewrites during the construction of proofs operating across our
-    new equivalence relation. *)
+    of the behavior of our equivalence relation with respect to reflexivity,
+    symmetry, and transitivity in order to allow for rewrites during the
+    construction of proofs operating across our new equivalence relation. *)
 
 (*  Mundane coq magic for custom equivalence relation *)
 Axiom eqv_ref : Reflexive eqv.
@@ -267,33 +265,36 @@ Qed.
     entries from it. For convenience, we also provide several examples to
     demonstrate the functionalities of these new definitions. *)
 
-(**  Here is a definition of the new type to represent a list (set) of variables (natural numbers) *)
+(** Here is a definition of the new type to represent a list (set) of variables
+    (natural numbers). *)
 
 Definition var_set := list var.
 Implicit Type vars: var_set.
 
-(**  A simple function to check to see if a variable is in a variable set *)
+(** Here is a simple function to check to see if a variable is in a variable
+    set. *)
 Fixpoint var_set_includes_var (v : var) (vars : var_set) : bool :=
   match vars with
-    | nil => false
-    | n :: n' => if (beq_nat v n) then true
-                                  else var_set_includes_var v n'
+  | nil => false
+  | n :: n' => if (beq_nat v n) then true
+                                else var_set_includes_var v n'
   end.
 
-(**  A function to remove all instances of var v from a list of vars *)
+(** Here is a function to remove all instances of var [v] from a list of vars.
+    *)
 Fixpoint var_set_remove_var (v : var) (vars : var_set) : var_set :=
   match vars with
-    | nil => nil
-    | n :: n' => if (beq_nat v n) then (var_set_remove_var v n')
-                                  else n :: (var_set_remove_var v n')
+  | nil => nil
+  | n :: n' => if (beq_nat v n) then (var_set_remove_var v n')
+                                else n :: (var_set_remove_var v n')
   end.
 
-(**  Function to return a unique var_set without duplicates. Found_vars should be
-    empty for correctness guarantee *)
+(** Next is a function to return a unique [var_set] without duplicates. Found
+    vars should be empty for correctness guarantee. *)
 Fixpoint var_set_create_unique (vars : var_set): var_set :=
   match vars with
-    | nil => nil
-    | n :: n' => 
+  | nil => nil
+  | n :: n' => 
     if (var_set_includes_var n n') then var_set_create_unique n'
                                    else n :: var_set_create_unique n'
   end.
@@ -301,8 +302,8 @@ Fixpoint var_set_create_unique (vars : var_set): var_set :=
 (**  Function to check if a given var_set is unique *)
 Fixpoint var_set_is_unique (vars : var_set): bool :=
   match vars with
-    | nil => true
-    | n :: n' => 
+  | nil => true
+  | n :: n' =>
     if (var_set_includes_var n n') then false
                                    else var_set_is_unique n'
   end.
@@ -310,22 +311,22 @@ Fixpoint var_set_is_unique (vars : var_set): bool :=
 (**  Function to get the variables of a term as a var_set *)
 Fixpoint term_vars (t : term) : var_set :=
   match t with
-    | T0 => nil
-    | T1 => nil
-    | VAR x => x :: nil
-    | PRODUCT x y => (term_vars x) ++ (term_vars y)
-    | SUM x y => (term_vars x) ++ (term_vars y)
+  | T0 => nil
+  | T1 => nil
+  | VAR x => x :: nil
+  | PRODUCT x y => (term_vars x) ++ (term_vars y)
+  | SUM x y => (term_vars x) ++ (term_vars y)
   end.
 
-(** Function to generate a list of unique variables that make up a given term *)
+(** This is a function to generate a list of unique variables that make up a
+    given term. *)
 Definition term_unique_vars (t : term) : var_set :=
   var_set_create_unique (term_vars t).
 
 (** ** Lemmas *)
 
-(** Now that we have established the functionality for variable sets, let us prove some properties about them.
-*)
-
+(** Now that we have established the functionality for variable sets, let us
+    prove some properties about them. *)
 Lemma vs_includes_true : forall (x : var) (lvar : list var),
   var_set_includes_var x lvar = true -> In x lvar.
 Proof.
@@ -382,9 +383,7 @@ Qed.
 
 (** ** Examples **)
 
-(**
-  Below are some examples of the behaviors of variable sets.
-*)
+(** Below are some examples of the behaviors of variable sets. *)
 
 Example var_set_create_unique_ex1 :
   var_set_create_unique [0;5;2;1;1;2;2;9;5;3] = [0;1;2;9;5;3].
@@ -425,10 +424,11 @@ Qed.
     and only if no variable appears in it; otherwise it will be a false
     proposition and no longer a ground term. *)
 
-(*  In this subsection we declare definitions related to ground terms, inluding
-    functions and lemmas *)
+(** In this subsection we declare definitions related to ground terms, inluding
+    functions and lemmas. *)
 
-(**  Function to check if a given term is a ground term (i.e. has no vars) *)
+(** This is a function to check if a given term is a ground term (i.e. has no
+    vars). *)
 Fixpoint ground_term (t : term) : Prop :=
   match t with
     | VAR x => False
@@ -440,14 +440,14 @@ Fixpoint ground_term (t : term) : Prop :=
 (** ** Lemmas **)
 
 (** Our first real lemma (shown below), articulates an important property of
-    ground terms: all ground terms are equvialent to either [0] or [1]. This
-    curious property is a direct result of the fact that these terms possess no
+    ground terms: all ground terms are equvialent to either 0 or 1. This curious
+    property is a direct result of the fact that these terms possess no
     variables and additioanlly because of the axioms of Boolean algebra. *)
 
-(**  Lemma (trivial, intuitively true) that proves that if the function
-    ground_term returns true then it is either T0 or T1 *)
-Lemma ground_term_equiv_T0_T1 :
-  forall x, ground_term x -> x == T0 \/ x == T1.
+(** This is a lemma (trivial, intuitively true) that proves that if the function
+    [ground_term] returns true then it is either [T0] or [T1]. *)
+Lemma ground_term_equiv_T0_T1 : forall x,
+  ground_term x -> x == T0 \/ x == T1.
 Proof.
   intros. induction x.
   - left. reflexivity.
@@ -467,9 +467,8 @@ Qed.
 (** This lemma, while intuitively obvious by definition, nonetheless provides a
     formal bridge between the world of ground terms and the world of variable
     sets. *)
-
-Lemma ground_term_has_empty_var_set :
-  forall x, (ground_term x) -> (term_vars x) = [].
+Lemma ground_term_has_empty_var_set : forall x,
+  ground_term x -> term_vars x = [].
 Proof.
   intros. induction x.
   - simpl. reflexivity.
@@ -531,7 +530,6 @@ Implicit Type s : subst.
 (** Our first function, [find_replacement], is an auxilliary to [apply_subst].
     This function will search through a substitution for a specific variable,
     and if found, returns the variable's associated term. *)
-
 Fixpoint find_replacement (x : var) (s : subst) : term :=
   match s with
   | nil => VAR x
@@ -542,7 +540,6 @@ Fixpoint find_replacement (x : var) (s : subst) : term :=
 
 (** The [apply_subst] function will take a term and a substitution and will
     produce a new term reflecting the changes made to the original one. *)
-
 Fixpoint apply_subst (t : term) (s : subst) : term :=
   match t with
   | T0 => T0
@@ -574,22 +571,21 @@ Definition subst_equiv (s1 s2: subst) : Prop :=
 Definition subst_is_id_subst (t : term) (s : subst) : Prop :=
   apply_subst t s == t.
 
-(** Given we now have definitions for substitutions, we should now introduce the idea of a 
-    substitution composing another one *)
+(** Given we now have definitions for substitutions, we should now introduce the
+    idea of a substitution composing another one. *)
 
 Fixpoint subst_compose (s s' : subst) : subst :=
   match s' with
-    | [] => s
-    | (x, t) :: s'' => (x, apply_subst t s) :: (subst_compose s s'')
+  | [] => s
+  | (x, t) :: s'' => (x, apply_subst t s) :: (subst_compose s s'')
   end.
 
-(* Defining the domain of a substituion, namely the list of variables for which
-the substitution has a mapping (replacement). Essentially this acts as a list of all the first
-parts of the replacement.
-*)
+(** Here we define the domain of a substituion, namely the list of variables for
+    which the substitution has a mapping (replacement). Essentially this acts as
+    a list of all the first parts of the replacement. *)
 
 Definition subst_domain (sig : subst) : list var :=
- map (fun r => (fst r)) sig.
+  map (fun r => (fst r)) sig.
 
 
 (* Defining a sub list. If an element is a member of a list,
@@ -623,7 +619,7 @@ Proof.
   - simpl. rewrite IHt1. rewrite IHt2. reflexivity.
 Qed.
 
-(**  Helper lemmeas for the apply_subst properties *)
+(** These are helper lemmes for the [apply_subst] properties. *)
 
 Lemma sum_comm_compat t1 t2: forall (sigma: subst),
   apply_subst (t1 + t2) sigma == apply_subst (t2 + t1) sigma.
@@ -721,13 +717,12 @@ Proof.
   intros. eauto.
 Qed.
 
-(** This is an axiom that states that if two terms are equivalent then 
-applying any substitution on them will also produce equivalent terms.
-The reason we axiomatized this and we did not prove it as a lemma is because
-the set of our fundamental axioms is not an inductive relation, so it would be impossible
-to prove the lemma below with our fundamental axioms in the currrent format. 
-
-*)
+(** This is an axiom that states that if two terms are equivalent then applying
+    any substitution on them will also produce equivalent terms. The reason we
+    axiomatized this and we did not prove it as a lemma is because the set of
+    our fundamental axioms is not an inductive relation, so it would be
+    impossible to prove the lemma below with our fundamental axioms in the
+    currrent format. *)
 
 Axiom apply_subst_compat : forall (t t' : term),
   t == t' ->
@@ -739,34 +734,23 @@ Proof.
   exact apply_subst_compat.
 Qed.
 
-(** A simple lemma that states that an empty substitution cannot modify a term.
-*)
-
+(** This is a simple lemma that states that an empty substitution cannot modify
+    a term. *)
 Lemma subst_empty_no_change :
   forall (t : term), (apply_subst t []) == t.
 Proof.
   intros. induction t.
-  {
-    simpl. reflexivity.
-  }
-  {
-    simpl. reflexivity.
-  }
-  {
-    simpl. reflexivity.
-  }
-  {
-    simpl. rewrite IHt1. rewrite IHt2. reflexivity.
-  }
-  {
-    simpl. rewrite IHt1. rewrite IHt2. reflexivity.
-  }
+  - simpl. reflexivity.
+  - simpl. reflexivity.
+  - simpl. reflexivity.
+  - simpl. rewrite IHt1. rewrite IHt2. reflexivity.
+  - simpl. rewrite IHt1. rewrite IHt2. reflexivity.
 Qed.
 
 
-(** A lemma that states that sequentially applying two substitutions on a term produces the
-same term as applyin the composed subtitutions on the term.
-*)
+(** This is a lemma that states that sequentially applying two substitutions on
+    a term produces the same term as applying the composed subtitutions on the
+    term. *)
 
 Lemma subst_compose_eqv :
  forall (t : term) (sig1 : subst) (sig2 : subst),
@@ -776,22 +760,16 @@ Proof.
   - simpl. reflexivity.
   - simpl. reflexivity.
   - simpl. induction sig2.
-  {
-    simpl. reflexivity.
-  }
-  {
-    simpl. induction sig1.
-    {
-      
+    + simpl. reflexivity.
+    + simpl. induction sig1.
 Admitted.
 
-(** An intuitive thing to prove for ground terms is that they (ground terms), i.e. terms
-    with no variables, cannot be modified by applying substitutions to them.
-    This will later prove to be very relevant when we begin to talk about
-    unification. *)
+(** An intuitive thing to prove for ground terms is that they cannot be modified
+    by applying substitutions to them. This will later prove to be very relevant
+    when we begin to talk about unification. *)
 
-(**  Aelpful lemma for showing substitutions do not affect ground terms *)
-
+(** This is a helpful lemma for showing substitutions do not affect ground
+    terms. *)
 Lemma ground_term_cannot_subst : forall x,
   ground_term x ->
   forall s, apply_subst x s == x.
@@ -805,13 +783,12 @@ Proof.
     + rewrite H. simpl. reflexivity.
 Qed.
 
-(** A fundamental property of substitutions is their distributivity
-    across the summation and multiplication of terms. Again the
-    importance of these proofs will not become apparent until we talk about
-    unification. *)
+(** A fundamental property of substitutions is their distributivity across the
+    summation and multiplication of terms. Again the importance of these proofs
+    will not become apparent until we talk about unification. *)
 
-(**  A useful lemma for showing the distributivity of substitutions across term summation
-    *)
+(** This is a useful lemma for showing the distributivity of substitutions
+    across term summation. *)
 Lemma subst_sum_distribution : forall s x y,
   apply_subst x s + apply_subst y s == apply_subst (x + y) s.
 Proof.
@@ -820,8 +797,8 @@ Proof.
   - intros. simpl. reflexivity.
 Qed.
 
-(**  A lemma to prove the distributivity of the apply_subst function across term multiplication
-   *)
+(** This is a lemma to prove the distributivity of the [apply_subst] function
+    across term multiplication. *)
 Lemma subst_mul_distribution : forall s x y,
   apply_subst x s * apply_subst y s == apply_subst (x * y) s.
 Proof.
@@ -830,9 +807,8 @@ Proof.
   - intros. simpl. reflexivity. 
 Qed.
 
-(**  A lemma to prove the opposite of summation distributivity of the apply_subst function 
-    across term summation
-   *)
+(** Here is a lemma to prove the opposite of summation distributivity of the
+    [apply_subst] function across term summation. *)
 Lemma subst_sum_distr_opp : forall s x y,
   apply_subst (x + y) s == apply_subst x s + apply_subst y s.
 Proof.
@@ -841,9 +817,8 @@ Proof.
   apply subst_sum_distribution.
 Qed.
 
-(**  A lemma to prove the opposite of multiplication distributivity of the apply_subst function 
-    across term summation
-   *)
+(** This is a lemma to prove the opposite of multiplication distributivity of
+    the [apply_subst] function across term summation. *)
 Lemma subst_mul_distr_opp : forall s x y,
   apply_subst (x * y) s == apply_subst x s * apply_subst y s.
 Proof.
@@ -852,8 +827,8 @@ Proof.
   apply subst_mul_distribution.
 Qed.
 
-(** An intutitive lemmas to apply a single replacement substitution on a VAR term.
-*)
+(** An intutitive lemmas to apply a single replacement substitution on a VAR
+    term. *)
 Lemma var_subst: forall (v : var) (ts : term),
   apply_subst (VAR v) [(v , ts)] == ts.
 Proof.
@@ -881,31 +856,26 @@ Qed.
 
 (** ** Auxillary Definitions for Substitutions and Terms *)
 
-(** In this section we define more helper functions and lemmas related to 
-substitutions and ground terms. Specifically we are defining what is a ground term, 
-a ground substitution, a '01' term and a '01' substitution. We are also defining
-what is a substitution composition. The terms that are used more in the future proofs are the 
-'01' term and '01' substitution. A '01' term is a term that is either equal to [T0] or [T1]. 
-A '01' substitution is a substitution in which each variable (or the first part of each replacement) is mapped to 
-a '01' term. A '01' term is not necessarily a ground term  (but it might be) and a '01' substitution is not necessarily
-a ground substitution (but it might be). In the proof file, we are mostly using the '01' term and substitution terminology.
-*)
+(** In this section we define more helper functions and lemmas related to
+    substitutions and ground terms. Specifically we are defining a ground term,
+    a ground substitution, a "01" term, a "01" substitution, and a substitution
+    composition. The terms that are used more in the future proofs are the "01"
+    term and "01" substitution. A "01" term is a term that is either equal to
+    [T0] or [T1]. A "01" substitution is a substitution in which each variable
+    (or the first part of each replacement) is mapped to a "01" term. A "01"
+    term is not necessarily a ground term (but it might be) and a "01"
+    substitution is not necessarily a ground substitution (but it might be). In
+    the proof file, we are mostly using the "01" term and substitution
+    terminology. *)
 
 Fixpoint ground_subst (sig : subst) : Prop :=
-   match sig with 
-   | [] => True
-   | r :: r' => (ground_term (snd r)) /\ (ground_subst r')
-   end.
-
-(*Compute ground_subst (cons (5,T1) (cons (0,T0) [])).
+  match sig with
+  | [] => True
+  | r :: r' => ground_term (snd r) /\ ground_subst r'
+  end.
 
 
-Compute (ground_term (VAR v + T0 + VAR v)).
-*)
-
-
-(** Function to determine whether a term is a groun term.
-*)
+(** This is a function to determine whether a term is a groun term. *)
 Fixpoint is_ground_term (t : term) : bool :=
   match t with
   | T0 => true
@@ -913,76 +883,50 @@ Fixpoint is_ground_term (t : term) : bool :=
   | VAR x => false
   | SUM a b => (is_ground_term a) && (is_ground_term b)
   | PRODUCT a b => (is_ground_term a) && (is_ground_term b)
-  end. 
+  end.
 
 
-(** Function to determine whehter a subsitution is a ground subtitution
-*)
-
+(** This is a function to determine whehter a subsitution is a ground
+    substitution. *)
 Fixpoint is_ground_subst (sig : subst) : bool :=
-(existsb is_ground_term ((map snd sig)) ).
-(*
-Compute (is_ground_term (VAR v + T0 + VAR v)).
+  existsb is_ground_term (map snd sig).
 
-Compute (is_ground_term (T0 + T1)).
-*)
 
-(** Function to determine whether a term is a T0 or T1 term, by returning a t/f boolean.
-*)
+(** This is a function to determine whether a term is a [T0] or [T1] term by
+    returning a boolean. *)
 Definition is_01_term (t : term) : bool :=
   match t with
   | T0 => true
   | T1 => true
   | _ => false
-  end. 
+  end.
 
 
-(** Function to determine whether a substitution is a '01' substitution, meaning
-that each second part of every replacement is either a T0 or a T1 substitution,
-by returning a t/f boolean.
-*)
+(** This is a function to determine whether a substitution is a "01"
+    substitution by returning a boolean, meaning that each second part of every
+    replacement is either a [T0] or a [T1] term. *)
 Fixpoint is_01_subst (sig : subst) : bool :=
-  (existsb is_01_term ((map snd sig)) ).
+  existsb is_01_term (map snd sig).
 
 
-(*
-Compute (is_01_term (T0 + T1)).
-
-Compute is_01_subst (cons (5,T1) (cons (0,T0) [])).
-Compute is_01_subst (cons (0,T1) (cons (5,T1) (cons (0,T0) nil))).
-Compute is_01_subst ([]).
-
-
-
-Compute (is_01_term (T0 + T1)).
-
-*)
-
-(*
-Compute is_01_subst (cons (5,T1) (cons (0,T0) [])).
-Compute is_01_subst (cons (0,T1) (cons (5,T1) (cons (0,T0) nil))).
-Compute is_01_subst ([]).
-*)
-
-(** Function to determine whether a term is a T0 or T1 term, by returning a T/F Proposition.
-*)
+(** This is a function to determine whether a term is a [T0] or [T1] term by
+    returning a proposition. *)
 
 Fixpoint _01_term (t : term) : Prop :=
- match t with
- | T0 => True
- | T1 => True
- | _ => False
- end.
+  match t with
+  | T0 => True
+  | T1 => True
+  | _ => False
+  end.
 
-(** Function to determine whether a substitution is a '01' substitution, meaning
-that each second part of every replacement is either a T0 or a T1 substitution,
-by returning a T/F Proposition.
-*)
+(** This is a function to determine whether a substitution is a "01"
+    substitution by returning a proposition, meaning that each second part of
+    every replacement is either a [T0] or a [T1] substitution. *)
 Fixpoint _01_subst (sig : subst) : Prop :=
-   match sig with 
-   | [] => True
-   | r :: r' => (_01_term (snd r)) /\ (_01_subst r')
-   end.
+  match sig with 
+  | [] => True
+  | r :: r' => _01_term (snd r) /\ _01_subst r'
+  end.
 
 
 
@@ -1112,78 +1056,79 @@ Qed.
     composing another one; or in other words, to say that a substitution is more
     general than another one. *)
 
-(**  Proposition of sequential substition application *)
+(** This is a proposition of sequential substition application. *)
 Definition substitution_factor_through (s s' delta : subst) : Prop :=
   forall (x : var), apply_subst (apply_subst (VAR x) s) delta ==
                     apply_subst (VAR x) s' .
 
-(** Definition of a more general unifier *)
+(** This is the definition of a more general substition. *)
 Definition more_general_substitution (s s': subst) : Prop :=
   exists delta, substitution_factor_through s s' delta .
 
 (** Now that we have articulated the concept of composing substitutions, let us
     now formulate the definition for a most general unifier. *)
 
-(** Definition of a Most General Unifier (mgu) : A Most General Unifier (MGU) takes in a term and a substitution and tells
-    whether or not said substitution is an mgu for the given term. *)
+(** This is the definition of a Most General Unifier (mgu): A Most General
+    Unifier (MGU) takes in a term and a substitution and tells whether or not
+    said substitution is an mgu for the given term. *)
 Definition most_general_unifier (t : term) (s : subst) : Prop :=
   unifier t s /\
   forall (s' : subst),
   unifier t s' ->
   more_general_substitution s s'.
 
-(** While this definition of a most general unifier is certainly valid, we can also characterize a unifier 
-    by other similar properties. For this reason, let us now define an
-    alternative definition called a _reproductive unifier_, and then prove it to
-    be equivalent to our definition of a most general unifier. This will make
-    our proofs easier to formulate down the road as the task of proving a
-    unifier to be reproductive is substantially easier than proving it to be
-    most general directly. *)
-
+(** While this definition of a most general unifier is certainly valid, we can
+    also characterize a unifier by other similar properties. For this reason,
+    let us now define an alternative definition called a _reproductive unifier_,
+    and then prove it to be equivalent to our definition of a most general
+    unifier. This will make our proofs easier to formulate down the road as the
+    task of proving a unifier to be reproductive is substantially easier than
+    proving it to be most general directly. *)
 Definition reproductive_unifier (t : term) (sig : subst) : Prop :=
   unifier t sig /\
   forall (tau : subst) (x : var),
   unifier t tau ->
   apply_subst (apply_subst (VAR x) sig ) tau == apply_subst (VAR x) tau.
 
-(** Lemma to show that a reproductive unifier is a most general unifier.
-Since the ultimate goal is to prove that a specific algorithm produces an mgu
-then if we could prove it is a reproductive unifier  then we could use this lemma
-to arrive at the desired conclusion.
-*)
-
+(** This is a lemma to show that a reproductive unifier is a most general
+    unifier. Since the ultimate goal is to prove that a specific algorithm
+    produces an mgu then if we could prove it is a reproductive unifier then we
+    could use this lemma to arrive at the desired conclusion. *)
 Lemma reproductive_is_mgu : forall (t : term) (u : subst),
   reproductive_unifier t u ->
   most_general_unifier t u.
 Proof.
   intros. unfold most_general_unifier. unfold reproductive_unifier in H.
   unfold more_general_substitution . destruct H. split.
- - apply H.
- - intros. specialize (H0 s'). exists s'. unfold substitution_factor_through. intros.  specialize (H0 x).
+  - apply H.
+  - intros. specialize (H0 s'). exists s'. unfold substitution_factor_through.
+    intros. specialize (H0 x).
     specialize (H0 H1). apply H0.
 Qed.
 
-(** Lemma to show that if two terms are equivalent then for any subsitution that is an mgu 
-of one of the terms, then it is an mgu of the other term as well.
-*)
-
+(** This is a lemma to show that if two terms are equivalent then for any
+    subsitution that is an mgu of one of the terms, then it is an mgu of the
+    other term as well. *)
 Lemma most_general_unifier_compat : forall  (t t' : term),
   t == t' ->
   forall (sigma: subst),
   most_general_unifier t sigma <-> most_general_unifier t' sigma.
 Proof.
-intros. split. 
- - intros. unfold most_general_unifier. unfold unifier in H0. unfold unifier in *.
-   split. 
-   + unfold most_general_unifier in H0. destruct H0. unfold unifier in H0. rewrite H in H0. apply H0.
-   + intros. unfold most_general_unifier in H0. destruct H0.
-    specialize (H2 s'). unfold unifier in H0. symmetry in H. rewrite H in H1. unfold unifier in H2.
-    specialize (H2 H1). apply H2. 
- -  unfold most_general_unifier.  intros. destruct H0 . split. 
-   + symmetry in H. unfold unifier in H0.  rewrite H in H0. unfold unifier.  apply H0.
-   +  intros. specialize (H1 s'). unfold unifier in H2. rewrite H in H2. unfold unifier in H1. 
-      specialize (H1 H2). apply H1. 
-Qed.    
+  intros. split. 
+  - intros. unfold most_general_unifier. unfold unifier in H0.
+    unfold unifier in *. split.
+    + unfold most_general_unifier in H0. destruct H0. unfold unifier in H0.
+      rewrite H in H0. apply H0.
+    + intros. unfold most_general_unifier in H0. destruct H0.
+      specialize (H2 s'). unfold unifier in H0. symmetry in H. rewrite H in H1.
+      unfold unifier in H2. specialize (H2 H1). apply H2.
+  - unfold most_general_unifier.  intros. destruct H0 . split.
+    + symmetry in H. unfold unifier in H0.  rewrite H in H0. unfold unifier.
+      apply H0.
+    + intros. specialize (H1 s'). unfold unifier in H2. rewrite H in H2.
+      unfold unifier in H1. specialize (H1 H2). apply H1.
+Qed.
+
 
 (** * Auxilliary Computational Operations and Simplifications *)
 
@@ -1194,7 +1139,7 @@ Qed.
 (*  alternate defintion of functions related to term operations and evaluations
     that take into consideration more sub-cases *)
 
-(** Function to check if two terms are exaclty identical *)
+(** This is a function to check if two terms are exaclty identical. *)
 Fixpoint identical (a b: term) : bool :=
   match a , b with
   | T0, T0 => true
@@ -1210,7 +1155,7 @@ Fixpoint identical (a b: term) : bool :=
   end.
 
 
-(**  Basic Addition for terms *)
+(** This is basic addition for terms. *)
 Definition plus_one_step (a b : term) : term :=
   match a, b with
   | T0, T0 => T0
@@ -1221,7 +1166,7 @@ Definition plus_one_step (a b : term) : term :=
   end.
 
 
-(**  Basic Multiplication for terms *)
+(** This is basic multiplication for terms. *)
 Definition mult_one_step (a b : term) : term :=
   match a, b with
   | T0, T0 => T0
@@ -1232,8 +1177,8 @@ Definition mult_one_step (a b : term) : term :=
   end.
 
 
-(**  Function to simplify a term in very apparent and basic ways. They are only simplified if they
-    are ground terms. *)
+(** This is a function to simplify a term in very apparent and basic ways. They
+    are only simplified if they are ground terms. *)
 Fixpoint simplify (t : term) : term :=
   match t with
   | T0 => T0
@@ -1244,10 +1189,8 @@ Fixpoint simplify (t : term) : term :=
   end.
 
 
-(** Some Lemmas follow to prove intuitive facts for the basic multiplication and addition
- of terms, leading up to proving the [simplify_eqv] lemma.
-
-*)
+(** Some lemmas follow to prove intuitive facts for the basic multiplication and
+    addition of terms, leading up to proving the [simplify_eqv] lemma. *)
 
 Lemma pos_left_sum_compat : forall (t t1 t2 : term),
   t == t1 -> plus_one_step t1 t2 == plus_one_step t t2.
@@ -1401,11 +1344,11 @@ Proof.
 Qed.
 
 Lemma pos_right_sum_compat : forall  (t t1 t2 : term),
-     t == t2 -> plus_one_step t1 t2 == plus_one_step t1 t. 
+     t == t2 -> plus_one_step t1 t2 == plus_one_step t1 t.
 Proof.
 intros. induction t1.
   - induction t.
-    + induction t2. 
+    + induction t2.
       * simpl. reflexivity.
       * simpl. rewrite H. reflexivity.
       * simpl. rewrite H. rewrite sum_x_x. apply H.
@@ -1436,7 +1379,7 @@ intros. induction t1.
       * simpl. rewrite H. rewrite sum_id. reflexivity.
       * simpl. rewrite <- H. rewrite sum_id. reflexivity.
   - induction t.
-    + induction t2. 
+    + induction t2.
       * simpl. reflexivity.
       * simpl. rewrite H. reflexivity.
       * simpl. rewrite <- H. rewrite sum_comm. rewrite sum_id. reflexivity.
@@ -1467,7 +1410,7 @@ intros. induction t1.
       * simpl. rewrite H. reflexivity.
       * simpl. rewrite <- H. reflexivity.
   - induction t.
-    + induction t2. 
+    + induction t2.
       * simpl. reflexivity.
       * simpl. rewrite H. reflexivity.
       * simpl. rewrite <- H. reflexivity.
@@ -1498,7 +1441,7 @@ intros. induction t1.
       * simpl. rewrite H. reflexivity.
       * simpl. rewrite <- H. reflexivity.
   - induction t.
-    + induction t2. 
+    + induction t2.
       * simpl. reflexivity.
       * simpl. rewrite H. reflexivity.
       * simpl. rewrite <- H. reflexivity.
@@ -1529,7 +1472,7 @@ intros. induction t1.
       * simpl. rewrite H. reflexivity.
       * simpl. rewrite <- H. reflexivity.
   - induction t.
-    + induction t2. 
+    + induction t2.
       * simpl. reflexivity.
       * simpl. rewrite H. reflexivity.
       * simpl. rewrite <- H. reflexivity.
@@ -1562,7 +1505,7 @@ intros. induction t1.
 Qed.
 
 Lemma pos_left_mul_compat : forall  (t t1 t2 : term),
-     t == t1 -> mult_one_step t1 t2 == mult_one_step t t2. 
+  t == t1 -> mult_one_step t1 t2 == mult_one_step t t2.
 Proof.
   intros. induction t1.
   - induction t.
@@ -1713,11 +1656,11 @@ Proof.
 Qed.
 
 Lemma pos_right_mul_compat : forall  (t t1 t2 : term),
-     t == t2 -> mult_one_step t1 t2 == mult_one_step t1 t. 
+  t == t2 -> mult_one_step t1 t2 == mult_one_step t1 t.
 Proof.
 intros. induction t1.
   - induction t.
-    + induction t2. 
+    + induction t2.
       * simpl. reflexivity.
       * simpl. rewrite H. reflexivity.
       * simpl. rewrite H. rewrite mul_x_x. reflexivity.
@@ -1748,7 +1691,7 @@ intros. induction t1.
       * simpl. rewrite mul_T0_x. rewrite mul_T0_x. reflexivity.
       * simpl. rewrite mul_T0_x. rewrite mul_T0_x. reflexivity.
   - induction t.
-    + induction t2. 
+    + induction t2.
       * simpl. reflexivity.
       * simpl. rewrite H. reflexivity.
       * simpl. rewrite <- H. rewrite mul_comm. rewrite mul_T0_x. reflexivity.
@@ -1779,7 +1722,7 @@ intros. induction t1.
       * simpl. rewrite H. reflexivity.
       * simpl. rewrite <- H. reflexivity.
   - induction t.
-    + induction t2. 
+    + induction t2.
       * simpl. reflexivity.
       * simpl. rewrite H. reflexivity.
       * simpl. rewrite <- H. reflexivity.
@@ -1810,7 +1753,7 @@ intros. induction t1.
       * simpl. rewrite H. reflexivity.
       * simpl. rewrite <- H. reflexivity.
   - induction t.
-    + induction t2. 
+    + induction t2.
       * simpl. reflexivity.
       * simpl. rewrite H. reflexivity.
       * simpl. rewrite <- H. reflexivity.
@@ -1841,7 +1784,7 @@ intros. induction t1.
       * simpl. rewrite H. reflexivity.
       * simpl. rewrite <- H. reflexivity.
   - induction t.
-    + induction t2. 
+    + induction t2.
       * simpl. reflexivity.
       * simpl. rewrite H. reflexivity.
       * simpl. rewrite <- H. reflexivity.
@@ -1920,29 +1863,28 @@ Proof.
       * simpl. reflexivity.
     + induction t2.
       * simpl. rewrite mul_T0_x_sym. reflexivity.
-      * simpl. rewrite mul_x_x. reflexivity.  
+      * simpl. rewrite mul_x_x. reflexivity.
       * simpl. reflexivity.
       * simpl. reflexivity.
-      * simpl. reflexivity.  
+      * simpl. reflexivity.
     + simpl. reflexivity.
-    + simpl. reflexivity.    + simpl. reflexivity.
+    + simpl. reflexivity.
+    + simpl. reflexivity.
 Qed.
 
 
-(** An intuitive lemma that states when a term is equivalent to T0 and it is also 
-a ground term then simplifying it gives a term exactly equal to T0. This intitutively follows
-from the fact that since _t_ is a ground term then all its terms are either T0 or T1 and since 
-it is equivalent to T0, simplifying it will also give a single final ground term T0. 
-*)
-
-Lemma simplify_eq_T0 :
- forall (t : term),
- t == T0 /\ (is_ground_term t) = true ->
- (simplify t) = T0.
-Proof. 
- intros. destruct H. induction t.
-  - reflexivity. 
-  - simpl in H.  apply T1_not_equiv_T0 in H. destruct H. 
+(** This is an intuitive lemma that states when a term is equivalent to [T0] and
+    it is also a ground term then simplifying it gives a term exactly equal to
+    [T0]. This intitutively follows from the fact that since _t_ is a ground
+    term then all its terms are either [T0] or [T1] and since it is equivalent
+    to [T0], simplifying it will also give a single final ground term [T0]. *)
+Lemma simplify_eq_T0 : forall (t : term),
+  t == T0 /\ (is_ground_term t) = true ->
+  simplify t = T0.
+Proof.
+  intros. destruct H. induction t.
+  - reflexivity.
+  - simpl in H. apply T1_not_equiv_T0 in H. destruct H.
   - unfold simplify.  simpl in H0. inversion H0.
   - simpl. simpl in H0. apply andb_prop in H0. destruct H0.
-Admitted. 
+Admitted.

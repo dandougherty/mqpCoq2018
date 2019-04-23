@@ -21,19 +21,19 @@ Import ListNotations.
 (** In this section we formulate Lowenheim's algorithm using the data
     structures and functions defined in the [terms] library. The final occuring
     main function, [Lowenheim_Main], takes as input a term and produces a
-    substitution that unifies the given term. The resulting substitution is said to be a most general unifier 
-    and not a mere substitution, but that statement is proven in the [lowenheim_proof]
-    file. In this section we focus on the formulation of the algorithm itself,
-    without any proofs about the properties of the formula or the algorithm. *)
- 
+    substitution that unifies the given term. The resulting substitution is said
+    to be a most general unifier and not a mere substitution, but that statement
+    is proven in the [lowenheim_proof] file. In this section we focus on the
+    formulation of the algorithm itself, without any proofs about the properties
+    of the formula or the algorithm. *)
+
 
 (** * Lowenheim's Builder *)
 
-(** In this subsection we are implementing the main component of
-    Lowenheim's algorithm, which is the "builder" of Lowenheim's
-    substitution for a given term. This implementation strictly follows as close
-    as possible the formal, mathematical format of Lowenheim's algorithm.
-    *)
+(** In this subsection we are implementing the main component of Lowenheim's
+    algorithm, which is the "builder" of Lowenheim's substitution for a given
+    term. This implementation strictly follows as close as possible the formal,
+    mathematical format of Lowenheim's algorithm. *)
 
 (** Here is a skeleton function for building a substition on the format
     $\sigma(x) := (s + 1) \ast \sigma_{1}(x) + s \ast \sigma_{2}(x)$, each
@@ -56,7 +56,7 @@ Fixpoint build_on_list_of_vars (list_var : var_set) (s : term) (sig1 : subst)
     skeleton function. The list of variables is the variables within _t_ and the
     substitions are the identical subtitution and the unifer of the term. This
     fuction will often be referred in the rest of the document as our
-    "Lowenheim builder" or the "Lowenheim substitution builder" or "lowenheim builder", etc. *)
+    "Lowenheim builder" or the "Lowenheim substitution builder", etc. *)
 
 Definition build_lowenheim_subst (t : term) (tau : subst) : subst :=
   build_on_list_of_vars (term_unique_vars t) t
@@ -93,46 +93,35 @@ Definition term_is_T0 (t : term) : bool :=
     is the inductive [option {A:type}] that can be attached to any type; in our
     case it is [option subst]. *)
 
-(** Our Lownheim builder works when we provide an already existing unifier
-    of the input term _t_. For our implementation to be complete we need to be
-    able to generate that initial unifier ourselves. That is why we first need to define a
-    function to find all possible '01' substitutions (substitutions where each variable gets
-    mapped to [T0] or [T1].  *)
-  
+(** Our Lownheim builder works when we provide an already existing unifier of
+    the input term _t_. For our implementation to be complete we need to be able
+    to generate that initial unifier ourselves. That is why we first need to
+    define a function to find all possible "01" substitutions (substitutions
+    where each variable gets mapped to [T0] or [T1]. *)
+
 Fixpoint all_01_substs (vars : var_set) : list subst :=
   match vars with
   | [] => [[]]
-  | v :: v' => 
-               (map (fun s => (v,T0) :: s ) (all_01_substs v'))
-                 ++
-                 (map (fun s => (v,T1) :: s) (all_01_substs v'))
+  | v :: v' => (map (fun s => (v, T0) :: s) (all_01_substs v')) ++
+               (map (fun s => (v, T1) :: s) (all_01_substs v'))
   end.
 
-(*
-Compute (all_01_substs (cons 1 (cons 2 nil))).
 
-*)
-
-
-
-(** 
-Function to find an initial 'ground unifier' for our lownheim builder function. 
-It finds a substitution with ground terms that makes the given input term equivalent to
-[T0]. 
-*)
+(** Next is a function to find an initial "ground unifier" for our Lowenheim
+    builder function. It finds a substitution with ground terms that makes the
+    given input term equivalent to [T0]. *)
 Fixpoint find_unifier (t : term) : option subst :=
- find (fun s => match (update_term t s) with
-                  | T0 => true
-                  | _ => false 
-                  end ) (all_01_substs (term_unique_vars t)). 
+  find (fun s => match update_term t s with
+                 | T0 => true
+                 | _ => false
+                 end) (all_01_substs (term_unique_vars t)).
 
 
-
-(** Here is the main Lowenheim's formula; given a term, produce an MGU (a
-    most general substitution that when applied on the input term, it makes it equivalent to T0), if there is one.
-    Otherwise, return [None]. This function is oftern referred in the rest of
-    the document as "Lowenheim Main" function or "Main Lowenheim"
-    function, etc. *)
+(** Here is the main Lowenheim's formula; given a term, produce an MGU (a most
+    general substitution that when applied on the input term, it makes it
+    equivalent to [T0]), if there is one. Otherwise, return [None]. This
+    function is often referred in the rest of the document as "Lowenheim Main"
+    function or "Main Lowenheim" function, etc. *)
 
 Definition Lowenheim_Main (t : term) : option subst :=
   match find_unifier t with
@@ -143,8 +132,8 @@ Definition Lowenheim_Main (t : term) : option subst :=
 
 (** * Lowenheim's Functions Testing *)
 
-(** In this subsection we explore ways to test the correctness of our
-    Lownheim's functions on specific inputs. *)
+(** In this subsection we explore ways to test the correctness of our Lownheim's
+    functions on specific inputs. *)
 
 (** Here is a function to test the correctness of the output of the
     [find_unifier] helper function defined above. True means expected output was
@@ -165,11 +154,3 @@ Definition apply_lowenheim_main (t : term) : term :=
   | Some s => apply_subst t s
   | None => T1
   end.
-
-(*
-
-Compute (Lowenheim_Main ((VAR 1) + (VAR 2))).
-
-Compute (apply_lowenheim_main ((VAR 1) + (VAR 2))).
-
-*)
