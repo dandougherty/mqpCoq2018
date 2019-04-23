@@ -8,7 +8,7 @@
     we are going to limit our scope to that of Boolean unification, which deals
     with the finding of unifiers for the equations defining Boolean rings.
     As any problem space would imply, there exists a great deal of research in
-    the formal verification of unification algorithms; our research focused on
+    the formal verification of unification algorithms %\cite{baader2001unification}%; our research focused on
     two of these algorithms: Lowenheim's formula and Succesive Variable
     Eliminaton. To conduct our research, we utilized the Coq proof assistant to
     create formal specifications of both of these algorithms' behaviors in

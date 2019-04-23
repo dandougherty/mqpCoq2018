@@ -783,7 +783,8 @@ Proof.
       simpl. reflexivity.
     }
     {
-      simpl. 
+      simpl. destruct beq_nat.
+      {
 Admitted.
 
 (** An intuitive thing to prove for ground terms is that they (ground terms), i.e. terms
