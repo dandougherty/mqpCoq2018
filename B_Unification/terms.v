@@ -272,7 +272,7 @@ Qed.
 Definition var_set := list var.
 Implicit Type vars: var_set.
 
-(*  A simple function to check to see if a variable is in a variable set *)
+(**  A simple function to check to see if a variable is in a variable set *)
 Fixpoint var_set_includes_var (v : var) (vars : var_set) : bool :=
   match vars with
     | nil => false
@@ -280,7 +280,7 @@ Fixpoint var_set_includes_var (v : var) (vars : var_set) : bool :=
                                   else var_set_includes_var v n'
   end.
 
-(*  A function to remove all instances of v from vars *)
+(**  A function to remove all instances of var v from a list of vars *)
 Fixpoint var_set_remove_var (v : var) (vars : var_set) : var_set :=
   match vars with
     | nil => nil
@@ -288,7 +288,7 @@ Fixpoint var_set_remove_var (v : var) (vars : var_set) : var_set :=
                                   else n :: (var_set_remove_var v n')
   end.
 
-(*  Function to return a unique var_set without duplicates. Found_vars should be
+(**  Function to return a unique var_set without duplicates. Found_vars should be
     empty for correctness guarantee *)
 Fixpoint var_set_create_unique (vars : var_set): var_set :=
   match vars with
@@ -298,7 +298,7 @@ Fixpoint var_set_create_unique (vars : var_set): var_set :=
                                    else n :: var_set_create_unique n'
   end.
 
-(*  Function to check if a given var_set is unique *)
+(**  Function to check if a given var_set is unique *)
 Fixpoint var_set_is_unique (vars : var_set): bool :=
   match vars with
     | nil => true
@@ -307,7 +307,7 @@ Fixpoint var_set_is_unique (vars : var_set): bool :=
                                    else var_set_is_unique n'
   end.
 
-(*  Function to get the variables of a term as a var_set *)
+(**  Function to get the variables of a term as a var_set *)
 Fixpoint term_vars (t : term) : var_set :=
   match t with
     | T0 => nil
@@ -317,7 +317,7 @@ Fixpoint term_vars (t : term) : var_set :=
     | SUM x y => (term_vars x) ++ (term_vars y)
   end.
 
-(* Function to generate a list of unique variables that make up a given term *)
+(** Function to generate a list of unique variables that make up a given term *)
 Definition term_unique_vars (t : term) : var_set :=
   var_set_create_unique (term_vars t).
 
@@ -444,7 +444,7 @@ Fixpoint ground_term (t : term) : Prop :=
     curious property is a direct result of the fact that these terms possess no
     variables and additioanlly because of the axioms of Boolean algebra. *)
 
-(*  Lemma (trivial, intuitively true) that proves that if the function
+(**  Lemma (trivial, intuitively true) that proves that if the function
     ground_term returns true then it is either T0 or T1 *)
 Lemma ground_term_equiv_T0_T1 :
   forall x, ground_term x -> x == T0 \/ x == T1.
@@ -763,6 +763,11 @@ Proof.
   }
 Qed.
 
+
+(** A lemma that states that sequentially applying two substitutions on a term produces the
+same term as applyin the composed subtitutions on the term.
+*)
+
 Lemma subst_compose_eqv :
  forall (t : term) (sig1 : subst) (sig2 : subst),
   (apply_subst t (subst_compose sig1 sig2)) == (apply_subst (apply_subst t sig2) sig1).
@@ -804,14 +809,14 @@ Proof.
     + rewrite H. simpl. reflexivity.
 Qed.
 
-(** A fundamental property of substitutions is their distributivity and
-    associativity across the summation and multiplication of terms. Again the
+(** A fundamental property of substitutions is their distributivity
+    across the summation and multiplication of terms. Again the
     importance of these proofs will not become apparent until we talk about
     unification. *)
 
-(*  A useful lemma for showing the distributivity of substitutions across terms
+(**  A useful lemma for showing the distributivity of substitutions across term summation
     *)
-Lemma subst_distribution : forall s x y,
+Lemma subst_sum_distribution : forall s x y,
   apply_subst x s + apply_subst y s == apply_subst (x + y) s.
 Proof.
   intro. induction s.
@@ -819,8 +824,9 @@ Proof.
   - intros. simpl. reflexivity.
 Qed.
 
-(*  A lemma to prove the associativity of the apply_subst function *)
-Lemma subst_associative : forall s x y,
+(**  A lemma to prove the distributivity of the apply_subst function across term multiplication
+   *)
+Lemma subst_mul_distribution : forall s x y,
   apply_subst x s * apply_subst y s == apply_subst (x * y) s.
 Proof.
   intro. induction s.
@@ -828,22 +834,30 @@ Proof.
   - intros. simpl. reflexivity. 
 Qed.
 
+(**  A lemma to prove the opposite of summation distributivity of the apply_subst function 
+    across term summation
+   *)
 Lemma subst_sum_distr_opp : forall s x y,
   apply_subst (x + y) s == apply_subst x s + apply_subst y s.
 Proof.
   intros.
   apply refl_comm.
-  apply subst_distribution.
+  apply subst_sum_distribution.
 Qed.
 
+(**  A lemma to prove the opposite of multiplication distributivity of the apply_subst function 
+    across term summation
+   *)
 Lemma subst_mul_distr_opp : forall s x y,
   apply_subst (x * y) s == apply_subst x s * apply_subst y s.
 Proof.
   intros.
   apply refl_comm.
-  apply subst_associative.
+  apply subst_mul_distribution.
 Qed.
 
+(** An intutitive lemmas to apply a single replacement substitution on a VAR term.
+*)
 Lemma var_subst: forall (v : var) (ts : term),
   apply_subst (VAR v) [(v , ts)] == ts.
 Proof.
@@ -874,8 +888,11 @@ Qed.
 (** In this section we define more helper functions and lemmas related to 
 substitutions and ground terms. Specifically we are defining what is a ground term, 
 a ground substitution, a '01' term and a '01' substitution. We are also defining
-what is a substitution composition. 
-
+what is a substitution composition. The terms that are used more in the future proofs are the 
+'01' term and '01' substitution. A '01' term is a term that is either equal to [T0] or [T1]. 
+A '01' substitution is a substitution in which each variable (or the first part of each replacement) is mapped to 
+a '01' term. A '01' term is not necessarily a ground term  (but it might be) and a '01' substitution is not necessarily
+a ground substitution (but it might be). In the proof file, we are mostly using the '01' term and substitution terminology.
 *)
 
 Fixpoint ground_subst (sig : subst) : Prop :=
@@ -889,6 +906,10 @@ Fixpoint ground_subst (sig : subst) : Prop :=
 
 Compute (ground_term (VAR v + T0 + VAR v)).
 *)
+
+
+(** Function to determine whether a term is a groun term.
+*)
 Fixpoint is_ground_term (t : term) : bool :=
   match t with
   | T0 => true
@@ -898,12 +919,19 @@ Fixpoint is_ground_term (t : term) : bool :=
   | PRODUCT a b => (is_ground_term a) && (is_ground_term b)
   end. 
 
+
+(** Function to determine whehter a subsitution is a ground subtitution
+*)
+
 Fixpoint is_ground_subst (sig : subst) : bool :=
 (existsb is_ground_term ((map snd sig)) ).
 (*
 Compute (is_ground_term (VAR v + T0 + VAR v)).
 
 Compute (is_ground_term (T0 + T1)).
+*)
+
+(** Function to determine whether a term is a T0 or T1 term, by returning a t/f boolean.
 *)
 Definition is_01_term (t : term) : bool :=
   match t with
@@ -913,30 +941,13 @@ Definition is_01_term (t : term) : bool :=
   end. 
 
 
+(** Function to determine whether a substitution is a '01' substitution, meaning
+that each second part of every replacement is either a T0 or a T1 substitution,
+by returning a t/f boolean.
+*)
 Fixpoint is_01_subst (sig : subst) : bool :=
   (existsb is_01_term ((map snd sig)) ).
-(*
-   match sig with 
-   | [] => true
-   | r :: r' => (is_01_term (snd r)) && 
-                  (is_01_subst r') 
-   end.
-*)
 
-(*
-Fixpoint is_01_subst_v2 (sig : subst) : bool :=
-   match sig with 
-   | [] => false
-   | r :: r' => (is_01_term (snd r)) && 
-                 ( match length r' with
-                  | 0 => true
-                  | 1 => ( match r' with
-                          | nil => true
-                          | r'' :: nil => (is_01_term (snd r''))
-                          | _ => (is_01_subst r') end)
-                  | S n => (is_01_subst r') end)
-   end.
-*)
 
 (*
 Compute (is_01_term (T0 + T1)).
@@ -957,6 +968,8 @@ Compute is_01_subst (cons (0,T1) (cons (5,T1) (cons (0,T0) nil))).
 Compute is_01_subst ([]).
 *)
 
+(** Function to determine whether a term is a T0 or T1 term, by returning a T/F Proposition.
+*)
 
 Fixpoint _01_term (t : term) : Prop :=
  match t with
@@ -965,6 +978,10 @@ Fixpoint _01_term (t : term) : Prop :=
  | _ => False
  end.
 
+(** Function to determine whether a substitution is a '01' substitution, meaning
+that each second part of every replacement is either a T0 or a T1 substitution,
+by returning a T/F Proposition.
+*)
 Fixpoint _01_subst (sig : subst) : Prop :=
    match sig with 
    | [] => True
@@ -972,20 +989,6 @@ Fixpoint _01_subst (sig : subst) : Prop :=
    end.
 
 
-(*
-Fixpoint convert_to_01_subst (tau : subst) : subst :=
-  match tau with
-  | [] => []
-  | r :: r' => if (is_ground_term (snd r)) then ((fst r) , (simplify (snd r))) :: (convert_to_01_subst r') 
-                else ((fst r) , T0) :: (convert_to_01_subst r')
-  end.
-
-Fixpoint vars_of_subst (s : subst) : list var :=
-  match s with
-  | [] => []
-  | r :: r' => (cons (fst r) (vars_of_subst r'))
- end.
-*)
 
 (** * Unification **)
 
@@ -1074,9 +1077,9 @@ Lemma unifier_distribution : forall x y s,
 Proof.
   intros. split.
   - intros. unfold unifies_T0 in H. unfold unifier.
-    rewrite <- H. symmetry. apply subst_distribution.
+    rewrite <- H. symmetry. apply subst_sum_distribution.
   - intros. unfold unifies_T0. unfold unifier in H.
-    rewrite <- H. apply subst_distribution.
+    rewrite <- H. apply subst_sum_distribution.
 Qed.
 
 
@@ -1133,8 +1136,8 @@ Definition most_general_unifier (t : term) (s : subst) : Prop :=
   unifier t s' ->
   more_general_substitution s s'.
 
-(** While this definition of a most general unifier is certainly valid, it is a
-    somewhat unwieldy formulation. For this reason, let us now define an
+(** While this definition of a most general unifier is certainly valid, we can also characterize a unifier 
+    by other similar properties. For this reason, let us now define an
     alternative definition called a _reproductive unifier_, and then prove it to
     be equivalent to our definition of a most general unifier. This will make
     our proofs easier to formulate down the road as the task of proving a
@@ -1195,7 +1198,7 @@ Qed.
 (*  alternate defintion of functions related to term operations and evaluations
     that take into consideration more sub-cases *)
 
-(*  check if two terms are exaclty identical *)
+(** Function to check if two terms are exaclty identical *)
 Fixpoint identical (a b: term) : bool :=
   match a , b with
   | T0, T0 => true
@@ -1211,7 +1214,7 @@ Fixpoint identical (a b: term) : bool :=
   end.
 
 
-(*  Basic Addition for terms *)
+(**  Basic Addition for terms *)
 Definition plus_one_step (a b : term) : term :=
   match a, b with
   | T0, T0 => T0
@@ -1222,7 +1225,7 @@ Definition plus_one_step (a b : term) : term :=
   end.
 
 
-(*  Basic Multiplication for terms *)
+(**  Basic Multiplication for terms *)
 Definition mult_one_step (a b : term) : term :=
   match a, b with
   | T0, T0 => T0
@@ -1233,16 +1236,22 @@ Definition mult_one_step (a b : term) : term :=
   end.
 
 
-(*  Simplifies a term in very apparent and basic ways *)
+(**  Function to simplify a term in very apparent and basic ways. They are only simplified if they
+    are ground terms. *)
 Fixpoint simplify (t : term) : term :=
   match t with
   | T0 => T0
   | T1 => T1
-  | VAR x => VAR x (* T0 (* Set to 0 *) *)
+  | VAR x => VAR x 
   | PRODUCT x y => mult_one_step (simplify x) (simplify y)
   | SUM x y => plus_one_step (simplify x) (simplify y)
   end.
 
+
+(** Some Lemmas follow to prove intuitive facts for the basic multiplication and addition
+ of terms, leading up to proving the [simplify_eqv] lemma.
+
+*)
 
 Lemma pos_left_sum_compat : forall (t t1 t2 : term),
   t == t1 -> plus_one_step t1 t2 == plus_one_step t t2.
@@ -1923,11 +1932,12 @@ Proof.
     + simpl. reflexivity.    + simpl. reflexivity.
 Qed.
 
-Lemma term_sum_T0 :
-  forall (t1 t2 : term), t1 + t2 == T0 -> (t1 == T0 /\ t2 == T0) \/ (t1 == T1 /\ t2 == T1).
-Proof.
-  intros. left. split.
-Admitted.
+
+(** An intuitive lemma that states when a term is equivalent to T0 and it is also 
+a ground term then simplifying it gives a term exactly equal to T0. This intitutively follows
+from the fact that since _t_ is a ground term then all its terms are either T0 or T1 and since 
+it is equivalent to T0, simplifying it will also give a single final ground term T0. 
+*)
 
 Lemma simplify_eq_T0 :
  forall (t : term),
@@ -1938,17 +1948,5 @@ Proof.
   - reflexivity. 
   - simpl in H.  apply T1_not_equiv_T0 in H. destruct H. 
   - unfold simplify.  simpl in H0. inversion H0.
-  - simpl. simpl in H0. apply andb_prop in H0. destruct H0. apply term_sum_T0 in H.
-    destruct H. destruct H. apply IHt1 in H. apply IHt2 in H2.
-    {
-      rewrite H. rewrite H2. simpl. reflexivity.
-    }
-    {
-      apply H1.
-    }
-    {
-      apply H0.
-    }
-    {
-      apply IHt1 in H0.
+  - simpl. simpl in H0. apply andb_prop in H0. destruct H0.
 Admitted. 
