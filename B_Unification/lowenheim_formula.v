@@ -56,7 +56,7 @@ Fixpoint build_on_list_of_vars (list_var : var_set) (s : term) (sig1 : subst)
     skeleton function. The list of variables is the variables within _t_ and the
     substitions are the identical subtitution and the unifer of the term. This
     fuction will often be referred in the rest of the document as our
-    "Lownheim builder" or the "Lownheim substitution builder", etc. *)
+    "Lowenheim builder" or the "Lowenheim substitution builder" or "lowenheim builder", etc. *)
 
 Definition build_lowenheim_subst (t : term) (tau : subst) : subst :=
   build_on_list_of_vars (term_unique_vars t) t
@@ -95,11 +95,9 @@ Definition term_is_T0 (t : term) : bool :=
 
 (** Our Lownheim builder works when we provide an already existing unifier
     of the input term _t_. For our implementation to be complete we need to be
-    able to generate that initial unifier ourselves. That is why we define a
-    function to find a single ground unifier, recursively. It finds a
-    substitution with ground terms that makes the given input term equivalent to
-    [T0]. To use it, start with an empty list of replacements as the input
-    [s : subst]. *)
+    able to generate that initial unifier ourselves. That is why we first need to define a
+    function to find all possible '01' substitutions (substitutions where each variable gets
+    mapped to [T0] or [T1].  *)
   
 Fixpoint all_01_substs (vars : var_set) : list subst :=
   match vars with
@@ -110,21 +108,18 @@ Fixpoint all_01_substs (vars : var_set) : list subst :=
                  (map (fun s => (v,T1) :: s) (all_01_substs v'))
   end.
 
-Definition y := var.
-Definition z := var.
+(*
 Compute (all_01_substs (cons 1 (cons 2 nil))).
 
+*)
 
 
-Fixpoint tranform_lsubst (lsub : list subst) (t : term) : list bool :=
-  (map (fun s => match (update_term t s) with
-                  | T0 => true
-                  | _ => false 
-                  end ) lsub).
 
-Compute (tranform_lsubst (all_01_substs (cons 1 (cons 2 nil))) ((VAR 1) + (VAR 2)) ).
-
-
+(** 
+Function to find an initial 'ground unifier' for our lownheim builder function. 
+It finds a substitution with ground terms that makes the given input term equivalent to
+[T0]. 
+*)
 Fixpoint find_unifier (t : term) : option subst :=
  find (fun s => match (update_term t s) with
                   | T0 => true
@@ -134,7 +129,7 @@ Fixpoint find_unifier (t : term) : option subst :=
 
 
 (** Here is the main Lowenheim's formula; given a term, produce an MGU (a
-    most general substitution that makes it equivalent to T0), if there is one.
+    most general substitution that when applied on the input term, it makes it equivalent to T0), if there is one.
     Otherwise, return [None]. This function is oftern referred in the rest of
     the document as "Lowenheim Main" function or "Main Lowenheim"
     function, etc. *)
