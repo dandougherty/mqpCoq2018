@@ -1151,9 +1151,6 @@ Proof.
     + inversion H0.
 Qed.
  
-
-
-
 (** This lemma is the one using all the utilities defined in the utilities section for the 
    'unifiable t' case. It states that if there is a unifier [sig1] for term _t_ then there exists
    some substitution [sig2] for which the find_unifier function returns [Some] [sig2].
