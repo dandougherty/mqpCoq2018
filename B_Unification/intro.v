@@ -134,17 +134,15 @@
     theory, then the unification is \textbf{semantic}
     \cite[p.~224]{baader1998rewriting}. \end{definition}% *)
 
-(** The goal of unification is to solve a problem, which means to produce a
-    substitution that unifies all equations of a problem.
+(** The goal of unification is to find the _best_ solution to a problem, which
+    formally means to produce a most general unifier of the problem. The next
+    four definitions should make this clearer.
     %\begin{definition} A substitution $\sigma$ \textbf{unifies} an equation
     $s \stackrel{?}{=} t$ if applying $\sigma$ to both sides makes them equal
     $\sigma(s) = \sigma(t)$. \end{definition}%
     %\begin{definition} If $\sigma$ unifies every equation in the problem $S$,
     we call $\sigma$ a \textbf{solution} or \textbf{unifier} of $S$
-    \cite[p.~71]{baader1998rewriting}. \end{definition}% *)
-
-(** The goal of a unification algorithm is not just to produce a unifier but to
-    produce one that is most general.
+    \cite[p.~71]{baader1998rewriting}. \end{definition}%
     %\begin{definition} A substitution $\sigma$ is \textbf{more general} than
     $\sigma'$ if there exists a third substitution $\delta$ such that
     $\sigma'(u) = \delta(\sigma(u))$ for any term $u$. \end{definition}%
@@ -163,7 +161,12 @@
     linear system by Guassian elimination %\cite[p.~73]{baader1998rewriting}%.
     This version of unification is considered a simpler version of semantic
     unification because it is the special case where the set of equational
-    identities is empty. *)
+    identities is empty. One of the most notable applications of syntactic
+    unification is the Hindley-Milner type system used in functional programming
+    languages like ML %\cite{damas1982principal}%. More complicated type
+    systems such as the one used by Coq require more complicated versions of
+    unification (e.g. higher-order unification)
+    %\cite{chlipala2010introduction}%. *)
 
 
 (** ** Semantic Unification *)
