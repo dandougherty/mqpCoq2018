@@ -884,8 +884,11 @@ Qed.
 (** In this section we define more helper functions and lemmas related to 
 substitutions and ground terms. Specifically we are defining what is a ground term, 
 a ground substitution, a '01' term and a '01' substitution. We are also defining
-what is a substitution composition. 
-
+what is a substitution composition. The terms that are used more in the future proofs are the 
+'01' term and '01' substitution. A '01' term is a term that is either equal to [T0] or [T1]. 
+A '01' substitution is a substitution in which each variable (or the first part of each replacement) is mapped to 
+a '01' term. A '01' term is not necessarily a ground term  (but it might be) and a '01' substitution is not necessarily
+a ground substitution (but it might be). In the proof file, we are mostly using the '01' term and substitution terminology.
 *)
 
 Fixpoint ground_subst (sig : subst) : Prop :=
@@ -901,7 +904,7 @@ Compute (ground_term (VAR v + T0 + VAR v)).
 *)
 
 
-(** Function to determine whether a term is a groun term
+(** Function to determine whether a term is a groun term.
 *)
 Fixpoint is_ground_term (t : term) : bool :=
   match t with
@@ -1129,8 +1132,8 @@ Definition most_general_unifier (t : term) (s : subst) : Prop :=
   unifier t s' ->
   more_general_substitution s s'.
 
-(** While this definition of a most general unifier is certainly valid, it is a
-    somewhat unwieldy formulation. For this reason, let us now define an
+(** While this definition of a most general unifier is certainly valid, we can also characterize a unifier 
+    by other similar properties. For this reason, let us now define an
     alternative definition called a _reproductive unifier_, and then prove it to
     be equivalent to our definition of a most general unifier. This will make
     our proofs easier to formulate down the road as the task of proving a
@@ -1191,7 +1194,7 @@ Qed.
 (*  alternate defintion of functions related to term operations and evaluations
     that take into consideration more sub-cases *)
 
-(*  check if two terms are exaclty identical *)
+(** Function to check if two terms are exaclty identical *)
 Fixpoint identical (a b: term) : bool :=
   match a , b with
   | T0, T0 => true
