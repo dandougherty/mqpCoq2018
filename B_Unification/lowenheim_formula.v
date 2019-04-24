@@ -110,6 +110,7 @@ Fixpoint all_01_substs (vars : var_set) : list subst :=
 (** Next is a function to find an initial "ground unifier" for our Lowenheim
     builder function. It finds a substitution with ground terms that makes the
     given input term equivalent to [T0]. *)
+
 Fixpoint find_unifier (t : term) : option subst :=
   find (fun s => match update_term t s with
                  | T0 => true

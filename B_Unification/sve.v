@@ -631,8 +631,7 @@ Definition sve (p : poly) : option subst := sveVars (vars p) p.
     problem must be not unifiable. These statements have been formalized in the
     theorem [sve_correct] with the help of the predicates [mgu] and [unifiable]
     as defined in the library [poly_unif]. The two cases of the proof are
-    handled seperately by the lemmas [sveVars_some] and [sveVars_none].
-*)
+    handled seperately by the lemmas [sveVars_some] and [sveVars_none]. *)
 
 (** If [sveVars] produces a substitution $\sigma$, then the range of $\sigma$
     only contains polynomials. *)

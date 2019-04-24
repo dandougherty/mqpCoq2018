@@ -776,8 +776,7 @@ Qed.
     returned by [partition], but clearly these are all the elements "thrown out"
     by [filter]. Instead, we first create a simple definition for negating
     a function, and prove two quick facts about the relation between some [p]
-    and [neg p].
-  *)
+    and [neg p]. *)
 
 Definition neg {A:Type} := fun (p:A->bool) => fun a => negb (p a).
 
@@ -1753,9 +1752,8 @@ Qed.
     this.
 
     We begin with a simple lemma about math that will come into play soon -
-    if a number is less than or equal to [1], then it is either [0] or [1]. This
-    is immediately solved with firstorder logic.
-  *)
+    if a number is less than or equal to 1, then it is either 0 or 1. This is
+    immediately solved with firstorder logic. *)
 
 Lemma n_le_1 : forall n,
   n <= 1 -> n = 0 \/ n = 1.

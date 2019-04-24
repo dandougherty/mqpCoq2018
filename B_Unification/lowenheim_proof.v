@@ -175,6 +175,7 @@ Qed.
 
 (** This is an intuitive lemma to prove that every element either belongs in any
     list or does not. *)
+
 Lemma var_in_out_list: forall (x : var) (lvar : list var),
   In x lvar \/ ~ In x lvar.
 Proof.
@@ -190,8 +191,7 @@ Qed.
     given unifiable term and one unifier of the term, it also produces another
     unifier of this term (and as explained in the [terms] library, a unifier is
     a substitution that when applied to term it produces a term equivalent to
-    the ground term [T0]. 
-*)
+    the ground term [T0]. *)
 
 (** This is a helper lemma for the skeleton function defined in
     [lowenheim_formula]: If we apply a substitution on a term-variable [VAR x],
@@ -200,8 +200,7 @@ Qed.
     resulting term is equivalent to: the resuting term from applying a
     substitution on a term-variable [VAR x], and that substitution being created
     by the skeleton function [build_on_list_of_vars] applied on an input list of
-    variables that contains variable [x]. 
-*)
+    variables that contains variable [x]. *)
 
 Lemma helper1_easy: forall (x: var) (lvar : list var)
                            (sig1 sig2 : subst) (s : term),
@@ -240,8 +239,7 @@ Qed.
     other subsitution contains the previous replacement but also more
     replacements for other variables (that are obviously not in the variables of
     our term-variable). So, the replacements for the extra variables do not
-    affect the application of the subsitution - hence the resulting term. 
-*)
+    affect the application of the subsitution - hence the resulting term. *)
 
 Lemma helper_1: forall (t' s : term) (v : var) (sig1 sig2 : subst),
   under_term (VAR v) t' ->
@@ -267,8 +265,7 @@ Qed.
     term that has the same format:
     $(s + 1) \ast \sigma_{1}(t) + s \ast \sigma_{2}(t)$ as each replacement of
     each variable on any substitution created by skeleton function:
-    $(s + 1) \ast \sigma_{1}(x) + s \ast \sigma_{2}(x)$. 
-*)
+    $(s + 1) \ast \sigma_{1}(x) + s \ast \sigma_{2}(x)$. *)
 
 Lemma subs_distr_vars_ver2 : forall (t t' s : term) (sig1 sig2 : subst),
   under_term t t' ->
@@ -340,8 +337,7 @@ Qed.
     Utilizing lemma 10.4.5 and also using two substitutions for the skeleton
     function [build_on_list_vars] gives a substituion the unifies the term; the
     two substitutions being a known unifier of the term and the identity
-    substitution. 
-*)
+    substitution. *)
 
 Lemma specific_sigmas_unify: forall (t : term) (tau : subst),
   unifier t tau ->
@@ -361,8 +357,7 @@ Qed.
 (** This is the resulting lemma from this subsection: Our Lowenheim's
     subsitution builder produces a unifier for an input term; namely, a
     substitution that unifies the term, given that term is unifiable and we know
-    an already existing unifier $\tau$. 
-*)
+    an already existing unifier $\tau$. *)
 
 Lemma lownheim_unifies: forall (t : term) (tau : subst),
   unifier t tau ->
@@ -373,20 +368,21 @@ Qed.
 
 
 
-(** * Proof That Lownheim's Algorithm (builder) Produces a Most General Unifier *)
+(** * Proof That Lownheim's Algorithm (Builder) Produces a Most General Unifier
+      *)
 
 (** In the previous section we proved that our Lowenheim builder produces a
     unifier, if we already know an existing unifier of the term. In this section
     we prove that this unifier is also a most general unifier. *)
 
 
-(** ** Proof That Lownheim's Algorithm (builder) Produces a Reproductive Unifier *)
+(** ** Proof That Lownheim's Algorithm (Builder) Produces a Reproductive Unifier
+       *)
 
 (** In this subsection we will prove that our Lowenheim builder gives a unifier
     that is reproductive; this will help us in the proof that the resulting
     unifier is an mgu, since a reproductive unifier is a "stronger" property
-    than an mgu. 
-*)
+    than an mgu. *)
 
 
 (** This is a lemma for an intuitive statement for the skeleton function
@@ -401,8 +397,7 @@ Qed.
     for each $x_{i}$. If we apply that substitution on the term-variable $x_{1},
     we will get the initial format of the replacement:
     $(s + 1) \ast \sigma_{1}(x_{1}) + s \ast \sigma_{2}(x_{1})$. It can be
-    thought as "reverse application" of the skeleton function. 
-*)
+    thought as "reverse application" of the skeleton function. *)
 
 Lemma lowenheim_rephrase1_easy : forall (l : list var) (x : var)
                                         (sig1 sig2 : subst) (s : term),
@@ -547,7 +542,8 @@ Qed.
 
 
 
-(** ** Proof That Lowenheim's Algorithm (Builder) Produces a Most General Unifier *)
+(** ** Proof That Lowenheim's Algorithm (Builder) Produces a Most General
+       Unifier *)
 
 (** In this subsection we will prove that our Lowenheim builder gives a
     unifier that is most general; this will help us a lot in the top-level proof
@@ -568,27 +564,26 @@ Qed.
 
 (** * Proof of Correctness of [Lowenheim_Main] *)
 
-(** In the previous section, we proved that our 'lowenheim builder' produces an mgu of 
- an input term _t_ , given an existing unifier of _t_ . Even though what was proven in the previous 
- section was the 'bulk' of the core proof which was also presented in the book in a higher level,
- it did not incorporate many crucial elements.  In this section we provide a proof
- of correctness of our [Lowenheim_Main] function, basically incorporating more elements in the
- final proof, like proving correctness in the case that the term _t_ is not unifiable (which is not covered in the
- previous section), include in the proofs our [find_unifier] function that
- finds an initial '01' substitution to feed the 'lownheim builder',and more.
- As it follows from the above, the proof of correctness of the [Lowenheim_Main] function, 
- uses the proof of the previous section (that the 'lowenheim builder' produces) as a building 
- block.   
-*)
-
+(** In the previous section, we proved that our "lowenheim builder" produces an
+    mgu of an input term _t_ , given an existing unifier of _t_ . Even though
+    what was proven in the previous section was the bulk of the core proof which
+    was also presented in the book in a higher level, it did not incorporate
+    many crucial elements.  In this section we provide a proof of correctness of
+    our [Lowenheim_Main] function, basically incorporating more elements in the
+    final proof, like proving correctness in the case that the term _t_ is not
+    unifiable (which is not covered in the previous section), include in the
+    proofs our [find_unifier] function that finds an initial "01" substitution
+    to feed the "lownheim builder",and more. As it follows from the above, the
+    proof of correctness of the [Lowenheim_Main] function, uses the proof of the
+    previous section (that the "lowenheim builder" produces) as a building
+    block. *)
 
 (** In this section we prove that our own defined Lowenheim function satisfies
     its two main requirements: 1) If a term is unifiable, then [Lowenheim_Main]
     function produces a most general unifier (mgu). 2) If a term is not
     unifiable, then [Lownheim_Main] function produces a [None] substitution. The
     final top-level proof is at the end of this section. To get there, we prove
-    a series of intermediate lemmas that are needed for the final proof. 
-*)
+    a series of intermediate lemmas that are needed for the final proof. *)
 
 
 (** ** General Proof Utilities *)
@@ -598,8 +593,7 @@ Qed.
     proof. *)
 
 
-(* General Utilities Used in the Final Proof Steps 
-*)
+(* General Utilities Used in the Final Proof Steps *)
 
 (** This is a function that converts an [option subst] to a [subst]. It is
     designed to be used mainly for [option subst]s that are [Some] $\sigma$. If
@@ -697,9 +691,9 @@ Qed.
 
 (** This a helper lemma similar to the previous one that states: if the
     [find_unifier] function (the one that tries to find a ground unifier for
-    term _t_) finds a unifier (returns [Some] $\sigma$) for an input term _t_ then
-    it is not [True] (true not in "boolean format" but as a proposition) that
-    the [find_unifier] function produces a [None subst]. *)
+    term _t_) finds a unifier (returns [Some] $\sigma$) for an input term _t_
+    then it is not [True] (true not in "boolean format" but as a proposition)
+    that the [find_unifier] function produces a [None subst]. *)
 
 Lemma Some_is_not_None (sig: subst) (t: term):
   find_unifier t = Some sig -> ~ find_unifier t = None.
@@ -799,39 +793,34 @@ Proof.
   congruence.
 Qed.
 
-(** **  Utilities and Admitted lemmas used in the proof
-        of the [unif_some_subst] lemma 
-*)
+(** ** Utilities and Admitted Lemmas Used in the Proof of [unif_some_subst] *)
 
-(** In this subsection we have collected and put together all the functions and lemmas that are 
- used to prove the [unif_some_subst] lemma that is used in the following intermediate lemmas
- section, and specifically in the 'unifiable t' case. The higher-level lemma we aim to prove using 
- this section is a seemingly simple, but in reality very complex lemma; the [unif_some_subst]
- lemma states that if there is any unifier [sig1] for a term _t_ then there exists a unifier [sig2] 
- which is returned by our [find_unifier] function.  
-*)
+(** In this subsection we have collected and put together all the functions and
+    lemmas that are used to prove the [unif_some_subst] lemma that is used in
+    the following intermediate lemmas section, and specifically in the
+    "unifiable t" case. The higher-level lemma we aim to prove using this
+    section is a seemingly simple, but in reality very complex lemma; the
+    [unif_some_subst] lemma states that if there is any unifier [sig1] for a
+    term _t_ then there exists a unifier [sig2] which is returned by our
+    [find_unifier] function. *)
 
-(** Due to lack of time, out team did not manage to prove
- these last five lower-level lemmas used in the proof of [unif_some_subst], 
-   and since they are all used only in the proof of that lemma
- lemmas, we decided to put them together here in this subsection. 
-*)
+(** Due to lack of time, out team did not manage to prove these last five
+    lower-level lemmas used in the proof of [unif_some_subst], and since they
+    are all used only in the proof of that lemma lemmas, we decided to put them
+    together here in this subsection. *)
 
-(** *** Utilities used in this subsection 
-*)
+(** *** Utilities Used in This Subsection *)
 
-(** In this sub-chapter we are declaring two utility lemmas used in next sub-chapter
- by the lower-level lemmas of this proof.
-*)
-
+(** In this sub-chapter we are declaring two utility lemmas used in next
+    sub-chapter by the lower-level lemmas of this proof. *)
 
 (** This is a lemma that states that sequentially applying two substitutions on
     a term produces the same term as applying the composed subtitutions on the
     term. *)
 
-Lemma subst_compose_eqv :
- forall (t : term) (sig1 : subst) (sig2 : subst),
-  (apply_subst t (subst_compose sig1 sig2)) == (apply_subst (apply_subst t sig2) sig1).
+Lemma subst_compose_eqv : forall (t : term) (sig1 : subst) (sig2 : subst),
+  apply_subst t (subst_compose sig1 sig2) ==
+  apply_subst (apply_subst t sig2) sig1.
 Proof.
   intros. induction t.
   - simpl. reflexivity.
@@ -846,6 +835,7 @@ Admitted.
     [T0]. This intitutively follows from the fact that since _t_ is a ground
     term then all its terms are either [T0] or [T1] and since it is equivalent
     to [T0], simplifying it will also give a single final ground term [T0]. *)
+
 Lemma simplify_eq_T0 : forall (t : term),
   t == T0 /\ (is_ground_term t) = true ->
   simplify t = T0.
@@ -865,66 +855,67 @@ Lemma unif_some_subst : forall (t: term),
 *)
 
 
-(** *** Lower level lemmas leading up to the proof of [unif_some_subst]. 
-*)
+(** *** Lower Level Lemmas Leading Up to the Proof of [unif_some_subst] *)
 
-(** In this sub-chapter we are providing the most important lower-level lemmas leading up to
- the proof of the [unif_some_subst] lemma.
-*)
+(** In this sub-chapter we are providing the most important lower-level lemmas
+    leading up to the proof of the [unif_some_subst] lemma. *)
 
-(** To accomplish the goal of providing the infrastructure to prove the [unif_some_subst] lemma, 
-    we are defining a number of functions and lemmas that are
-    used in the proof of the [unif_some_subst]. We are focusing on connecting
-    the concept of a "01" subtitution with any given substitution. We are
-    attempting to create a "01" substitution given any input substitution, and
-    then prove facts about the new "01" substitution. *)
+(** To accomplish the goal of providing the infrastructure to prove the
+    [unif_some_subst] lemma, we are defining a number of functions and lemmas
+    that are used in the proof of the [unif_some_subst]. We are focusing on
+    connecting the concept of a "01" subtitution with any given substitution. We
+    are attempting to create a "01" substitution given any input substitution,
+    and then prove facts about the new "01" substitution. *)
 
-(** The basic outline of the proof is as follows : From any unifier [sig1] of term
-  _t_ we can create a '01' unifier [sig2], as the one defined in the [terms.v] file/libary.
-  Since our [find_unifier] function looks for all '01' substitutions to find a unifier, 
-  and we already know there exists at least one unifier [sig2] that will be returned from
-  the [find_unifier] function.   
-*)
+(** The basic outline of the proof is as follows : From any unifier [sig1] of
+    term _t_ we can create a "01" unifier [sig2], as the one defined in the
+    [terms.v] libary. Since our [find_unifier] function looks for all "01"
+    substitutions to find a unifier, and we already know there exists at least
+    one unifier [sig2] that will be returned from the [find_unifier] function.
+    *)
 
-(** As it follows, the lower part of this proof is (1) creating a '01' unifier [sig2] from a given
- given unifier of _t_ [sig1] (2) proving that the new 'unifier' is actually a unifier and proving 
- that is actually a '01' substitution. 
-*)
+(** As it follows, the lower part of this proof is (1) creating a "01" unifier
+    [sig2] from a given given unifier of _t_ [sig1] (2) proving that the new
+    "unifier" is actually a unifier and proving that it is actually a "01"
+    substitution. *)
 
-(** All the following functions are defined in order to create a final function that is able to
- produce a '01' unifier [sig2] given a unifier [sig1]. The way sig2 is created is by composing 
- two subsitutions, [sig1]  and [sig1b] so that [sig1b] and [sig1] are composed to give us sig2. 
- The idea behind the [sig1b] substitution creation function is that it takes all the replacements of the given unifier [sig1]
- and it does the following to each replacement of the [sig1] substitution (let us represent 
- each replacement as (v,t): 
-  if the second part of the replacement is a [ground_term] , then we create a new replacement
-  that is (v, t'), where t' is the simplified initial second part [t]. 
-  if the second part of the relacement is not a [groun_term] , then we create a list of new 
-  replacements where each new replacement is one variable found in the initial [v] mapped to
-  the ground term [T0]. So for example suppose our [sig1] included the replacement (v, x + y + T1) ;
-  we then create the new replacements (x, T0) and (y, T0). 
-*)
+(** All the following functions are defined in order to create a final function
+    that is able to produce a "01" unifier [sig2] given a unifier [sig1]. The
+    way sig2 is created is by composing two subsitutions, [sig1]  and [sig1b] so
+    that [sig1b] and [sig1] are composed to give us sig2. The idea behind the
+    [sig1b] substitution creation function is that it takes all the replacements
+    of the given unifier [sig1] and it does the following to each replacement of
+    the [sig1] substitution (let us represent each replacement as [(v,t)]:
+    if the second part of the replacement is a [ground_term] , then we create a
+    new replacement that is [(v, t')], where [t'] is the simplified initial
+    second part _t_. If the second part of the relacement is not a
+    [ground_term], then we create a list of new replacements where each new
+    replacement is one variable found in the initial [v] mapped to the ground
+    term [T0]. So for example suppose our [sig1] included the replacement
+    [(v, x + y + T1)]; we then create the new replacements [(x, T0)] and
+    [(y, T0)]. *)
 
-(**
-  The total final list of all the new replacements is the substitution [sig1b]. As we want to
-  cover for all edge cases, we have created a slightly enhanced version of this [sig1b] creation 
-  function Instead of working on the initial [sig1] unnifier, we are enhancing [sig1] by adding a
-  list of identity replacement for all variables of term _t_ that are not in [sig1]. 
-  For example for the term _x*y_ and the unifier [(x,T0)], we first enhance [sig1] by making it
-  [(x,T0), (y,y)] and then we create [sig1b] based on the enhanced [sig1].
+(** The total final list of all the new replacements is the substitution
+    [sig1b]. As we want to cover for all edge cases, we have created a slightly
+    enhanced version of this [sig1b] creation function. Instead of working on
+    the initial [sig1] unnifier, we are enhancing [sig1] by adding a list of
+    identity replacement for all variables of term _t_ that are not in [sig1].
+    For example for the term $x \ast y$ and the unifier [(x,T0)], we first
+    enhance [sig1] by making it [(x,T0), (y,y)] and then we create [sig1b] based
+    on the enhanced [sig1].
 
-  After composing [sig1b] with [sig1] we get [sig2] which intuitively is a '01' unifier. But 
-  it is harder to prove than claim it of course, that is why we have put all the admitted lemmas
-  of this proofs here.
-   
-*)
+    After composing [sig1b] with [sig1] we get [sig2] which intuitively is a
+    "01" unifier. But it is harder to prove than claim it of course, that is why
+    we have put all the admitted lemmas of this proofs here. *)
 
 (** This is a function to build a [T0 subst], a subtitution that maps each
     variable to [T0], given an input list of variables. *)
+
 Definition build_T0_subst (lvar : list var) : subst :=
   map (fun v => (v, T0)) lvar.
 
 (** Next is a function to build a [T0 subst], given an input term _t_. *)
+
 Definition build_T0_subst_from_t (t : term) : subst :=
   build_T0_subst (term_unique_vars t).
 
@@ -939,8 +930,8 @@ Definition build_T0_subst_from_t (t : term) : subst :=
     the second parts of each replacement of the substitution using the following
     rules: 1) All the variables of non-ground terms are mapped to [T0] and all
     ground terms are mapped to their simplified "01" version. Therefore the
-    substitution occuring from this function is a "01" subtitutition, intuitively. 
-*)
+    substitution occuring from this function is a "01" subtitutition,
+    intuitively. *)
 
 Fixpoint make_unif_subst (tau : subst) : subst :=
  match tau with
@@ -956,6 +947,7 @@ end.
     list input is supposedly the list with the variables of a subtitution and we
     are trying eventually to augment the substitution with and identity
     subtitution. *)
+
 Fixpoint augment_with_id (lvar_s : list var) (lvar : list var) : subst :=
   match lvar with
   | [] => []
@@ -965,9 +957,9 @@ Fixpoint augment_with_id (lvar_s : list var) (lvar : list var) : subst :=
       else (v, VAR v) :: (augment_with_id lvar_s v')
   end.
 
-(** This function adds the identity substitution (or list of identity replacements in this case)
-  to the input subsitution. 
-*)
+(** This function adds the identity substitution (or list of identity
+    replacements in this case) to the input subsitution. *)
+
 Definition add_id_subst (t : term) (tau : subst) : subst :=
   augment_with_id (subst_domain tau) (term_unique_vars t) ++ tau.
 
@@ -978,28 +970,29 @@ Definition add_id_subst (t : term) (tau : subst) : subst :=
     future comments there is a reference to a [convert_to_01_subst], what is
     meant is essentially the composition of the [make_unif_subst] substitution
     and the input subsitution [tau] - or the resulting substitution [s2], by
-    composing [s1] and [s1b]. 
-*)
+    composing [s1] and [s1b]. *)
 
-(** In this function, [sig1b] is the (make_unif_subst (add_id_subst t tau)), 
-   [sig1] is the (add_id_subst t tau), [tau] is the original input unifier and [sig2] is the result of this function which
-   basically composes [sig1b] with [sig1]. 
-*)
+(** In this function, [sig1b] is the (make_unif_subst (add_id_subst t tau)),
+    [sig1] is the (add_id_subst t tau), [tau] is the original input unifier and
+    [sig2] is the result of this function which basically composes [sig1b] with
+    [sig1]. *)
+
 Definition convert_to_01_subst (tau : subst) (t : term) : subst :=
   subst_compose (make_unif_subst (add_id_subst t tau)) (add_id_subst t tau).
 
 
 (** The following lemmas are about facts for the "01" subtitutions and our
-    [convert_to_01_subst] function which gives [sig2]. These lemmas are the ones that prove the facts that
-    the new [sig2] supposedly has : that it is a unifier, and also a '01' unifier.
-    As stated at the very beggining of this section, these lemmmas are very important for the
-    intermediate lemmas section where in the [unifiable t] case we are trying to
-    prove that when there exists any substitution for a term _t_, then there
-    exists a "01" substitution ; the [unif_some_subst] lemma.
-*)
+    [convert_to_01_subst] function which gives [sig2]. These lemmas are the ones
+    that prove the facts that the new [sig2] supposedly has: that it is a
+    unifier, and also a "01" unifier. As stated at the very beggining of this
+    section, these lemmmas are very important for the intermediate lemmas
+    section where in the [unifiable t] case we are trying to prove that when
+    there exists any substitution for a term _t_, then there exists a "01"
+    substitution; the [unif_some_subst] lemma. *)
 
 (** This is an intuitive lemma that states that adding an identity subsitution
     to an existing unifier of a term gives also a unifier. *)
+
 Lemma add_id_unf : forall (t : term) (sig1 : subst),
   unifier t sig1 ->
   unifier t (add_id_subst t sig1).
@@ -1018,6 +1011,7 @@ Admitted.
     1) The [convert_to_01_subst] substitution is also a unifier. 2) Applying the
     [convert_to_01_subst] substitution on the term results in a term that is
     ground. *)
+
 Lemma unif_grnd_unif : forall (t : term) (sig1 : subst),
   unifier t sig1 ->
   (unifier t (subst_compose (make_unif_subst (add_id_subst t sig1))
@@ -1036,8 +1030,9 @@ Admitted.
 
 (** If a subsitution [sig1] is a "01" substitution and the domain of the
     substitution is a subset of a list of variable [l1] then the substitution
-    [sig1] is an element of the set of all "01" substitutions of that list [l1]. 
-*)
+    [sig1] is an element of the set of all "01" substitutions of that list [l1].
+    *)
+
 Lemma _01_in_all : forall (l1 : list var) (sig : subst),
   is_01_subst sig = true /\ sub_dmn_list l1 (subst_domain sig) ->
   In sig (all_01_substs l1).
@@ -1046,8 +1041,8 @@ Proof.
 Admitted.
 
 (** Here is a specialized format of the [_01_in_all] lemma. Instead of [l1] we
-    have [term_unique_vars t]. 
-*)
+    have [term_unique_vars t]. *)
+
 Lemma _01_in_rec : forall (t : term) (sig : subst),
   is_01_subst sig = true /\
   sub_dmn_list (term_unique_vars t) (subst_domain sig) ->
@@ -1063,8 +1058,8 @@ Qed.
 (** Here is a lemma to show that given a unifier [sig1] of _t_, then the
     [convert_to_01_subst] subtitution is a "01" subst and also the variables of
     term _t_ are a subset of the domain of the [convert_to_01_subst]
-    substitution. 
-*)
+    substitution. *)
+
 Lemma make_unif_is_01 : forall (t : term) (sig1 : subst),
   unifier t sig1 ->
   is_01_subst (subst_compose (make_unif_subst (add_id_subst t sig1))
@@ -1081,8 +1076,8 @@ Admitted.
     a substitution [sig2] that 1) belongs to all the "01" substitutions of term
     _t_ and it also unifies _t_, by making _t_ equal to [T0] when applied on it
     (it is equal, not just equivalent because we want [sig2] to be a ground
-    substitution too). 
-*)
+    substitution too). *)
+
 Lemma unif_exists_grnd_unif : forall (t : term) (sig1 : subst),
   unifier t sig1 ->
   exists sig2 : subst,
@@ -1130,21 +1125,18 @@ Qed.
     statements of the final proof, which were: 1) if a term is unifiable, then
     the [Lowenheim_Main] function produces a most general unifier (mgu). 2) if a
     term is not unifiable, then [Lownheim_Main] function produces a [None]
-    substitution. 
-*)
+    substitution. *)
 
 
 (** *** Not unifiable _t_ case *)
 
 (** In this section we prove intermediate lemmas useful for the second statement
     of the final proof: if a term is not unifiable, then [Lownheim_Main]
-    function produces a [None] substitution. 
-*)
-
+    function produces a [None] substitution. *)
 
 (** This is a lemma to show that if [find_unifier] returns [Some subst], the
-    term is unifiable. 
-*)
+    term is unifiable. *)
+
 Lemma some_subst_unifiable: forall (t : term),
   (exists sig, find_unifier t = Some sig) ->
   unifiable t.
@@ -1194,6 +1186,7 @@ Qed.
 
 (** This lemma shows that if no substituion makes [find_unifier] to return
     [Some subst], the it returns [None]. *)
+
 Lemma not_Some_is_None (t: term) :
   ~ (exists sig, find_unifier t = Some sig) ->
   find_unifier t = None.
@@ -1207,6 +1200,7 @@ Qed.
 
 (** This is a lemma to show that if a term _t_ is not unifiable, the
     [find_unifier] function returns [None] with _t_ as input. *)
+
 Lemma not_unifiable_find_unifier_none_subst : forall (t : term),
   ~ unifiable t -> find_unifier t = None.
 Proof.
@@ -1230,6 +1224,7 @@ Qed.
 
 (** Lemma to show that if [find_unifier] on an input term _t_ returns
     [Some] $\sigma$, then $\sigma$ is a unifier of _t_. *)
+
 Lemma Some_subst_unifiable : forall (t : term) (sig : subst),
   find_unifier t = Some sig -> unifier t sig.
 Proof.
@@ -1272,17 +1267,16 @@ Qed.
 
 
 
-(** This lemma is the one using all the utilities defined in the 'utilities
-    and admitted lemmas..' section for the [unifiable t] case. 
-    It states that if there is a unifier
-    [sig1] for term _t_ then there exists some substitution [sig2] for which
-    the [find_unifier] function returns [Some sig2]. Here is the main outline of
-    the proof: As done in the utilities section, given any unifier [sig1] of a
-    term _t_, we can find a "01" unifier. Since our [find_unifier] function also
-    finds a "01" unifier by going through the list of available "01" unifiers,
-    there must exist a "01" unifier [sig2] returned by our [find_unifier]
-    function under the [Some] wrapper. 
-*)
+(** This lemma is the one using all the utilities defined in the "utilities
+    and admitted lemmas..." section for the [unifiable t] case. It states that
+    if there is a unifier [sig1] for term _t_ then there exists some
+    substitution [sig2] for which the [find_unifier] function returns
+    [Some sig2]. Here is the main outline of the proof: As done in the utilities
+    section, given any unifier [sig1] of a term _t_, we can find a "01" unifier.
+    Since our [find_unifier] function also finds a "01" unifier by going through
+    the list of available "01" unifiers, there must exist a "01" unifier [sig2]
+    returned by our [find_unifier] function under the [Some] wrapper. *)
+
 Lemma unif_some_subst : forall (t: term),
   (exists sig1, unifier t sig1) ->
   exists sig2, find_unifier t = Some sig2.
@@ -1310,8 +1304,8 @@ Qed.
 
 
 (** Here is a lemma to show that if no substituion makes [find_unifier] return
-    [Some] $\sigma$, then it returns [None]. 
-*)
+    [Some] $\sigma$, then it returns [None]. *)
+
 Lemma not_Some_not_unifiable (t: term) :
   (~ exists sig, find_unifier t = Some sig) ->
   ~ unifiable t.
@@ -1330,8 +1324,8 @@ Qed.
 
 
 (** This lemma shows that if a term is unifiable then [find_unifier] returns
-    [Some] $\sigma$. 
-*)
+    [Some] $\sigma$. *)
+
 Lemma unifiable_find_unifier_some_subst : forall (t : term),
   unifiable t ->
   (exists sig, find_unifier t = Some sig).
@@ -1348,8 +1342,8 @@ Qed.
 
 
 (** This lemma shows that if a term is unifiable, then [find_unifier] returns a
-    unifier. 
-*)
+    unifier. *)
+
 Lemma find_unifier_is_unifier: forall (t : term),
   unifiable t -> unifier t (convert_to_subst (find_unifier t)).
 Proof.
@@ -1374,10 +1368,11 @@ Qed.
 
 (** The first one states that given a uniable term _t_ and the fact that our
     Lowenheim builder produces an mgu, then the [Lowenheim_Main] function
-    also produces an mgu. This is the part of the final proof for [Lowenheim_Main] that
-    uses the building block that was provided by the previous section where we had proved
-    that our 'lowenheim's builder' produces an mgu given a unifiable term t.
-*)
+    also produces an mgu. This is the part of the final proof for
+    [Lowenheim_Main] that uses the building block that was provided by the
+    previous section where we had proved that our "lowenheim's builder" produces
+    an mgu given a unifiable term _t_. *)
+
 Lemma builder_to_main: forall (t : term),
   unifiable t ->
   most_general_unifier t (build_lowenheim_subst
@@ -1409,10 +1404,11 @@ Qed.
     [Lownheim_Main] function produces a [None] substitution. The two
     propositions are related with the "$\wedge$" symbol (namely, the
     propositional "and") and each is proven seperately using the intermediate
-    lemmas proven in the previous section. This is why the final top-level proof is relatively
-    short, because a lot of the significant components of the proof have already
-    been proven as intermediate lemmas and in previous helper sections.
-*)
+    lemmas proven in the previous section. This is why the final top-level proof
+    is relatively short, because a lot of the significant components of the
+    proof have already been proven as intermediate lemmas and in previous helper
+    sections. *)
+
 Lemma lowenheim_main_most_general_unifier: forall (t: term),
   (unifiable t -> most_general_unifier t (convert_to_subst (Lowenheim_Main t)))
   /\

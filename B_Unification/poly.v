@@ -224,7 +224,7 @@ Qed.
 
 (** In unification, a common concept is a _ground term_, or a term that contains
     no variables. If some polynomial is a ground term, then it must either be
-    equal to [0] or [1]. *)
+    equal to 0 or 1. *)
 
 Lemma no_vars_is_ground : forall p,
   is_poly p ->
@@ -814,14 +814,12 @@ Qed.
 Definition make_mono (l:list nat) : mono :=
   VarSort.sort (nodup var_eq_dec l).
 
-(**
-    The process of converting a list of list of variables into a polynomial is
+(** The process of converting a list of list of variables into a polynomial is
     very similar. First we [map] across the list applying [make_mono], so that
     each sublist is properly formatted. Then we apply [nodup_cancel] to remove
     duplicates. In this case, we use [nodup_cancel] instead of [nodup] because
     [x+x = 0], so we want pairs to cancel out. Lastly, we use our [MonoSort]
-    module to sort the list.
-  *)
+    module to sort the list. *)
 
 Definition make_poly (l:list mono) : poly :=
   MonoSort.sort (nodup_cancel mono_eq_dec (map make_mono l)).
@@ -1464,8 +1462,7 @@ Qed.
     $(0 \ast x)\downarrow_{P} = 0$.
 
     This is proven immediately by the [distribute_nil] lemmas we proved in
-    [list_util].
-  *)
+    [list_util]. *)
 
 Lemma mulPP_0 : forall p,
   mulPP [] p = [].
@@ -1997,8 +1994,7 @@ Qed.
     clearly, the variables of some $(p + q)\downarrow_{P}$ is a subset of the
     variables of [p] combined with the variables of [q]. The next lemma is a
     more convenient formulation of that fact, using a list of variables [xs]
-    rather than comparing them directly.
-  *)
+    rather than comparing them directly. *)
 
 Lemma incl_vars_addPP : forall p q xs,
   incl (vars p) xs /\ incl (vars q) xs ->
@@ -2037,8 +2033,7 @@ Qed.
 (** We can then use this fact to prove our desired fact about [mulPP]; the
     variables of $(p \ast q)\downarrow_{P}$ are a subset of the variables of [p]
     and the variables of [q]. Once again, this is formalized in a way that is
-    more convenient in later proofs, with an extra list [xs].
-  *)
+    more convenient in later proofs, with an extra list [xs]. *)
 
 Lemma incl_vars_mulPP : forall p q xs,
   incl (vars p) xs /\ incl (vars q) xs ->
