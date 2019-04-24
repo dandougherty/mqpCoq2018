@@ -144,13 +144,3 @@ Definition Test_find_unifier (t : term) : bool :=
   | Some s => term_is_T0 (update_term t s)
   | None => true
   end.
-
-
-(** Here is a function to apply Lowenheim's substitution on the term - the
-    substitution produced by the Lowenheim main function. *)
-
-Definition apply_lowenheim_main (t : term) : term :=
-  match Lowenheim_Main t with
-  | Some s => apply_subst t s
-  | None => T1
-  end.
