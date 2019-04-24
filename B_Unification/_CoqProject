@@ -7,4 +7,4 @@ list_util.v
 lowenheim_proof.v
 lowenheim_formula.v
 terms.v
-intro.v
+introduction.v
