@@ -185,18 +185,27 @@
 
 (** ** Semantic Unification *)
 
-(** This kind of unification involves an equational theory. Given a set of
-    identities [E], we write that two terms [s] and _t_ are equal with regards
-    to [E] as $s \approx_{E} t$. This means that identities of [E] can be
-    applied to [s] as [s'] and _t_ as [t'] to make them syntactically equal,
-    [s' = t']. As an example, let [C] be the set $\{f(x, y) \approx f(y, x)\}$.
-    This theory axiomatizes the commutativity of the function [f]. Knowing this,
-    the problem $\{f(x, f(a, y)) \stackrel{?}{=} f(f(c, a), b)\}$ is unified by
-    the substitution $\{x \mapsto b, y \mapsto c\}$ since
-    $f(b, f(a, c)) \approx_{C} f(f(c, a), b)$. In general, for a certain [E],
-    the problem of [E]-unification is undecidable
-    %\cite[p.~71]{baader1998rewriting}%. An example would be unification modulo
-    ring theory. *)
+(** This kind of unification involves an equational theory. Given a
+    set of identities [E], we write that two terms [s] and _t_ are
+    equal with regards to [E] as $s \approx_{E} t$.  This means that
+    there is a chain of terms leading from [s] to [t] in which each
+    term is derived from the previous one by replacing a subterm [u] by a term [v] when
+    [ u = v] is an instance of an axiom of [E].  For a careful definition see
+{baader1998rewriting}, but an example should make the idea clear. 
+
+      
+If we take [C] to be the set $\{f(x, y) \approx f(y, x)\}$, we then have 
+$f(b, f(a, c)) \approx_{C} f(f(c, a), b)$, via the sequence of steps 
+$f(b, f(a, c)) \approx_{C} f(f(a, c), b) \approx_{C} f(f(c, a), b)$.
+
+ Now  we say that two terms [s] and [t] are [E]-unifiable if there is a substitution 
+$\sigma$ such that $\sigma (s) \approx_{E} \sigma(t)$.
+For example
+    the problem $\{f(x, f(a, y)) \stackrel{?}{=} f(f(c, a),
+    b)\}$ is [C]-unified by the substitution $\{x \mapsto b, y \mapsto
+    c\}$ since $f(b, f(a, c)) \approx_{C} f(f(c, a), b)$.    For some [E], the problem of [E]-unification can actually be undecidable
+    %\cite[p.~71]{baader1998rewriting}%. An example would be
+    unification modulo ring theory. *)
 
 
 (** ** Boolean Unification *)
