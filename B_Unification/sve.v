@@ -753,6 +753,6 @@ Qed.
 
 (** %
 \addcontentsline{toc}{chapter}{Bibliography}
-\bibliographystyle{plain}
+\bibliographystyle{plainnat}
 \bibliography{intro}
 % *)

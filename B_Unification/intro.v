@@ -9,7 +9,7 @@
     with the finding of unifiers for the equations defining Boolean rings.
     As any problem space would imply, there exists a great deal of research in
     the formal verification of unification algorithms
-    %\cite{baader2001unification}%; our research focused on two of these
+    %\cite[]{baader2001unification}%; our research focused on two of these
     algorithms: Lowenheim's formula and succesive variable eliminaton. To
     conduct our research, we utilized the Coq proof assistant to create formal
     specifications of both of these algorithms' behaviors in addition to proving
@@ -104,9 +104,11 @@
 
 (** * Unification *)
 
-(** Before defining what unification is, there is some terminology to
-    understand.
-    %\begin{definition} A \textbf{term} is either a variable or a function
+(** Before defining unification, there is some terminology to understand. *)
+
+(** ** Terms and Substitutions *)
+
+(** %\begin{definition} A \textbf{term} is either a variable or a function
     applied to terms \cite[p.~34]{baader1998rewriting}. \end{definition}%
     By this definition, a constant term is just a nullary function.
     %\begin{definition} A \textbf{variable} is a symbol capable of taking on the
@@ -129,6 +131,8 @@
     $\hat{\sigma}(s) := \sigma(s)$. If [s] is a function $f(s_{1}, ..., s_{n})$,
     then $\hat{\sigma}(s) := f(\hat{\sigma}(s_{1}), ..., \hat{\sigma}(s_{n}))$
     %\cite[p.~38]{baader1998rewriting}%. *)
+
+(** ** Unification and Unifiers *)
 
 (** Unification is the process of solving a set of equations between two terms.
     %\begin{definition} The set of equations to solve is referred to as a
@@ -178,30 +182,37 @@
     linear system by Guassian elimination %\cite[p.~73]{baader1998rewriting}%.
     One of the most notable applications of syntactic unification is the
     Hindley-Milner type system used in functional programming languages like
-    ML %\cite{damas1982principal}%. More complicated type systems such as the
+    ML %\cite[]{damas1982principal}%. More complicated type systems such as the
     one used by Coq require more complicated versions of unification (e.g.
-    higher-order unification) %\cite{chlipala2010introduction}%. *)
+    higher-order unification) %\cite[]{chlipala2010introduction}%. *)
 
 
 (** ** Semantic Unification *)
 
 (** This kind of unification involves an equational theory. Given a set of
     identities [E], we write that two terms [s] and _t_ are equal with regards
-    to [E] as $s \approx_{E} t$. This means that identities of [E] can be
-    applied to [s] as [s'] and _t_ as [t'] to make them syntactically equal,
-    [s' = t']. As an example, let [C] be the set $\{f(x, y) \approx f(y, x)\}$.
-    This theory axiomatizes the commutativity of the function [f]. Knowing this,
-    the problem $\{f(x, f(a, y)) \stackrel{?}{=} f(f(c, a), b)\}$ is unified by
+    to [E] as $s \approx_{E} t$.  This means that there is a chain of terms
+    leading from [s] to _t_ in which each term is derived from the previous one
+    by replacing a subterm [u] by a term [v] when [u = v] is an instance of an
+    axiom of [E].  For a careful definition see %\cite{baader1998rewriting}%,
+    but an example should make the idea clear.
+
+    If we take [C] to be the set $\{f(x, y) \approx f(y, x)\}$, we then have
+    $f(b, f(a, c)) \approx_{C} f(f(c, a), b)$, via the sequence of steps
+    $f(b, f(a, c)) \approx_{C} f(f(a, c), b) \approx_{C} f(f(c, a), b)$. Now we
+    say that two terms [s] and _t_ are [E]-unifiable if there is a substitution
+    $\sigma$ such that $\sigma(s) \approx_{E} \sigma(t)$. For example, the
+    problem $\{f(x, f(a, y)) \stackrel{?}{=} f(f(c, a), b)\}$ is [C]-unified by
     the substitution $\{x \mapsto b, y \mapsto c\}$ since
-    $f(b, f(a, c)) \approx_{C} f(f(c, a), b)$. In general, for a certain [E],
-    the problem of [E]-unification is undecidable
+    $f(b, f(a, c)) \approx_{C} f(f(c, a), b)$. For some [E], the problem of
+    [E]-unification can actually be undecidable
     %\cite[p.~71]{baader1998rewriting}%. An example would be unification modulo
     ring theory. *)
 
 
 (** ** Boolean Unification *)
 
-(** In this paper, we focus on unfication modulo Boolean ring theory, also
+(** In this paper, we focus on unification modulo Boolean ring theory, also
     referred to as [B]-unification. The allowed terms in this theory are the
     constants 0 and 1 and binary functions [+] and $\ast$. The set of identities
     [B] is defined as follows:
@@ -239,14 +250,25 @@
     s_{n} + t_{n} \stackrel{?}{\approx}_{B} 0\}\end{gather*}% using a simple
     fact. The equation $s \approx_{B} t$ is equivalent to $s + t \approx_{B} 0$
     since adding _t_ to both sides of the equation turns the right hand side
-    into [t + t] which simplifies to 0. Then, given a problem %\begin{gather*}
+    into $t + t$ which simplifies to 0. Then, given a problem %\begin{gather*}
     \{t_{1} \stackrel{?}{\approx}_{B} 0, ..., t_{n} \stackrel{?}{\approx}_{B} 0
     \},\end{gather*}% we can transform it into %\begin{gather*}
     \{(t_{1} + 1) \ast ... \ast (t_{n} + 1) \stackrel{?}{\approx}_{B} 1\}.
-    \end{gather*}% Unifying both of these sets is equivalent because if any
-    $t_{1}, ..., t_{n}$ is 1 the problem is not unifiable. Otherwise, if every
-    $t_{1}, ..., t_{n}$ can be made to equal 0, then both problems will be
-    solved. *)
+    \end{gather*}% These problems are equivalent meaning a substitution that
+    unifies the first problem also unifies the second one. To see why this is
+    true consider two cases. If the first problem is unifiable then there exists
+    some $\sigma$ such that every $\sigma(t_{1}), ..., \sigma(t_{n})$ is
+    [B]-equivalent to 0. Then $\sigma$ unifies the second problem as well since
+    $(0 + 1) \ast ... \ast (0 + 1) \approx_{B} 1$. In the
+    other case, the first problem is not unifiable. Imagine some $\sigma$ that
+    satisfies
+    $(\sigma(t_{1}) + 1) \ast ... \ast (\sigma(t_{n}) + 1) \approx_{B} 1$. Then
+    every $\sigma(t_{1}), ..., \sigma(t_{n})$ must be [B]-equivalent to 0.
+    Otherwise, if some $\sigma(t_{i}) \approx_{B} 1$ then $(\sigma(t_{1}) + 1)
+    \ast ... \ast (1 + 1) \ast ... \ast (\sigma(t_{n}) + 1) \approx_{B} 0$. But
+    if $\sigma(t_{1}) \approx_{B} 0, ..., \sigma(t_{n}) \approx_{B} 0$ then
+    $\sigma$ would unify the first problem which is a contradiction. Therefore
+    $\sigma$ can't exist and the second problem is also not unifiable. *)
 
 
 
@@ -324,7 +346,7 @@
     term equivalence relation defined, it is easy to define ten axioms enabling
     the ten identities that hold true over terms in Boolean rings. *)
 
-(** The inductive representation of terms in a Boolean ring and unficiation over
+(** The inductive representation of terms in a Boolean ring and unification over
     these terms are defined in the file [terms.v]. *)
 
 (** The second representation, used in the proof of successive variable

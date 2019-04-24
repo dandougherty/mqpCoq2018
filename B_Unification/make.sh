@@ -3,7 +3,8 @@ set -e
 
 make
 
-preamble="\\usepackage{graphicx} \\graphicspath{ {.} } \
+preamble="\\usepackage{natbib} \\hypersetup{ hidelinks } \
+\\usepackage{graphicx} \\graphicspath{ {.} } \
 \\newtheorem{definition}{Definition}[section]"
 
 coqdoc -toc -interpolate -utf8 --latex -R . B_Unification -o all.tex intro.v \
