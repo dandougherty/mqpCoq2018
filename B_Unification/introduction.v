@@ -7,24 +7,23 @@
     several variants of equational unification, for the purposes of this paper
     we are going to limit our scope to that of Boolean unification, which deals
     with the finding of unifiers for the equations defining Boolean rings.
-    As any problem space would imply, there exists a great deal of research in
-    the formal verification of unification algorithms %\cite{baader2001unification}%; our research focused on
-    two of these algorithms: Lowenheim's formula and Succesive Variable
-    Eliminaton. To conduct our research, we utilized the Coq proof assistant to
+    There exists a great deal of research in the formal verification of unification algorithms %\cite{baader2001unification}%; 
+    our research focused on two of these algorithms: Lowenheim's formula and Succesive Variable
+    Eliminaton. To conduct our research, we utilized the Coq proof assistant %\url{https://coq.inria.fr/}% to
     create formal specifications of both of these algorithms' behaviors in
     addition to proving their correctness. While proofs for both of these
-    algorithms already exist, prior to the writing of this paper, no formal
+    algorithms already exist %\cite[p.~254-258]{baader1998rewriting}%, prior to the writing of this paper, no formal
     treatment using a proof asssistant such as Coq had been undertaken, so it is
-    hoped that our efforts provide yet another guarantee for the
-    correctness of these respective algorithms. *)
+    hoped that our efforts towards porting these algorithms onto software provide a useful suite of tools for anyone
+    interested in working with equational logic. *)
 
 (** Due to the differences in the innate nature of Lowenheim's formula compared to that
     of Successive Variable Elimination, our project was divided into two separate developments, each
     approaching their respective goals from a different direction. The primary distinction between these
     two treatments comes down to their representations of equations. The Lowenheim's formula development 
     uses a more straightforward, term-based representation of equations while the Successive Variable Elimination
-    development opts to represent equations solely in their polynomial forms. Fortunately, due to the fact that
-    every term has a unique polynomial representation, these two formats for representing equations are 
+    development opts to represent equations in their polynomial forms. Fortunately, due to the fact that
+    every term has a unique polynomial representation %\cite[p.~263]{baader1998rewriting}%, these two formats for representing equations are 
     mathematically equivalent to one another. *)
 
 (** * Formal Verification *)
@@ -39,8 +38,8 @@
 (** More simply stated, formal verification is the process of examining whether
     a system or a theory "does what it is supposed to do." If it is a system,
     then scientistis formally verify that it satisfies its design requirements.
-    Formal verification is also different to testing. Software testing is trying
-    to detect "bugs" specific errors and requirements in the system, whereas
+    Formal verification is also different from testing. Software testing is trying
+    to detect "bugs", specific errors, and requirements in the system, whereas
     verfification acts as a general safeguard that the system is always
     error-free. As Edsger Dijkstra stated, testing can be used to show the
     presence of bugs, but never to show their absence. If it is a theory,
@@ -248,10 +247,10 @@
     infancy relative to the traditional methods of theorem proving, it
     would be a disservice for us to not establish the importance of this
     technology and its implications for the future of mathematics. Unlike in
-    years past, where typos or hard to discover edge cases could derail the
+    years past, where the sheer volume of detail could derail the
     developments of sound theorems, proof assistants now guarantee through their
     properties of verification that any development verified by them is free from
-    such lapses in logic on account of the natural failings of the human mind.
+    lapses in logic on account of the natural failings of the human mind.
     Additionally, due to the adoption of a well-defined shared language, many of
     the ambiguities naturally present in the exchange of mathematical ideas
     between colleagues are mitigated, leading to a smoother learning curve for
@@ -341,7 +340,18 @@
 
 (** ** Benefits and Challenges of the Inductive Type *)
 
-(** joe fill this in *)
+(** The most apparent benefit of utilizing an inductive representation of terms becomes obvious from the moment
+    one looks at a term in this format: inductively represented terms are easily able to be read and understood since
+    the format is identical to the typical presentation of equations one is used to. This allows for inductively represented 
+    terms to be very intuitive and easy to reason about. This benefit does not come without its costs however.
+    For starters, by representing terms in this manner, we can no longer make use of Coq's built-in equivalence operator since
+    it would be corrupted by the axioms of Boolean rings and lead to bogus proofs. This forced us to develop our own 
+    equivalence relation that strictly abides by the Boolean ring axioms. While this certainly prevented Coq from accepting
+    erroneous proofs, it did significantly increase the tediousness and complexity of proving theorems on account of the 
+    fact that Coq could not perform induction across our custom equivalence relation. At best, this resulted in proofs that
+    were substantially longer than they would have been otherwise with a more powerful definition (such as Coq's built in 
+    equivalence relation), and at worst resulted in certain lemmas being unprovable, forcing them to be axiomatized. 
+*)
 
 (** ** Polynomial List-of-List Representation *)
 
