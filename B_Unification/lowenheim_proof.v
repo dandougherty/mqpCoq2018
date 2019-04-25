@@ -11,7 +11,6 @@
 
 Require Export lowenheim_formula.
 
-
 Require Import List.
 Import ListNotations.
 Require Export EqNat.
@@ -27,7 +26,7 @@ Require Export Classical_Prop.
     final top level proof (found at the end of this file) proves two statements:
     1) If a term is unifiable, then our own defined [Lowenheim_Main] function
     produces a most general unifier (mgu). 2) If a term is not unifiable, then
-    our own defined [Lownheim_Main] function produces a [None] substitution. We
+    our own defined [Lowenheim_Main] function produces a [None] substitution. We
     prove the above statements with a series of proofs and sub-groups of proofs
     that help us get to the final top-level statements mentioned above. *)
 
@@ -184,7 +183,7 @@ Proof.
 Qed.
 
 
-(** * Proof That Lownheim's Algorithm (builder) Unifies a Given Term *)
+(** * Proof That Lowenheim's Algorithm (builder) Unifies a Given Term *)
 
 (** In this section, we prove that our own defined Lowenheim builder from
     [lowenheim_formula] ([build_lowenheim_subst]), produces a unifier; that is,
@@ -257,7 +256,7 @@ Qed.
 
 
 (** Lemma 10.4.5 from 'Term Rewriting and All That' book on page 254-255. This a
-    very significant lemma used later for the proof that our Lownheim builder
+    very significant lemma used later for the proof that our Lowenheim builder
     function (not the Main function, but the builder function), gives a unifier
     (not necessarily an mgu, which would be a next step of the proof). It states
     that if a term _t_ is an [under_term] of another term [t'], then applying a
@@ -360,7 +359,7 @@ Qed.
     substitution that unifies the term, given that term is unifiable and we know
     an already existing unifier $\tau$. *)
 
-Lemma lownheim_unifies: forall (t : term) (tau : subst),
+Lemma lowenheim_unifies: forall (t : term) (tau : subst),
   unifier t tau ->
   apply_subst t (build_lowenheim_subst t tau) == T0.
 Proof.
@@ -369,7 +368,7 @@ Qed.
 
 
 
-(** * Proof That Lownheim's Algorithm (Builder) Produces a Most General Unifier
+(** * Proof That Lowenheim's Algorithm (Builder) Produces a Most General Unifier
       *)
 
 (** In the previous section we proved that our Lowenheim builder produces a
@@ -377,7 +376,7 @@ Qed.
     we prove that this unifier is also a most general unifier. *)
 
 
-(** ** Proof That Lownheim's Algorithm (Builder) Produces a Reproductive Unifier
+(** ** Proof That Lowenheim's Algorithm (Builder) Produces a Reproductive Unifier
        *)
 
 (** In this subsection we will prove that our Lowenheim builder gives a unifier
@@ -516,7 +515,7 @@ Qed.
 
 
 (** This is the resulting lemma of the secton: our Lowenheim builder
-    [build_lownheim_subst] gives a reproductive unifier. *)
+    [build_lowenheim_subst] gives a reproductive unifier. *)
 
 Lemma lowenheim_reproductive: forall (t : term) (tau : subst),
   unifier t tau ->
@@ -524,7 +523,7 @@ Lemma lowenheim_reproductive: forall (t : term) (tau : subst),
 Proof.
   intros. unfold reproductive_unifier. intros.
   pose proof var_in_out_list. split.
-  - apply lownheim_unifies.  apply H.
+  - apply lowenheim_unifies.  apply H.
   - intros. specialize (H0 x (term_unique_vars t)). destruct H0.
     + rewrite lowenheim_rephrase1.
       * rewrite subst_sum_distr_opp. rewrite subst_mul_distr_opp.
@@ -553,8 +552,9 @@ Qed.
     the [term.v] file/library that any reproductive unifier is also a most general unifier, and the fact 
     of the just preceding subsection that lowenheim's builder produces a reproductive unifier. *)
 
+
 (** Here is the subsection's resulting lemma. Given a unifiable term _t_, a
-    unifier of _t_, then our Lowenheim builder ([build_lownheim_subst])
+    unifier of _t_, then our Lowenheim builder ([build_lowenheim_subst])
     gives a most general unifier (mgu). *)
 
 Lemma lowenheim_most_general_unifier: forall (t : term) (tau : subst),
@@ -577,7 +577,7 @@ Qed.
     final proof, like proving correctness in the case that the term _t_ is not
     unifiable (which is not covered in the previous section), include in the
     proofs our [find_unifier] function that finds an initial "01" substitution
-    to feed the "lownheim builder",and more. As it follows from the above, the
+    to feed the "lowenheim builder",and more. As it follows from the above, the
     proof of correctness of the [Lowenheim_Main] function, uses the proof of the
     previous section (that the "lowenheim builder" produces) as a building
     block. *)
@@ -585,7 +585,7 @@ Qed.
 (** In this section we prove that our own defined Lowenheim function satisfies
     its two main requirements: 1) If a term is unifiable, then [Lowenheim_Main]
     function produces a most general unifier (mgu). 2) If a term is not
-    unifiable, then [Lownheim_Main] function produces a [None] substitution. The
+    unifiable, then [Lowenheim_Main] function produces a [None] substitution. The
     final top-level proof is at the end of this section. To get there, we prove
     a series of intermediate lemmas that are needed for the final proof. *)
 
@@ -749,21 +749,21 @@ Qed.
 Lemma None_not_Some {T U: Type} (f : U -> option T) (x: U):
   (f x) = None -> (forall (t: T), ~ (f x) = Some t).
 Proof.
-  intros H1 H2 H3.
+  intros.
   congruence.
 Qed.
 
 Lemma Some_not_None {T U: Type} (f : U -> option T) (x: U) (t: T):
   (f x) = Some t -> ~ (f x = None).
 Proof.
-  intros H1 H2.
+  intros.
   congruence.
 Qed.
 
 Lemma not_None_Some {T U: Type} (f : U -> option T) (x: U) :
   ~ (f x = None) -> exists t : T, f x = Some t.
 Proof.
-  intros H.
+  intros .
   destruct (f x) as [t | ].
   - exists t; easy.
   - congruence.
@@ -773,7 +773,7 @@ Lemma not_Some_None {T U: Type} (f : U -> option T) (x: U) :
  ( ~ exists t : T, f x = Some t) -> f x = None.
 Proof.
   apply contrapositive_opposite.
-  intros H.
+  intros.
   apply not_None_Some in H.
   tauto.
 Qed.
@@ -782,18 +782,18 @@ Lemma existsb_find {T: Type} (f: T -> bool) (l : list T) :
   existsb f l = true ->
   exists (a: T), find f l = Some a.
 Proof.
-  intros H.
+  intros .
   apply NNPP.
   intros H1.
   apply not_Some_None in H1.   
-  assert (A1:= find_none f l).  
-  assert (A2:= A1 H1).
-  assert (A3:= existsb_exists f l).
-  destruct A3 as [A31 A32].
-  assert (A4:= A31 H).
-  destruct A4 as [t A41]. destruct A41 as [A411 A412].
-  assert (A21:= A2 t A411).
-  rewrite A412 in A21.
+  assert (S1:= find_none f l).  
+  assert (S2:= S1 H1).
+  assert (S3:= existsb_exists f l).
+  destruct S3 as [S31 S32].
+  assert (S4:= S31 H).
+  destruct S4 as [t S41]. destruct S41 as [S411 S412].
+  assert (S21:= S2 t S411).
+  rewrite S412 in S21.
   congruence.
 Qed.
 
@@ -1128,14 +1128,14 @@ Qed.
 (** In this subsection we prove a series of lemmas for each of the two
     statements of the final proof, which were: 1) if a term is unifiable, then
     the [Lowenheim_Main] function produces a most general unifier (mgu). 2) if a
-    term is not unifiable, then [Lownheim_Main] function produces a [None]
+    term is not unifiable, then [Lowenheim_Main] function produces a [None]
     substitution. *)
 
 
 (** *** Not unifiable _t_ case *)
 
 (** In this section we prove intermediate lemmas useful for the second statement
-    of the final proof: if a term is not unifiable, then [Lownheim_Main]
+    of the final proof: if a term is not unifiable, then [Lowenheim_Main]
     function produces a [None] substitution. *)
 
 (** This is a lemma to show that if [find_unifier] returns [Some subst], the
@@ -1405,7 +1405,7 @@ Qed.
     statements, as phrased in the beginning of the chapter are: 1) If a term is
     unifiable, then our own defined [Lowenheim_Main] function produces a most
     general unifier (mgu). 2) If a term is not unifiable, then our own defined
-    [Lownheim_Main] function produces a [None] substitution. The two
+    [Lowenheim_Main] function produces a [None] substitution. The two
     propositions are related with the "$\wedge$" symbol (namely, the
     propositional "and") and each is proven seperately using the intermediate
     lemmas proven in the previous section. This is why the final top-level proof
