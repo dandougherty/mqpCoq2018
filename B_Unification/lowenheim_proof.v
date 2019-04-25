@@ -191,7 +191,8 @@ Qed.
     given unifiable term and one unifier of the term, it also produces another
     unifier of this term (and as explained in the [terms] library, a unifier is
     a substitution that when applied to term it produces a term equivalent to
-    the ground term [T0]. *)
+    the ground term [T0]. The high level proof of this fact is also outlined in the
+    the book %\cite[p.~254-255]{baader1998rewriting}% .*)
 
 (** This is a helper lemma for the skeleton function defined in
     [lowenheim_formula]: If we apply a substitution on a term-variable [VAR x],
@@ -382,7 +383,8 @@ Qed.
 (** In this subsection we will prove that our Lowenheim builder gives a unifier
     that is reproductive; this will help us in the proof that the resulting
     unifier is an mgu, since a reproductive unifier is a "stronger" property
-    than an mgu. *)
+    than an mgu. The high level proof of this fact is also outlined in the
+    the book %\cite[p.~255]{baader1998rewriting}% *)
 
 
 (** This is a lemma for an intuitive statement for the skeleton function
@@ -547,7 +549,9 @@ Qed.
 
 (** In this subsection we will prove that our Lowenheim builder gives a
     unifier that is most general; this will help us a lot in the top-level proof
-    that the [Main_Lownheim] function gives an mgu. *)
+    that the [Main_Lownheim] function gives an mgu. We will use the fact that we proved in
+    the [term.v] file/library that any reproductive unifier is also a most general unifier, and the fact 
+    of the just preceding subsection that lowenheim's builder produces a reproductive unifier. *)
 
 (** Here is the subsection's resulting lemma. Given a unifiable term _t_, a
     unifier of _t_, then our Lowenheim builder ([build_lownheim_subst])
