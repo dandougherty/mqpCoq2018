@@ -45,11 +45,11 @@
 (** More simply stated, formal verification is the process of examining whether
     a system or a theory "does what it is supposed to do." If it is a system,
     then scientistis formally verify that it satisfies its design requirements.
-    Formal verification is also different from testing. Software testing is
-    trying to detect "bugs", specific errors, and requirements in the system,
-    whereas verfification acts as a general safeguard that the system is always
-    error-free. As Edsger Dijkstra stated, testing can be used to show the
-    presence of bugs, but never to show their absence. If it is a theory,
+    Formal verification is also different from testing. Software testing tries
+    to detect "bugs", specific errors, and requirements in the system, whereas
+    verfification acts as a general safeguard that the system is always
+    error-free. As Edsger Dijkstra stated %\cite[slide ~7]{UCI18}%, testing can be used to show the
+    presence of bugs, but never to show their absence. When trying to verify a theory,
     scientists formally verify the correctness of the theory by formulating its
     proof using a formal language, axioms and inference rules. *)
 
@@ -70,27 +70,29 @@
     proof and text editor that the user can use to form, prove, and define
     theorems, lemmas, functions, etc. They facilitate that process by allowing
     the user to search definitions, terms and even provide some kind of guidance
-    during the formulation or proof of a theorem. *)
+    during the formulation or proof of a theorem. Some examples of proof assistants
+    are Coq - which is the one we are using -, Isabelle, HOL Light and Lean.*)
 
 
 (** ** Verifying Systems *)
 
 (** Formal verification is used to verify the correctness of software or
-    hardware systems. When used to verify systems, formal verification can be
+    hardware systems %\cite{UCFV02}% . When used to verify systems, formal verification can be
     thought as a mathematical proof of the correctness of a design with respect
     to a formal specification. The actual system is represented by a formal
     model and then the formal verification happens on the model, based on the
     required specifications of the system. Unlike testing, formal verification
-    is exhaustive and imporves the understanding of a system. However, it is
-    difficult to make for real-world systems, time consuming and only as
-    reliable as the actual model. *)
+    is exhaustive. However, it is difficult to make for real-world systems, 
+    time consuming and only as reliable as the actual model. *)
 
 
 (** ** Verifying Theories *)
 
 (** Formal verification is also used in to prove theorems. These theorems could
-    be related to a computing system or just pure mathematical abstract
-    theorems. As in proving systems, when proving theorems one also needs a
+    be related to a computing system or just to abstract mathematical 
+    theorems. Mathematical theorems that have been proven using a proof assistant
+    include the Four-Color theorem and the Feit-Thompson theorem. 
+    As in proving systems, when proving theorems one also needs a
     formal logic to formulate the theorem and prove it. A formal logic consists
     of a formal languge to express the theorems, a collection of formulas called
     axioms and inference rules to derive new axioms based on existing ones. A
