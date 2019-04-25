@@ -7,23 +7,30 @@
     several variants of equational unification, for the purposes of this paper
     we are going to limit our scope to that of Boolean unification, which deals
     with the finding of unifiers for the equations defining Boolean rings.
-    There exists a great deal of research in the formal verification of unification algorithms %\cite{baader2001unification}%; 
-    our research focused on two of these algorithms: Lowenheim's formula and Succesive Variable
-    Eliminaton. To conduct our research, we utilized the Coq proof assistant %\url{https://coq.inria.fr/}% to
-    create formal specifications of both of these algorithms' behaviors in
-    addition to proving their correctness. While proofs for both of these
-    algorithms already exist %\cite[p.~254-258]{baader1998rewriting}%, prior to the writing of this paper, no formal
-    treatment using a proof asssistant such as Coq had been undertaken, so it is
-    hoped that our efforts towards porting these algorithms onto software provide a useful suite of tools for anyone
-    interested in working with equational logic. *)
+    There exists a great deal of research in the formal verification of
+    unification algorithms %\cite[]{baader2001unification}%; our research
+    focused on two of these algorithms: Lowenheim's formula and succesive
+    variable eliminaton. To conduct our research, we utilized the Coq proof
+    assistant %\url{https://coq.inria.fr/}% to create formal specifications of
+    both of these algorithms' behaviors in addition to proving their
+    correctness. While proofs for both of these algorithms already exist
+    %\cite[p.~254-258]{baader1998rewriting}%, prior to the writing of this
+    paper, no formal treatment using a proof asssistant such as Coq had been
+    undertaken, so it is hoped that our efforts towards porting these algorithms
+    onto software provide a useful suite of tools for anyone interested in
+    working with equational logic. *)
 
-(** Due to the differences in the innate nature of Lowenheim's formula compared to that
-    of Successive Variable Elimination, our project was divided into two separate developments, each
-    approaching their respective goals from a different direction. The primary distinction between these
-    two treatments comes down to their representations of equations. The Lowenheim's formula development 
-    uses a more straightforward, term-based representation of equations while the Successive Variable Elimination
-    development opts to represent equations in their polynomial forms. Fortunately, due to the fact that
-    every term has a unique polynomial representation %\cite[p.~263]{baader1998rewriting}%, these two formats for representing equations are mathematically equivalent to one another. *)
+(** Due to the differences in the innate nature of Lowenheim's formula compared
+    to that of successive variable elimination, our project was divided into two
+    separate developments, each approaching their respective goals from a
+    different direction. The primary distinction between these two treatments
+    comes down to their representations of equations. The Lowenheim's formula
+    development uses a more straightforward, term-based representation of
+    equations while the successive variable elimination development opts to
+    represent equations in their polynomial forms. Fortunately, due to the fact
+    that every term has a unique polynomial representation
+    %\cite[p.~263]{baader1998rewriting}%, these two formats for representing
+    equations are mathematically equivalent to one another. *)
 
 
 (** * Formal Verification *)
@@ -38,9 +45,9 @@
 (** More simply stated, formal verification is the process of examining whether
     a system or a theory "does what it is supposed to do." If it is a system,
     then scientistis formally verify that it satisfies its design requirements.
-    Formal verification is also different from testing. Software testing is trying
-    to detect "bugs", specific errors, and requirements in the system, whereas
-    verfification acts as a general safeguard that the system is always
+    Formal verification is also different from testing. Software testing is
+    trying to detect "bugs", specific errors, and requirements in the system,
+    whereas verfification acts as a general safeguard that the system is always
     error-free. As Edsger Dijkstra stated, testing can be used to show the
     presence of bugs, but never to show their absence. If it is a theory,
     scientists formally verify the correctness of the theory by formulating its
@@ -189,7 +196,7 @@
     to [E] as $s \approx_{E} t$.  This means that there is a chain of terms
     leading from [s] to _t_ in which each term is derived from the previous one
     by replacing a subterm [u] by a term [v] when [u = v] is an instance of an
-    axiom of [E].  For a careful definition see %\cite{baader1998rewriting}%,
+    axiom of [E].  For a careful definition see %\cite[]{baader1998rewriting}%,
     but an example should make the idea clear.
 
     If we take [C] to be the set $\{f(x, y) \approx f(y, x)\}$, we then have
@@ -236,34 +243,16 @@
     the axioms of ring theory with the addition of $x + x \approx_{B} 0$ and
     $x \ast x \approx_{B} x$. *)
 
-(** Although a unification problem is a set of equations between two terms, we
-    will now show informally that a [B]-unification problem can be viewed as a
-    single equation $t \stackrel{?}{\approx}_{B} 0$. Given a problem of the form
-    %\begin{gather*} \{s_{1} \stackrel{?}{\approx}_{B} t_{1}, ...,
-    s_{n} \stackrel{?}{\approx}_{B} t_{n}\}, \end{gather*}% we can transform it
-    into %\begin{gather*} \{s_{1} + t_{1} \stackrel{?}{\approx}_{B} 0, ...,
-    s_{n} + t_{n} \stackrel{?}{\approx}_{B} 0\}\end{gather*}% using a simple
-    fact. The equation $s \approx_{B} t$ is equivalent to $s + t \approx_{B} 0$
-    since adding _t_ to both sides of the equation turns the right hand side
-    into $t + t$ which simplifies to 0. Then, given a problem %\begin{gather*}
-    \{t_{1} \stackrel{?}{\approx}_{B} 0, ..., t_{n} \stackrel{?}{\approx}_{B} 0
-    \},\end{gather*}% we can transform it into %\begin{gather*}
-    \{(t_{1} + 1) \ast ... \ast (t_{n} + 1) \stackrel{?}{\approx}_{B} 1\}.
-    \end{gather*}% These problems are equivalent meaning a substitution that
-    unifies the first problem also unifies the second one. To see why this is
-    true consider two cases. If the first problem is unifiable then there exists
-    some $\sigma$ such that every $\sigma(t_{1}), ..., \sigma(t_{n})$ is
-    [B]-equivalent to 0. Then $\sigma$ unifies the second problem as well since
-    $(0 + 1) \ast ... \ast (0 + 1) \approx_{B} 1$. In the
-    other case, the first problem is not unifiable. Imagine some $\sigma$ that
-    satisfies
-    $(\sigma(t_{1}) + 1) \ast ... \ast (\sigma(t_{n}) + 1) \approx_{B} 1$. Then
-    every $\sigma(t_{1}), ..., \sigma(t_{n})$ must be [B]-equivalent to 0.
-    Otherwise, if some $\sigma(t_{i}) \approx_{B} 1$ then $(\sigma(t_{1}) + 1)
-    \ast ... \ast (1 + 1) \ast ... \ast (\sigma(t_{n}) + 1) \approx_{B} 0$. But
-    if $\sigma(t_{1}) \approx_{B} 0, ..., \sigma(t_{n}) \approx_{B} 0$ then
-    $\sigma$ would unify the first problem which is a contradiction. Therefore
-    $\sigma$ can't exist and the second problem is also not unifiable. *)
+(** Although a unification problem was already defined as a set of equations
+    between two terms, problems of Boolean unification can be viewed as just a
+    single equation $t \stackrel{?}{\approx}_{B} 0$. If a substitution $\sigma$
+    unifies a problem of the form %\begin{gather*} \{s_{1}
+    \stackrel{?}{\approx}_{B} t_{1}, ..., s_{n} \stackrel{?}{\approx}_{B} t_{n}
+    \}, \end{gather*}% then $\sigma$ also unifies an equivalent problem of the
+    form %\begin{gather*} \{(s_{1} + t_{1} + 1) \ast ... \ast
+    (s_{n} + t_{n} + 1) + 1 \stackrel{?}{\approx}_{B} 0\},\end{gather*}% as
+    proven later in section 2.6. This fact allows both developments to use the
+    simpler $t \stackrel{?}{\approx}_{B} 0$ description of a problem. *)
 
 
 
@@ -275,8 +264,8 @@
     technology and its implications for the future of mathematics. Unlike in
     years past, where the sheer volume of detail could derail the
     developments of sound theorems, proof assistants now guarantee through their
-    properties of verification that any development verified by them is free from
-    lapses in logic on account of the natural failings of the human mind.
+    properties of verification that any development verified by them is free
+    from lapses in logic on account of the natural failings of the human mind.
     Additionally, due to the adoption of a well-defined shared language, many of
     the ambiguities naturally present in the exchange of mathematical ideas
     between colleagues are mitigated, leading to a smoother learning curve for
@@ -299,13 +288,15 @@
 
 
 
-(** * Development - Algorithms *)
+(** * Development *)
+
+(** ** Algorithms *)
 
 (** There are many different approaches that one could take to go about
     formalizing a proof of Boolean Unification algorithms, each with their own
     challenges. For this development, we have opted to base our work on
     chapter 10, _Equational Unification_, in _Term Rewriting and All That_ by
-    Franz Baader and Tobias Nipkow %\cite{baader1998rewriting}%. Specifically,
+    Franz Baader and Tobias Nipkow %\cite[]{baader1998rewriting}%. Specifically,
     section 10.4, titled _Boolean Unification_, details Boolean rings, data
     structures to represent them, and two algorithms to perform unification in
     Boolean rings. *)
@@ -315,26 +306,27 @@
     two algorithms in question are Lowenheim's formula and Successive Variable
     Elimination. *)
 
-(** The first solution, %\textbf{Lowenheim's algorithm}%, is based on the idea that the
-    Lowenheim formula can take any unifier of a Boolean unification problem and
-    turn it into a most general unifier. The algorithm then of course first
-    requires a unifier to begin; we have opted to use a simple brute force
-    solution to find a ground unifier, replacing variables with only 0 or 1.
-    This ground solution is then passed through the formula, to create a most
-    general unifier. Lowenheim's algorithm is implemented in the file
+(** The first solution, %\textbf{Lowenheim's algorithm}%, is based on the idea
+    that the Lowenheim formula can take any unifier of a Boolean unification
+    problem and turn it into a most general unifier. The algorithm then of
+    course first requires a unifier to begin; we have opted to use a simple
+    brute force solution to find a ground unifier, replacing variables with only
+    0 or 1. This ground solution is then passed through the formula, to create a
+    most general unifier. Lowenheim's algorithm is implemented in the file
     [lowenheim.v], and the proof of correctness is in [lowenheim_proof.v]. *)
 
-(** The second algorithm, %\textbf{successive variable elimination}%, is built on the idea
-    that by factoring variables out of an equation one-by-one, we can eventually
-    reach a problem that can be solved by the identity unifier. This base
-    problem is then slowly built up by adding the variables that were previously
-    eliminated, building up the matching unifier as we do so. Once we have added
-    all variables back in, we are left with the original problem as well as a
-    most general unifier for it. Successive variable elimination and its proof
-    of correctness are both in the file [sve.v]. *)
+(** The second algorithm, %\textbf{successive variable elimination}%, is built
+    on the idea that by factoring variables out of an equation one-by-one, we
+    can eventually reach a problem that can be solved by the identity unifier.
+    This base problem is then slowly built up by adding the variables that were
+    previously eliminated, building up the matching unifier as we do so. Once we
+    have added all variables back in, we are left with the original problem as
+    well as a most general unifier for it. Successive variable elimination and
+    its proof of correctness are both in the file [sve.v]. *)
 
 
-(** * Development - Data Structures *)
+
+(** ** Data Structures *)
 
 (** The data structure used to represent a Boolean unification problem
     completely changes the shape of both the unification algorithm and the proof
@@ -343,7 +335,7 @@
     -- first as a "Term" inductive type, and then as lists of lists representing
     terms in polynomial form. *)
 
-(** ** Term Inductive Type *)
+(** *** Term Inductive Type *)
 
 (** The Term inductive type, used in the proof of Lowenheim's algorithm, is very
     simple and rather intuitive -- a term in a Boolean ring is one of 5 things:
@@ -364,46 +356,52 @@
 (** The inductive representation of terms in a Boolean ring and unification over
     these terms are defined in the file [terms.v]. *)
 
-(** ** Benefits and Challenges of the Inductive Type *)
+(** *** Benefits and Challenges of the Inductive Type *)
 
-(** The most apparent benefit of utilizing an inductive representation of terms becomes obvious from the moment
-    one looks at a term in this format: inductively represented terms are easily able to be read and understood since
-    the format is identical to the typical presentation of equations one is used to. This allows for inductively represented 
-    terms to be very intuitive and easy to reason about. This benefit does not come without its costs however.
-    For starters, by representing terms in this manner, we can no longer make use of Coq's built-in equivalence operator since
-    it would be corrupted by the axioms of Boolean rings and lead to bogus proofs. This forced us to develop our own 
-    equivalence relation that strictly abides by the Boolean ring axioms. While this certainly prevented Coq from accepting
-    erroneous proofs, it did significantly increase the tediousness and complexity of proving theorems on account of the 
-    fact that Coq could not perform induction across our custom equivalence relation. At best, this resulted in proofs that
-    were substantially longer than they would have been otherwise with a more powerful definition (such as Coq's built in 
-    equivalence relation), and at worst resulted in certain lemmas being unprovable, forcing them to be axiomatized. 
-*)
+(** The most apparent benefit of utilizing an inductive representation of terms
+    becomes obvious from the moment one looks at a term in this format:
+    inductively represented terms are easily able to be read and understood
+    since the format is identical to the typical presentation of equations one
+    is used to. This allows for inductively represented terms to be very
+    intuitive and easy to reason about. This benefit does not come without its
+    costs however. For starters, by representing terms in this manner, we can no
+    longer make use of Coq's built-in equivalence operator since it would be
+    corrupted by the axioms of Boolean rings and lead to bogus proofs. This
+    forced us to develop our own equivalence relation that strictly abides by
+    the Boolean ring axioms. While this certainly prevented Coq from accepting
+    erroneous proofs, it did significantly increase the tediousness and
+    complexity of proving theorems on account of the fact that Coq could not
+    perform induction across our custom equivalence relation. At best, this
+    resulted in proofs that were substantially longer than they would have been
+    otherwise with a more powerful definition (such as Coq's built in
+    equivalence relation), and at worst resulted in certain lemmas being
+    unprovable, forcing them to be axiomatized. *)
 
-(** ** Polynomial List-of-List Representation *)
+(** *** Polynomial List-of-List Representation *)
 
 (** The second representation, used in the proof of successive variable
     elimination, uses lists of lists of variables to represent terms in
-    polynomial form. A %\textbf{monomial}% is a list of distinct variables multiplied
-    together. A %\textbf{polynomial}%, then, is a list of distinct monomials added
-    together. Variables are represented the same way, as natural numbers. The
-    terms 0 and 1 are represented as the empty polynomial and the polynomial
-    containing only the empty monomial, respectively. *)
+    polynomial form. A %\textbf{monomial}% is a list of distinct variables
+    multiplied together. A %\textbf{polynomial}%, then, is a list of distinct
+    monomials added together. Variables are represented the same way, as natural
+    numbers. The terms 0 and 1 are represented as the empty polynomial and the
+    polynomial containing only the empty monomial, respectively. *)
 
 (** The interesting part of the polynomial representation is how the ten
     identities are implemented. Rather than writing axioms enabling these
     transformations, we chose to implement the addition and multiplication
     operations in such a way to ensure these rules hold true, as described in
-    _Term Rewriting_%\cite{baader1998rewriting}%. *)
+    _Term Rewriting_%\cite[]{baader1998rewriting}%. *)
 
-(** %\textbf{Addition}% is performed by cancelling out all repeated occurrences of
-    monomials in the result of appending the two lists together (i.e.,
+(** %\textbf{Addition}% is performed by cancelling out all repeated occurrences
+    of monomials in the result of appending the two lists together (i.e.,
     [x + x = 0]). This is equivalent to the symmetric difference in set theory,
     keeping only the terms that are in either one list or the other (but not
-    both). %\textbf{Multiplication}% is slightly more complicated. The product of two
-    polynomials is the result of multiplying all combinations of monomials in
-    the two polynomials and removing all repeated monomials. The product of two
-    monomials is the result of keeping only one copy of each repeated variable
-    after appending the two together. *)
+    both). %\textbf{Multiplication}% is slightly more complicated. The product
+    of two polynomials is the result of multiplying all combinations of
+    monomials in the two polynomials and removing all repeated monomials. The
+    product of two monomials is the result of keeping only one copy of each
+    repeated variable after appending the two together. *)
 
 (** To assist with maintaining the strict polynomial form, a "repair" function
     was defined. This function, given any list of lists of variables, will sort
@@ -416,7 +414,7 @@
 (** The polynomial representation is defined in the file [poly.v]. Unification
     over these polynomials is defined in [poly_unif.v]. *)
 
-(** ** Benefits and Challenges of the List Representation *)
+(** *** Benefits and Challenges of the List Representation *)
 
 (** As mentioned above, one of the main benefits of the list representation is
     that is enables us to use the standard Coq equivalence operator in comparing
@@ -430,7 +428,7 @@
     simply; we just append the two polynomials, and call our "repair" function
     on the result. While this sounds simple, it becomes incredibly difficult to
     prove facts about addition (and our other operations) because of the repair
-    function. *) 
+    function. *)
 
 (** This function does three things: sort the list, cancel out duplicates, and
     convert all sublists to properly formatted monomials. The main difficulties
@@ -466,6 +464,3 @@
     without order, removing the need for sorting. The issue of deduplication
     would have still come up in one form or another, though, so we probably
     could not have easily avoided the problems caused by that. *)
-
-
-
