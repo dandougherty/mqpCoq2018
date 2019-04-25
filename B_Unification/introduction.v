@@ -48,10 +48,11 @@
     Formal verification is also different from testing. Software testing tries
     to detect "bugs", specific errors, and requirements in the system, whereas
     verfification acts as a general safeguard that the system is always
-    error-free. As Edsger Dijkstra stated %\cite[slide ~7]{UCI18}%, testing can be used to show the
-    presence of bugs, but never to show their absence. When trying to verify a theory,
-    scientists formally verify the correctness of the theory by formulating its
-    proof using a formal language, axioms and inference rules. *)
+    error-free. As Edsger Dijkstra stated %\cite[slide ~7]{UCI18}%, testing can
+    be used to show the presence of bugs, but never to show their absence. When
+    trying to verify a theory, scientists formally verify the correctness of the
+    theory by formulating its proof using a formal language, axioms and
+    inference rules. *)
 
 (** Formal verification is used because it does not have to evaluate every
     possible case or state to determine if a system or theory meets all the
@@ -70,39 +71,41 @@
     proof and text editor that the user can use to form, prove, and define
     theorems, lemmas, functions, etc. They facilitate that process by allowing
     the user to search definitions, terms and even provide some kind of guidance
-    during the formulation or proof of a theorem. Some examples of proof assistants
-    are Coq - which is the one we are using -, Isabelle, HOL Light and Lean.*)
+    during the formulation or proof of a theorem. Some examples of proof
+    assistants are Coq - which is the one we are using -, Isabelle, HOL Light
+    and Lean.*)
 
 
 (** ** Verifying Systems *)
 
 (** Formal verification is used to verify the correctness of software or
-    hardware systems %\cite{UCFV02}% . When used to verify systems, formal verification can be
-    thought as a mathematical proof of the correctness of a design with respect
-    to a formal specification. The actual system is represented by a formal
-    model and then the formal verification happens on the model, based on the
-    required specifications of the system. Unlike testing, formal verification
-    is exhaustive. However, it is difficult to make for real-world systems, 
-    time consuming and only as reliable as the actual model. *)
+    hardware systems %\cite[]{UCFV02}% . When used to verify systems, formal
+    verification can be thought as a mathematical proof of the correctness of a
+    design with respect to a formal specification. The actual system is
+    represented by a formal model and then the formal verification happens on
+    the model, based on the required specifications of the system. Unlike
+    testing, formal verification is exhaustive. However, it is difficult to make
+    for real-world systems, time consuming and only as reliable as the actual
+    model. *)
 
 
 (** ** Verifying Theories *)
 
 (** Formal verification is also used in to prove theorems. These theorems could
-    be related to a computing system or just to abstract mathematical 
-    theorems. Mathematical theorems that have been proven using a proof assistant
-    include the Four-Color theorem and the Feit-Thompson theorem. 
-    As in proving systems, when proving theorems one also needs a
-    formal logic to formulate the theorem and prove it. A formal logic consists
-    of a formal languge to express the theorems, a collection of formulas called
-    axioms and inference rules to derive new axioms based on existing ones. A
-    theorem to be proven could be in a logical form, like DeMorgan's Law or it
-    could in another mathematical area; in trigonometry for example, it could be
-    useful to prove that $sin(x + y) = sin(x) \ast cos(y) + cos(x) \ast sin(y)$,
-    formally, because that proof could be used as building block in a more
-    complex system. Sometimes proving the correctness of a real world systems
-    boils down to verifying mathemetical proofs like the previous one, so the
-    two approaches are often linked together. *)
+    be related to a computing system or just to abstract mathematical theorems.
+    Mathematical theorems that have been proven using a proof assistant include
+    the Four-Color theorem and the Feit-Thompson theorem. As in proving systems,
+    when proving theorems one also needs a formal logic to formulate the theorem
+    and prove it. A formal logic consists of a formal languge to express the
+    theorems, a collection of formulas called axioms and inference rules to
+    derive new axioms based on existing ones. A theorem to be proven could be in
+    a logical form, like DeMorgan's Law or it could in another mathematical
+    area; in trigonometry for example, it could be useful to prove that
+    $sin(x + y) = sin(x) \ast cos(y) + cos(x) \ast sin(y)$, formally, because
+    that proof could be used as building block in a more complex system.
+    Sometimes proving the correctness of a real world systems boils down to
+    verifying mathemetical proofs like the previous one, so the two approaches
+    are often linked together. *)
 
 
 
@@ -257,7 +260,7 @@
     It follows that for any set of terms $u_{1}, ..., u_{n}, v_{1}, ..., v_{n}$,
     %\begin{gather*} u_{1} \approx_{B} v_{1}, ..., u_{n} \approx_{B} v_{n}
     \end{gather*}%
-    all hold if and only if the equatoins
+    all hold if and only if the equations
     %\begin{gather*} u_{1} + v_{1} + 1 \approx_{B} 1, ..., u_{n} + v_{n} + 1
     \approx_{B} 1 \end{gather*}%
     all hold, and this if and only if the single equation
@@ -412,7 +415,7 @@
     identities are implemented. Rather than writing axioms enabling these
     transformations, we chose to implement the addition and multiplication
     operations in such a way to ensure these rules hold true, as described in
-    _Term Rewriting_%\cite[]{baader1998rewriting}%. *)
+    _Term Rewriting_ %\cite[]{baader1998rewriting}%. *)
 
 (** %\textbf{Addition}% is performed by cancelling out all repeated occurrences
     of monomials in the result of appending the two lists together (i.e.,
