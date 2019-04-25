@@ -117,6 +117,7 @@ Fixpoint find_unifier (t : term) : option subst :=
                  | _ => false
                  end) (all_01_substs (term_unique_vars t)).
 
+(** ** Lowenheim's Main Function *)
 
 (** Here is the main Lowenheim's formula; given a term, produce an MGU (a most
     general substitution that when applied on the input term, it makes it
