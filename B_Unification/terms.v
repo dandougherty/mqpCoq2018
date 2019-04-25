@@ -28,10 +28,9 @@ Import ListNotations.
 (** ** Definitions **)
 
 (** We shall now begin describing the rules of Boolean arithmetic as well as the
-    nature of Boolean equations. For simplicity's sake, from now on we shall be
-    referring to equations as terms. *)
+    nature of Boolean equations. *)
 
-(**  Define a variable to be a natural number *)
+(** Define a variable to be a natural number *)
 
 Definition var := nat.
 

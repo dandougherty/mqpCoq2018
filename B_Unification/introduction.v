@@ -266,8 +266,7 @@
     holds, or in other words
     %\begin{gather*} (u_{1} + v_{1} + 1) \ast ... \ast (u_{n} + v_{n} + 1) + 1
     \approx_{B} 0 \end{gather*}%
-    holds.
-    Thus a problem
+    holds. Thus a problem
     %\begin{gather*} s_{1} \stackrel{?}{\approx}_{B} t_{1}, ..., s_{n}
     \stackrel{?}{\approx}_{B} t_{n} \end{gather*}%
     is solvable by the same substitutions as the problem
