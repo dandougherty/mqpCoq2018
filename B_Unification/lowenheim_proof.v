@@ -11,7 +11,6 @@
 
 Require Export lowenheim_formula.
 
-
 Require Import List.
 Import ListNotations.
 Require Export EqNat.
@@ -745,21 +744,21 @@ Qed.
 Lemma None_not_Some {T U: Type} (f : U -> option T) (x: U):
   (f x) = None -> (forall (t: T), ~ (f x) = Some t).
 Proof.
-  intros H1 H2 H3.
+  intros.
   congruence.
 Qed.
 
 Lemma Some_not_None {T U: Type} (f : U -> option T) (x: U) (t: T):
   (f x) = Some t -> ~ (f x = None).
 Proof.
-  intros H1 H2.
+  intros.
   congruence.
 Qed.
 
 Lemma not_None_Some {T U: Type} (f : U -> option T) (x: U) :
   ~ (f x = None) -> exists t : T, f x = Some t.
 Proof.
-  intros H.
+  intros .
   destruct (f x) as [t | ].
   - exists t; easy.
   - congruence.
@@ -769,7 +768,7 @@ Lemma not_Some_None {T U: Type} (f : U -> option T) (x: U) :
  ( ~ exists t : T, f x = Some t) -> f x = None.
 Proof.
   apply contrapositive_opposite.
-  intros H.
+  intros.
   apply not_None_Some in H.
   tauto.
 Qed.
@@ -778,18 +777,18 @@ Lemma existsb_find {T: Type} (f: T -> bool) (l : list T) :
   existsb f l = true ->
   exists (a: T), find f l = Some a.
 Proof.
-  intros H.
+  intros .
   apply NNPP.
   intros H1.
   apply not_Some_None in H1.   
-  assert (A1:= find_none f l).  
-  assert (A2:= A1 H1).
-  assert (A3:= existsb_exists f l).
-  destruct A3 as [A31 A32].
-  assert (A4:= A31 H).
-  destruct A4 as [t A41]. destruct A41 as [A411 A412].
-  assert (A21:= A2 t A411).
-  rewrite A412 in A21.
+  assert (S1:= find_none f l).  
+  assert (S2:= S1 H1).
+  assert (S3:= existsb_exists f l).
+  destruct S3 as [S31 S32].
+  assert (S4:= S31 H).
+  destruct S4 as [t S41]. destruct S41 as [S411 S412].
+  assert (S21:= S2 t S411).
+  rewrite S412 in S21.
   congruence.
 Qed.
 
