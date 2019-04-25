@@ -174,7 +174,7 @@
     It should be noted that although solvable problem of Boolean unification
     produce a single mgu, semantic unification problems in general can have
     zero, multiple, or infinitely many mgu's
-    $\cite[p.~226]{baader1998rewriting}$. *)
+    %\cite[p.~226]{baader1998rewriting}%. *)
 
 
 (** ** Syntatic Unification *)
@@ -245,16 +245,36 @@
     the axioms of ring theory with the addition of $x + x \approx_{B} 0$ and
     $x \ast x \approx_{B} x$. *)
 
-(** Although a unification problem was already defined as a set of equations
-    between two terms, problems of Boolean unification can be viewed as just a
-    single equation $t \stackrel{?}{\approx}_{B} 0$. If a substitution $\sigma$
-    unifies a problem of the form %\begin{gather*} \{s_{1}
-    \stackrel{?}{\approx}_{B} t_{1}, ..., s_{n} \stackrel{?}{\approx}_{B} t_{n}
-    \}, \end{gather*}% then $\sigma$ also unifies an equivalent problem of the
-    form %\begin{gather*} \{(s_{1} + t_{1} + 1) \ast ... \ast
-    (s_{n} + t_{n} + 1) + 1 \stackrel{?}{\approx}_{B} 0\},\end{gather*}% as
-    proven later in section 2.6. This fact allows both developments to use the
-    simpler $t \stackrel{?}{\approx}_{B} 0$ description of a problem. *)
+(** Although a unification problem was defined as a set of equations between two
+    terms, problems of Boolean unification can be viewed as just a single
+    equation $t \stackrel{?}{\approx}_{B} 0$. To see this, first note that for
+    any terms [u] and [v] we have
+    %\begin{gather*} u \approx_{B} v \quad\text{if and only if}\quad u + v
+    \approx_{B} 0. \end{gather*}%
+    We also have that for any term [w]
+    %\begin{gather*} w \approx_{B} 0 \quad\text{if and only if}\quad w + 1
+    \approx_{B} 1. \end{gather*}%
+    It follows that for any set of terms $u_{1}, ..., u_{n}, v_{1}, ..., v_{n}$,
+    %\begin{gather*} u_{1} \approx_{B} v_{1}, ..., u_{n} \approx_{B} v_{n}
+    \end{gather*}%
+    all hold if and only if the equatoins
+    %\begin{gather*} u_{1} + v_{1} + 1 \approx_{B} 1, ..., u_{n} + v_{n} + 1
+    \approx_{B} 1 \end{gather*}%
+    all hold, and this if and only if the single equation
+    %\begin{gather*} (u_{1} + v_{1} + 1) \ast ... \ast (u_{n} + v_{n} + 1)
+    \approx_{B} 1 \end{gather*}%
+    holds, or in other words
+    %\begin{gather*} (u_{1} + v_{1} + 1) \ast ... \ast (u_{n} + v_{n} + 1) + 1
+    \approx_{B} 0 \end{gather*}%
+    holds.
+    Thus a problem
+    %\begin{gather*} s_{1} \stackrel{?}{\approx}_{B} t_{1}, ..., s_{n}
+    \stackrel{?}{\approx}_{B} t_{n} \end{gather*}%
+    is solvable by the same substitutions as the problem
+    %\begin{gather*} (s_{1} + t_{1} + 1) \ast ... \ast (s_{n} + t_{n} + 1) + 1
+    \stackrel{?}{\approx}_{B} 0. \end{gather*}%
+    This fact allows both developments to use the simpler
+    $t \stackrel{?}{\approx}_{B} 0$ description of a problem. *)
 
 
 
