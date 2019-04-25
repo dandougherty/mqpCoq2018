@@ -806,12 +806,15 @@ Qed.
     section is a seemingly simple, but in reality very complex lemma; the
     [unif_some_subst] lemma states that if there is any unifier [sig1] for a
     term _t_ then there exists a unifier [sig2] which is returned by our
-    [find_unifier] function. *)
+    [find_unifier] function.
+    *)
 
-(** Due to lack of time, out team did not manage to prove these last five
+(** Due to lack of time, our team did not manage to prove these last five
     lower-level lemmas used in the proof of [unif_some_subst], and since they
-    are all used only in the proof of that lemma lemmas, we decided to put them
-    together here in this subsection. *)
+    are all used only in the proof of that lemma, we decided to put them
+    together here in this subsection, along with everything else that is used 
+    for the proof of that lemma. 
+    *)
 
 (** *** Utilities Used in This Subsection *)
 
@@ -820,7 +823,8 @@ Qed.
 
 (** This is a lemma that states that sequentially applying two substitutions on
     a term produces the same term as applying the composed subtitutions on the
-    term. *)
+    term. 
+    *)
 
 Lemma subst_compose_eqv : forall (t : term) (sig1 : subst) (sig2 : subst),
   apply_subst t (subst_compose sig1 sig2) ==
@@ -838,7 +842,8 @@ Admitted.
     it is also a ground term then simplifying it gives a term exactly equal to
     [T0]. This intitutively follows from the fact that since _t_ is a ground
     term then all its terms are either [T0] or [T1] and since it is equivalent
-    to [T0], simplifying it will also give a single final ground term [T0]. *)
+    to [T0], simplifying it will also give a single final ground term [T0]. 
+    *)
 
 Lemma simplify_eq_T0 : forall (t : term),
   t == T0 /\ (is_ground_term t) = true ->
@@ -862,14 +867,16 @@ Lemma unif_some_subst : forall (t: term),
 (** *** Lower Level Lemmas Leading Up to the Proof of [unif_some_subst] *)
 
 (** In this sub-chapter we are providing the most important lower-level lemmas
-    leading up to the proof of the [unif_some_subst] lemma. *)
+    leading up to the proof of the [unif_some_subst] lemma. 
+    *)
 
 (** To accomplish the goal of providing the infrastructure to prove the
     [unif_some_subst] lemma, we are defining a number of functions and lemmas
     that are used in the proof of the [unif_some_subst]. We are focusing on
     connecting the concept of a "01" subtitution with any given substitution. We
     are attempting to create a "01" substitution given any input substitution,
-    and then prove facts about the new "01" substitution. *)
+    and then prove facts about the new "01" substitution. 
+    *)
 
 (** The basic outline of the proof is as follows : From any unifier [sig1] of
     term _t_ we can create a "01" unifier [sig2], as the one defined in the
@@ -881,7 +888,8 @@ Lemma unif_some_subst : forall (t: term),
 (** As it follows, the lower part of this proof is (1) creating a "01" unifier
     [sig2] from a given given unifier of _t_ [sig1] (2) proving that the new
     "unifier" is actually a unifier and proving that it is actually a "01"
-    substitution. *)
+    substitution. 
+    *)
 
 (** All the following functions are defined in order to create a final function
     that is able to produce a "01" unifier [sig2] given a unifier [sig1]. The
@@ -897,7 +905,8 @@ Lemma unif_some_subst : forall (t: term),
     replacement is one variable found in the initial [v] mapped to the ground
     term [T0]. So for example suppose our [sig1] included the replacement
     [(v, x + y + T1)]; we then create the new replacements [(x, T0)] and
-    [(y, T0)]. *)
+    [(y, T0)]. 
+    *)
 
 (** The total final list of all the new replacements is the substitution
     [sig1b]. As we want to cover for all edge cases, we have created a slightly
@@ -910,10 +919,12 @@ Lemma unif_some_subst : forall (t: term),
 
     After composing [sig1b] with [sig1] we get [sig2] which intuitively is a
     "01" unifier. But it is harder to prove than claim it of course, that is why
-    we have put all the admitted lemmas of this proofs here. *)
+    we have put all the admitted lemmas of this proofs here. 
+    *)
 
 (** This is a function to build a [T0 subst], a subtitution that maps each
-    variable to [T0], given an input list of variables. *)
+    variable to [T0], given an input list of variables. 
+    *)
 
 Definition build_T0_subst (lvar : list var) : subst :=
   map (fun v => (v, T0)) lvar.
@@ -928,14 +939,16 @@ Definition build_T0_subst_from_t (t : term) : subst :=
     function that does the following: 1) Given any substituion, it produces a
     "01" substitution building off the given substitution. 2) It does that by
     composing two substitutions [s1] and [s1b] into a new one, [s2]. 3) It
-    creates [s1b] from [s1]. [s1b] is a "01" unifier and so is [s2]. *)
+    creates [s1b] from [s1]. [s1b] is a "01" unifier and so is [s2]. 
+    *)
 
 (** Here is the function to create the [s1b] "01" substitution, by mapping all
     the second parts of each replacement of the substitution using the following
     rules: 1) All the variables of non-ground terms are mapped to [T0] and all
     ground terms are mapped to their simplified "01" version. Therefore the
     substitution occuring from this function is a "01" subtitutition,
-    intuitively. *)
+    intuitively. 
+    *)
 
 Fixpoint make_unif_subst (tau : subst) : subst :=
  match tau with
@@ -950,7 +963,8 @@ end.
     of the [lvar] list input that are not in [lvar_s] list input. The [lvar_s]
     list input is supposedly the list with the variables of a subtitution and we
     are trying eventually to augment the substitution with and identity
-    subtitution. *)
+    subtitution. 
+    *)
 
 Fixpoint augment_with_id (lvar_s : list var) (lvar : list var) : subst :=
   match lvar with
@@ -974,12 +988,14 @@ Definition add_id_subst (t : term) (tau : subst) : subst :=
     future comments there is a reference to a [convert_to_01_subst], what is
     meant is essentially the composition of the [make_unif_subst] substitution
     and the input subsitution [tau] - or the resulting substitution [s2], by
-    composing [s1] and [s1b]. *)
+    composing [s1] and [s1b]. 
+    *)
 
 (** In this function, [sig1b] is the (make_unif_subst (add_id_subst t tau)),
     [sig1] is the (add_id_subst t tau), [tau] is the original input unifier and
     [sig2] is the result of this function which basically composes [sig1b] with
-    [sig1]. *)
+    [sig1]. 
+    *)
 
 Definition convert_to_01_subst (tau : subst) (t : term) : subst :=
   subst_compose (make_unif_subst (add_id_subst t tau)) (add_id_subst t tau).
@@ -992,10 +1008,12 @@ Definition convert_to_01_subst (tau : subst) (t : term) : subst :=
     section, these lemmmas are very important for the intermediate lemmas
     section where in the [unifiable t] case we are trying to prove that when
     there exists any substitution for a term _t_, then there exists a "01"
-    substitution; the [unif_some_subst] lemma. *)
+    substitution; the [unif_some_subst] lemma. 
+    *)
 
 (** This is an intuitive lemma that states that adding an identity subsitution
-    to an existing unifier of a term gives also a unifier. *)
+    to an existing unifier of a term gives also a unifier. 
+    *)
 
 Lemma add_id_unf : forall (t : term) (sig1 : subst),
   unifier t sig1 ->
@@ -1014,7 +1032,8 @@ Admitted.
 (** This lemma states two facts, given a term _t_ and a unifier [sig1] of _t_:
     1) The [convert_to_01_subst] substitution is also a unifier. 2) Applying the
     [convert_to_01_subst] substitution on the term results in a term that is
-    ground. *)
+    ground. 
+    *)
 
 Lemma unif_grnd_unif : forall (t : term) (sig1 : subst),
   unifier t sig1 ->
@@ -1045,7 +1064,8 @@ Proof.
 Admitted.
 
 (** Here is a specialized format of the [_01_in_all] lemma. Instead of [l1] we
-    have [term_unique_vars t]. *)
+    have [term_unique_vars t]. 
+    *)
 
 Lemma _01_in_rec : forall (t : term) (sig : subst),
   is_01_subst sig = true /\
@@ -1062,7 +1082,8 @@ Qed.
 (** Here is a lemma to show that given a unifier [sig1] of _t_, then the
     [convert_to_01_subst] subtitution is a "01" subst and also the variables of
     term _t_ are a subset of the domain of the [convert_to_01_subst]
-    substitution. *)
+    substitution. 
+    *)
 
 Lemma make_unif_is_01 : forall (t : term) (sig1 : subst),
   unifier t sig1 ->
@@ -1080,7 +1101,8 @@ Admitted.
     a substitution [sig2] that 1) belongs to all the "01" substitutions of term
     _t_ and it also unifies _t_, by making _t_ equal to [T0] when applied on it
     (it is equal, not just equivalent because we want [sig2] to be a ground
-    substitution too). *)
+    substitution too).
+    *)
 
 Lemma unif_exists_grnd_unif : forall (t : term) (sig1 : subst),
   unifier t sig1 ->
