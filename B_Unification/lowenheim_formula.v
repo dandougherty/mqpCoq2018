@@ -93,7 +93,7 @@ Definition term_is_T0 (t : term) : bool :=
     is the inductive [option {A:type}] that can be attached to any type; in our
     case it is [option subst]. *)
 
-(** Our Lownheim builder works when we provide an already existing unifier of
+(** Our Lowenheim builder works when we provide an already existing unifier of
     the input term _t_. For our implementation to be complete we need to be able
     to generate that initial unifier ourselves. That is why we first need to
     define a function to find all possible "01" substitutions (substitutions
@@ -134,7 +134,7 @@ Definition Lowenheim_Main (t : term) : option subst :=
 
 (** * Lowenheim's Functions Testing *)
 
-(** In this subsection we explore ways to test the correctness of our Lownheim's
+(** In this subsection we explore ways to test the correctness of our Lowenheim's
     functions on specific inputs. *)
 
 (** Here is a function to test the correctness of the output of the
